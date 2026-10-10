@@ -128,9 +128,11 @@ class NativeManualTradeInstrumentedTest {
         vault.createMember(FamilyMember(owner, "Primary", "Self", true))
         vault.createHolding(holding.copy(quantity = QuantityScaled(200_000_000L)))
         assertThrows(IllegalArgumentException::class.java) {
-            ManualTradePlanner.prepare(vault.readBook(), ManualTradeDraft(
-                holding.id, ManualTradeKind.SELL, "2026-10-01", "1", "100",
-            ), "synthetic-unbacked-sell", asOf)
+            runBlocking {
+                ManualTradePlanner.prepare(vault.readBook(), ManualTradeDraft(
+                    holding.id, ManualTradeKind.SELL, "2026-10-01", "1", "100",
+                ), "synthetic-unbacked-sell", asOf)
+            }
         }
         assertTrue(vault.events().isEmpty())
     }
