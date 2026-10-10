@@ -44,6 +44,7 @@ import `in`.growurdhan.app.presentation.screens.CustodyHoldingScreen
 import `in`.growurdhan.app.presentation.screens.FamilyMemberScreen
 import `in`.growurdhan.app.presentation.screens.HomeScreen
 import `in`.growurdhan.app.presentation.screens.PortfolioScreen
+import `in`.growurdhan.app.presentation.screens.ManualTradeScreen
 import `in`.growurdhan.app.presentation.screens.InsightsScreen
 import `in`.growurdhan.app.presentation.screens.StatementReviewScreen
 import `in`.growurdhan.app.presentation.screens.PrivacyScreen
@@ -69,6 +70,7 @@ private const val FAMILY_ROUTE = "family"
 /** Secondary secure registrar/holding setup route, not an extra bottom tab. */
 private const val CUSTODY_ROUTE = "custody"
 private const val RECOVERY_ROUTE = "recovery"
+private const val MANUAL_TRADE_ROUTE = "manual-trade"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,6 +89,8 @@ fun GrowUrDhanShell(
     onCustodyIntent: (CustodyHoldingIntent) -> Unit = {},
     recoveryState: PortableRecoveryUiState = PortableRecoveryUiState.Empty,
     onRecoveryIntent: (PortableRecoveryIntent) -> Unit = {},
+    manualTradeState: ManualTradeUiState = ManualTradeUiState.Locked,
+    onManualTradeIntent: (ManualTradeIntent) -> Unit = {},
 ) {
     val controller = rememberNavController()
     val currentBackStackEntry by controller.currentBackStackEntryAsState()
@@ -176,6 +180,7 @@ fun GrowUrDhanShell(
                             onOpenVault = { navigate(VAULT_ROUTE) },
                             onRefresh = onDashboardRefresh,
                             onManageHoldings = { navigate(CUSTODY_ROUTE) },
+                            onRecordTrade = { navigate(MANUAL_TRADE_ROUTE) },
                         )
                     }
                     composable(MainDestination.INSIGHTS.route) {
@@ -239,6 +244,20 @@ fun GrowUrDhanShell(
                                 onCustodyIntent(CustodyHoldingIntent.Cancel)
                                 onReviewIntent(StatementReviewIntent.LoadOwners)
                                 navigate(MainDestination.REVIEW.route)
+                            },
+                        )
+                    }
+                    composable(MANUAL_TRADE_ROUTE) {
+                        LaunchedEffect(Unit) {
+                            onManualTradeIntent(ManualTradeIntent.Refresh)
+                        }
+                        ManualTradeScreen(
+                            state = manualTradeState,
+                            onIntent = onManualTradeIntent,
+                            onReturn = {
+                                onManualTradeIntent(ManualTradeIntent.Cancel)
+                                onDashboardRefresh()
+                                navigate(MainDestination.PORTFOLIO.route)
                             },
                         )
                     }

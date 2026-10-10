@@ -55,3 +55,16 @@ app-password login parity, full transaction editing, Gmail OAuth, NPS import,
 official price refresh, Google Play billing, independent AppSec audit or
 physical-device signoff. Nothing in this repository should be called
 commercially ready until those gates have evidence.
+
+## Current consolidated development increment
+
+The new native Portfolio flow includes manually reviewed BUY/SELL entry
+through fresh Android device credential approval, with final lot/book
+revalidation and append-only SQLCipher insertion under one transaction.
+Offline Gmail attachment staging, dated official market quotes and Play
+purchase-validation contracts are also present, but **their provider
+integrations are not enabled**. Production AAB signing is blocked pending
+owner-approved SHA-bound release evidence and independent signoff.
+
+See [Milestone 22](docs/native-migration/22-E2-E4-MANUAL-TRADE-SECURE-STAGING-RELEASE-GATE.md).
+The next step is the **separate deliberate GitHub build and regression run**.

@@ -50,6 +50,7 @@ def repository_binding_errors(binding: str) -> list[str]:
         "registerCasHolding": "approvedWrite { delegate.registerCasHolding(",
         "appendEvent": "approvedWrite { delegate.appendEvent(",
         "appendFinancialEvents": "approvedWrite { delegate.appendFinancialEvents(",
+        "commitManualTrade": "approvedWrite { delegate.commitManualTrade(",
         "importSnapshot": "approvedWrite { delegate.importSnapshot(",
         "prepareStatementReview": "sessionBound.read {",
         "commitReviewedStatement": "approvedWrite { delegate.commitReviewedStatement(",
@@ -111,6 +112,7 @@ def ui_publication_guard_errors(sources: dict[str, str]) -> list[str]:
         "FamilyMemberViewModel.kt": ("originalRevision", 2),
         "CustodyHoldingViewModel.kt": ("originalRevision", 2),
         "PortableRecoveryViewModel.kt": ("authenticatedRevision", 2),
+        "ManualTradeViewModel.kt": ("revision", 6),
     }
     errors = []
     for file, (revision, count) in required.items():
@@ -190,6 +192,29 @@ def main() -> int:
 
     activity = read("android-native/app/src/main/java/in/growurdhan/app/MainActivity.kt")
     ensure("FLAG_SECURE" in activity, "FLAG_SECURE screenshot defense is missing.")
+    ensure("CredentialAction.APPROVE_MANUAL_TRADE" in activity and
+           "manualTradeViewModel.onIntent(ManualTradeIntent.SaveAfterCredential)" in activity and
+           "ManualTradeIntent.SaveAfterCredential -> Unit" in activity,
+           "Manual finance records must have an OS-only approval callback.")
+    trades = read(
+        "android-native/app/src/main/java/in/growurdhan/app/presentation/ManualTradeViewModel.kt")
+    ensure("session.isCurrentApproval(revision)" in trades and
+           "vault.readBook()" in trades and
+           "current == pending.plan" in trades and
+           "vault.commitManualTrade(pending.draft, current)" in trades,
+           "Manual financial write must revalidate draft, original approval and latest book.")
+    ensure("override suspend fun commitManualTrade(" in binding and
+           "mutate { db ->" in binding and
+           "current == reviewed" in binding and
+           "insertLedgerRow(db, mapFinancialEvent(current.event))" in binding,
+           "Manual trade must compare and insert inside one SQLCipher transaction.")
+    planner = read(
+        "android-native/domain/src/main/kotlin/in/growurdhan/domain/finance/ManualTradePlanner.kt")
+    ensure("LotEngine.fold" in planner and
+           'holding.assetCategory != "LIABILITY"' in planner and
+           "book.members.singleOrNull" in planner and
+           "BigInteger.valueOf(quantity)" in planner,
+           "Manual transaction planner must verify ownership, lots and exact money arithmetic.")
     ensure("isDeviceSecure" in activity and "createConfirmDeviceCredentialIntent" in activity,
            "OS credential confirmation is missing.")
     ensure("sessionGate.lock()" in activity, "Activity fails to invalidate expired authorization.")
@@ -220,7 +245,7 @@ def main() -> int:
         "VaultSessionGate.kt", "VaultViewModel.kt",
         "HouseholdDashboardViewModel.kt", "StatementReviewViewModel.kt",
         "FamilyMemberViewModel.kt", "CustodyHoldingViewModel.kt",
-        "PortableRecoveryViewModel.kt",
+        "PortableRecoveryViewModel.kt", "ManualTradeViewModel.kt",
     )
     errors.extend(ui_publication_guard_errors({
         name: read(presentation + name) for name in ui_files

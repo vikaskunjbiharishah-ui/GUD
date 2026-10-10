@@ -67,3 +67,17 @@ by this addendum. No feature is marked release accepted from source alone.
 The new `main` repository keeps the full legacy code and original tests for
 reference without altering their source branches. Only the consolidated
 native milestone and the budget-controlled workflow configuration are new.
+
+## Incremental E2–E4 evidence register (2026-10-10, GUD/main)
+
+| ID | Added files and behavior | Remaining gate |
+| --- | --- | --- |
+| F03 | `domain/finance/ManualTradePlanner.kt`, `app/presentation/ManualTradeViewModel.kt`, `screens/ManualTradeScreen.kt`, atomic `VaultRepository.commitManualTrade` and SQLCipher implementation; synthetic JVM, Compose and encrypted Android test cases | Current-commit Gradle/emulator execution, physical device acceptance, correction/disposal fee parity and complete transaction editing |
+| F07 | `domain/mail/MailAttachmentIntakePolicy.kt`: multi-mailbox family links, bounded duplicates, verified-owner quarantine | Actual Google OAuth, verification/consent, token security, WorkManager scheduling, attachment download and on-device CAS parser integration |
+| F09 | `domain/market/OfficialQuotePolicy.kt`: exact identity, official-source and quote-date/stale contract | NSE/BSE/AMFI network adapters, local cache schema, source validity and market data terms |
+| F10 | `domain/commercial/PlayEntitlementPolicy.kt`: fail-closed state/freshness/acknowledgement policy | Product registration, Play Billing client, trusted purchase verification, test purchases, serverless licensing threat model |
+| F12/F15 | `app/screens/SettingsScreen.kt` release honesty notice; `scripts/release_gate.py`, `native-signed-aab.yml` SHA-and-document release evidence gate | Owner-supplied legal terms, independent AppSec report, signing secrets, accessible physical-device testing |
+
+**Status: source staged / build pending** for all new additions. A policy
+class is not a working external integration and does not satisfy feature
+parity. No external account connection or network permission was introduced.

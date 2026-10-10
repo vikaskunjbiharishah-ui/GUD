@@ -48,6 +48,10 @@ jobs:
             echo "::error::Development versionName must be replaced by an approved release version."
             exit 1
           fi
+      - name: Enforce exact-commit owner release evidence
+        env:
+          APPROVED_COMMIT_SHA: ${{ inputs.approved_commit_sha }}
+        run: python3 android-native/scripts/release_gate.py "$APPROVED_COMMIT_SHA"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

@@ -394,3 +394,54 @@ real ARM64 CASParser/PDFium behavior, standalone GrowUrDhan login,
 Gmail OAuth sync, NPS support, live market prices, paid licences and a
 production Play-signed AAB. These are **open E2/E3/E4 delivery gates** and
 must not be described as fully implemented or commercially accepted.
+
+## E2–E4 integrated native scope after manual-trade and release-gate staging (2026-10-10)
+
+The isolated `GUD/main` milestone implements a **real, protected manual
+BUY/SELL workflow** for enrolled non-liability holdings. Portfolio navigation
+opens a Compose form, requires exact date/quantity/INR amounts, shows the
+full financial review, and asks Android to confirm a new device credential
+before any write. It rejects future dates, excessive precision, unowned
+holdings, CAS-only quantity masquerading as verified acquisition lots,
+over-selling and historical lot errors. The newest book is checked again in
+the same SQLCipher transaction and lock as the append-only insert; competing
+edits invalidate a staged review. The repository's existing transaction
+authentication and credential-revision checks remain in force. The UI also
+shows the twenty latest recorded entries; it is not a full audit export.
+
+**E3 safe staging contract (not a live Gmail connection):**
+`domain/mail/MailAttachmentIntakePolicy.kt` models separate mailbox IDs
+and many-to-many family links, caps discovery/download sizes, rejects
+duplicates, and quarantines documents without independently verified exact
+financial-account ownership. Sender, filename and mailbox alone are never
+authorization evidence. It does not handle OAuth tokens, request Gmail
+scopes, schedule WorkManager tasks or parse attachments. Gmail consent
+review remains external and security-sensitive.
+
+**E2 market quote contract (not a live price refresh):**
+`domain/market/OfficialQuotePolicy.kt` requires explicit NSE/BSE/AMFI
+provenance, positive scaled prices, an exact identifier match and a dated
+as-of/age classification. It does not fetch, cache or silently update holding
+prices.
+
+**E4 commercial entitlement contract (not active Play Billing):**
+`domain/commercial/PlayEntitlementPolicy.kt` refuses unverified, pending,
+unacknowledged, expired or unrelated purchase observations. A separately
+verified lifetime entitlement is required before support entitlement applies.
+No trusted Play purchase verification adapter, trial activation or paid UI
+is enabled: treating a caller-controlled `verifiedByTrustedProvider` field
+as real verification would be insecure.
+
+**Production release must still remain blocked:** The manual
+`native-signed-aab.yml` workflow additionally runs
+`android-native/scripts/release_gate.py`, which requires a matching exact
+commit, owner-accepted evidence files and SHA-256 checks for all outstanding
+product, legal, device and independent AppSec gates. No acceptance manifest
+is installed by development; test approval fixtures do not count.
+This evidence gate is a paperwork/integrity preflight, **not** a substitute
+for an audit or Play provider-side signature verification.
+
+**Verification:** new domain JUnit, ViewModel MockK, Compose and real
+SQLCipher Android instrumentation tests are staged for the next deliberate
+GitHub regression run. They are not current-commit PASS results. The frozen
+CASPARSER, legacy React/Tauri books and old GitHub branches were not altered.

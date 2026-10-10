@@ -59,6 +59,31 @@ class PortfolioInsightsShellTest {
         ),
     )
 
+    @Test fun portfolioTradeNavigationDoesNotSkipLockedStateOrCredential() {
+        var lastIntent: ManualTradeIntent? = null
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, false)) {
+                GrowUrDhanShell(
+                    state = AppUiState(),
+                    onIntent = {},
+                    dashboardState = HouseholdDashboardUiState.Ready(syntheticDashboard),
+                    manualTradeState = ManualTradeUiState.Locked,
+                    onManualTradeIntent = { lastIntent = it },
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Portfolio").performClick()
+        compose.onNodeWithText("Record an explicit buy or sell")
+            .performScrollTo().performClick()
+        compose.onNodeWithText(
+            "Unlock the vault before recording a financial transaction.",
+        ).assertIsDisplayed()
+        compose.runOnIdle {
+            org.junit.Assert.assertEquals(ManualTradeIntent.Refresh, lastIntent)
+        }
+        compose.onNodeWithText("Confirm transaction with device lock").assertDoesNotExist()
+    }
+
     @Test fun portfolioFiltersHideUnmatchedRecordsWithoutEditingTotals() {
         compose.setContent {
             GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, false)) {

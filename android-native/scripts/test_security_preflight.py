@@ -131,12 +131,13 @@ class RepositoryPolicyRoutingTests(unittest.TestCase):
             "VaultSessionGate.kt", "VaultViewModel.kt",
             "HouseholdDashboardViewModel.kt", "StatementReviewViewModel.kt",
             "FamilyMemberViewModel.kt", "CustodyHoldingViewModel.kt",
-            "PortableRecoveryViewModel.kt",
+            "PortableRecoveryViewModel.kt", "ManualTradeViewModel.kt",
         )
         sources = {name: read(root + name) for name in names}
         self.assertEqual([], ui_publication_guard_errors(sources))
         for name in names[1:]:
             token = ("authenticatedRevision" if name == "PortableRecoveryViewModel.kt"
+                     else "revision" if name == "ManualTradeViewModel.kt"
                      else "originalRevision")
             mutant = sources.copy()
             mutant[name] = mutant[name].replace(
@@ -152,6 +153,41 @@ class RepositoryPolicyRoutingTests(unittest.TestCase):
             "isUnlocked()", 1,
         )
         self.assertTrue(ui_publication_guard_errors(mutant))
+
+    def test_manual_trade_must_require_device_challenge_and_checked_lots(self):
+        activity = read("android-native/app/src/main/java/in/growurdhan/app/MainActivity.kt")
+        self.assertIn("CredentialAction.APPROVE_MANUAL_TRADE", activity)
+        self.assertIn("ManualTradeIntent.SaveAfterCredential -> Unit", activity)
+        planner = read(
+            "android-native/domain/src/main/kotlin/in/growurdhan/domain/finance/ManualTradePlanner.kt"
+        )
+        self.assertIn("LotEngine.fold", planner)
+        self.assertIn('holding.assetCategory != "LIABILITY"', planner)
+        self.assertIn("BigInteger.valueOf(quantity)", planner)
+
+    def test_manual_trade_cannot_bypass_existing_guarded_write(self):
+        production = self.production
+        self.assertIn(
+            "approvedWrite { delegate.appendFinancialEvents(events) }", production
+        )
+        mutant = production.replace(
+            "approvedWrite { delegate.appendFinancialEvents(events) }",
+            "delegate.appendFinancialEvents(events)", 1,
+        )
+        self.assertTrue(any(
+            "appendFinancialEvents" in problem
+            for problem in repository_binding_errors(mutant)
+        ))
+
+    def test_atomic_manual_trade_cannot_bypass_recent_device_approval(self):
+        self.assertIn("approvedWrite { delegate.commitManualTrade(draft, reviewed) }",
+                      self.production)
+        mutant = self.production.replace(
+            "approvedWrite { delegate.commitManualTrade(draft, reviewed) }",
+            "delegate.commitManualTrade(draft, reviewed)", 1,
+        )
+        self.assertTrue(any("commitManualTrade" in issue
+                            for issue in repository_binding_errors(mutant)))
 
     def test_missing_repository_method_is_rejected(self):
         mutant = self.production.replace(

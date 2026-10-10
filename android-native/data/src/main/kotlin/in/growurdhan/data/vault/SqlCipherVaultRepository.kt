@@ -10,6 +10,9 @@ import dagger.hilt.components.SingletonComponent
 import `in`.growurdhan.core.model.*
 import `in`.growurdhan.domain.finance.FinancialEvent
 import `in`.growurdhan.domain.finance.FinancialEventKind
+import `in`.growurdhan.domain.finance.ManualTradeDraft
+import `in`.growurdhan.domain.finance.ManualTradePlan
+import `in`.growurdhan.domain.finance.ManualTradePlanner
 import `in`.growurdhan.domain.finance.ReviewedStatement
 import `in`.growurdhan.domain.finance.StatementLine
 import `in`.growurdhan.domain.finance.SnapshotReconciler
@@ -252,6 +255,25 @@ class SqlCipherVaultRepository(
         require(events.map { it.id }.distinct().size == events.size) { "Duplicate financial event IDs." }
         val mapped = events.map(::mapFinancialEvent)
         mutate { db -> for (event in mapped) insertLedgerRow(db, event) }
+    }
+
+    /**
+     * Revalidate against the live encrypted book inside the same SQLite
+     * transaction and repository mutex that inserts the one immutable row.
+     * This prevents a concurrent ledger change between preview and commit.
+     */
+    override suspend fun commitManualTrade(
+        draft: ManualTradeDraft, reviewed: ManualTradePlan,
+    ) {
+        mutate { db ->
+            val current = ManualTradePlanner.prepare(
+                readBookInsideTransaction(db), draft, reviewed.event.id,
+            )
+            check(current == reviewed) {
+                "Encrypted book changed after review; start a fresh trade."
+            }
+            insertLedgerRow(db, mapFinancialEvent(current.event))
+        }
     }
 
     private fun mapFinancialEvent(event: FinancialEvent): LedgerRow {
@@ -882,6 +904,9 @@ class DefaultVaultRepository @Inject constructor(
     }
     override suspend fun appendFinancialEvents(events: List<FinancialEvent>) {
         approvedWrite { delegate.appendFinancialEvents(events) }
+    }
+    override suspend fun commitManualTrade(draft: ManualTradeDraft, reviewed: ManualTradePlan) {
+        approvedWrite { delegate.commitManualTrade(draft, reviewed) }
     }
     override suspend fun importSnapshot(snapshot: StatementSnapshot): SnapshotResult {
         return approvedWrite { delegate.importSnapshot(snapshot) }

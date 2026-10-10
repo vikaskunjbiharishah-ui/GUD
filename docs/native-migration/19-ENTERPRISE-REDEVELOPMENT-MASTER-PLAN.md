@@ -1,7 +1,7 @@
 # GrowUrDhan Enterprise Redevelopment — Master Plan
 
 **Created:** 2026-10-09  
-**Implementation branch:** `GUD-Android-ChatGPT` (the only branch to change)  
+**Historical implementation branch:** `GUD-Android-ChatGPT`; **current isolated implementation target:** `vikaskunjbiharishah-ui/GUD` / `main` only.  
 **Functional reference:** `GUD-Android-Gmail` (read-only)  
 **Status:** Planning baseline; NOT a declaration of feature parity, commercial readiness, or security certification.
 
@@ -80,3 +80,21 @@ Each feature moves through: SOURCE VERIFIED → DESIGN APPROVED → IMPLEMENTED 
 ## Next implementation task
 
 Create `docs/native-migration/20-ENTERPRISE-FEATURE-PARITY-MATRIX.md` from actual source inspections, beginning with Gmail/NPS, portfolio dashboard, login, market prices, licences, settings and approved visual assets. Add path-level evidence and tests for each feature. Do not edit frozen parser or baseline branch.
+
+## Isolated GUD/main roadmap reality check (2026-10-10)
+
+The roadmap above is a multi-release delivery contract, **not** a single
+code-commit checkbox. See
+[Milestone 22](22-E2-E4-MANUAL-TRADE-SECURE-STAGING-RELEASE-GATE.md)
+for the source-linked implementation, tests and release-blocking dependencies.
+
+This milestone advances E2 with reviewed, atomic manual BUY/SELL, plus
+review-only Gmail intake, official-price provenance, Play entitlement
+decision policies and the production release-evidence gate.
+It does **not** deliver the entire E2/E3/E4 commercial roadmap.
+Native app-password parity, consented Gmail OAuth, WorkManager scheduling,
+NPS parser/device acceptance, trusted market network adapters, genuine
+Google Play verification, family vault migration and app licence restore
+are still not implemented end to end. Real Android/ARM64 device validation,
+legal acceptance and independent mobile AppSec signoff cannot be manufactured
+by source changes or synthetic tests.

@@ -4,6 +4,8 @@ import `in`.growurdhan.core.model.*
 import `in`.growurdhan.domain.finance.ReviewedStatement
 import `in`.growurdhan.domain.finance.StatementLine
 import `in`.growurdhan.domain.finance.FinancialEvent
+import `in`.growurdhan.domain.finance.ManualTradeDraft
+import `in`.growurdhan.domain.finance.ManualTradePlan
 
 /**
  * Financial mutations are serialized and committed as SQLite transactions.
@@ -32,6 +34,8 @@ interface VaultRepository {
     suspend fun appendEvent(event: LedgerEvent)
     /** Validated rich events are appended as one all-or-nothing financial transaction. */
     suspend fun appendFinancialEvents(events: List<FinancialEvent>)
+    /** Revalidate reviewed trade under the same SQLCipher write transaction. */
+    suspend fun commitManualTrade(draft: ManualTradeDraft, reviewed: ManualTradePlan)
     /** Refuse an incomplete statement before performing any database writes. */
     suspend fun importSnapshot(snapshot: StatementSnapshot): SnapshotResult
     /** A locked/read-consistent review receipt. Not an automatic financial import. */

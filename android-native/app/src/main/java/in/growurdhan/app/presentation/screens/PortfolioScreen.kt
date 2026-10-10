@@ -34,6 +34,7 @@ fun PortfolioScreen(
     onOpenVault: () -> Unit,
     onRefresh: () -> Unit,
     onManageHoldings: () -> Unit,
+    onRecordTrade: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -143,6 +144,9 @@ fun PortfolioScreen(
                             "Filters do not change family totals.",
                         style = MaterialTheme.typography.bodySmall,
                     )
+                }
+                Button(onClick = onRecordTrade) {
+                    Text("Record an explicit buy or sell")
                 }
                 OutlinedButton(onClick = onManageHoldings) {
                     Text("Manage family accounts and CAS holdings")

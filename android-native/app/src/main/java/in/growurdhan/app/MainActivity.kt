@@ -43,6 +43,9 @@ import `in`.growurdhan.app.presentation.PdfImportGuard
 import `in`.growurdhan.app.presentation.VaultViewModel
 import `in`.growurdhan.app.presentation.HouseholdDashboardViewModel
 import `in`.growurdhan.app.presentation.HouseholdDashboardUiState
+import `in`.growurdhan.app.presentation.ManualTradeViewModel
+import `in`.growurdhan.app.presentation.ManualTradeIntent
+import `in`.growurdhan.app.presentation.ManualTradeUiState
 import `in`.growurdhan.app.presentation.theme.GrowUrDhanTheme
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -64,8 +67,10 @@ class MainActivity : ComponentActivity() {
     private val familyViewModel: FamilyMemberViewModel by viewModels()
     private val custodyViewModel: CustodyHoldingViewModel by viewModels()
     private val recoveryViewModel: PortableRecoveryViewModel by viewModels()
+    private val manualTradeViewModel: ManualTradeViewModel by viewModels()
     private enum class CredentialAction {
-        OPEN_VAULT, APPROVE_REVIEW, IMPORT_PDF, ADD_FAMILY_MEMBER, REGISTER_CUSTODY, PORTABLE_BACKUP,
+        OPEN_VAULT, APPROVE_REVIEW, IMPORT_PDF, ADD_FAMILY_MEMBER, REGISTER_CUSTODY,
+        PORTABLE_BACKUP, APPROVE_MANUAL_TRADE,
     }
     private var pendingCredential: CredentialAction? = null
     private var pdfPickerOpen: Boolean = false
@@ -109,6 +114,8 @@ class MainActivity : ComponentActivity() {
                 CredentialAction.REGISTER_CUSTODY ->
                     custodyViewModel.onIntent(CustodyHoldingIntent.SaveAfterCredential)
                 CredentialAction.PORTABLE_BACKUP -> recoverAfterCredential()
+                CredentialAction.APPROVE_MANUAL_TRADE ->
+                    manualTradeViewModel.onIntent(ManualTradeIntent.SaveAfterCredential)
             }
         } else {
             // Device credential cancelled, removed, or otherwise not verified.
@@ -254,6 +261,7 @@ class MainActivity : ComponentActivity() {
             val familyState by familyViewModel.state.collectAsStateWithLifecycle()
             val custodyState by custodyViewModel.state.collectAsStateWithLifecycle()
             val recoveryState by recoveryViewModel.state.collectAsStateWithLifecycle()
+            val manualTradeState by manualTradeViewModel.state.collectAsStateWithLifecycle()
             androidx.compose.runtime.LaunchedEffect(reviewState) {
                 if (reviewState is StatementReviewUiState.Completed) {
                     dashboardViewModel.refresh()
@@ -279,6 +287,12 @@ class MainActivity : ComponentActivity() {
                     dashboardViewModel.refresh()
                 }
             }
+            androidx.compose.runtime.LaunchedEffect(manualTradeState) {
+                if (manualTradeState is ManualTradeUiState.Saved) {
+                    vaultViewModel.onIntent(VaultIntent.Refresh)
+                    dashboardViewModel.refresh()
+                }
+            }
             GrowUrDhanTheme(state.appearance) {
                 GrowUrDhanShell(
                     state = state,
@@ -300,6 +314,8 @@ class MainActivity : ComponentActivity() {
                     onCustodyIntent = ::handleCustodyIntent,
                     recoveryState = recoveryState,
                     onRecoveryIntent = ::handleRecoveryIntent,
+                    manualTradeState = manualTradeState,
+                    onManualTradeIntent = ::handleManualTradeIntent,
                 )
             }
         }
@@ -315,6 +331,7 @@ class MainActivity : ComponentActivity() {
             if (intent == VaultIntent.Close) {
                 dashboardViewModel.lock()
                 reviewViewModel.clearSensitiveState()
+                manualTradeViewModel.clearSensitiveState()
                 recoveryViewModel.clearSensitiveState()
             }
             vaultViewModel.onIntent(intent)
@@ -396,6 +413,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun handleManualTradeIntent(intent: ManualTradeIntent) {
+        when (intent) {
+            ManualTradeIntent.RequestApproval -> {
+                if (manualTradeViewModel.state.value !is ManualTradeUiState.AwaitingCredential ||
+                    !sessionGate.isUnlocked() ||
+                    vaultViewModel.state.value !is VaultUiState.Ready
+                ) {
+                    lockSensitiveUi()
+                    return
+                }
+                requestCredential(CredentialAction.APPROVE_MANUAL_TRADE)
+            }
+            ManualTradeIntent.SaveAfterCredential -> Unit // OS callback only
+            else -> manualTradeViewModel.onIntent(intent)
+        }
+    }
+
     private fun handleRecoveryIntent(intent: PortableRecoveryIntent) {
         when (intent) {
             PortableRecoveryIntent.SelectExportDestination -> {
@@ -466,6 +500,7 @@ class MainActivity : ComponentActivity() {
             CredentialAction.ADD_FAMILY_MEMBER -> "Add family member"
             CredentialAction.REGISTER_CUSTODY -> "Register financial account or holding"
             CredentialAction.PORTABLE_BACKUP -> "Protect portable backup and recovery"
+            CredentialAction.APPROVE_MANUAL_TRADE -> "Approve recorded buy or sell"
         }
         val explanation = when (action) {
             CredentialAction.OPEN_VAULT ->
@@ -480,6 +515,8 @@ class MainActivity : ComponentActivity() {
                 "Confirm your screen lock before enrolling this account or CAS holding."
             CredentialAction.PORTABLE_BACKUP ->
                 "Confirm your device screen lock before exporting or restoring encrypted records."
+            CredentialAction.APPROVE_MANUAL_TRADE ->
+                "Confirm the reviewed trade before adding an immutable ledger event."
         }
         val challenge = manager.createConfirmDeviceCredentialIntent(title, explanation)
         if (challenge == null) {
@@ -502,6 +539,7 @@ class MainActivity : ComponentActivity() {
         reviewViewModel.clearSensitiveState()
         familyViewModel.clearSensitiveState()
         custodyViewModel.clearSensitiveState()
+        manualTradeViewModel.clearSensitiveState()
         recoveryViewModel.clearSensitiveState()
         backupPassword?.fill('\u0000')
         backupPassword = null
@@ -537,6 +575,7 @@ class MainActivity : ComponentActivity() {
                 reviewViewModel.clearSensitiveState()
                 familyViewModel.clearSensitiveState()
                 custodyViewModel.clearSensitiveState()
+                manualTradeViewModel.clearSensitiveState()
                 vaultViewModel.onIntent(VaultIntent.Close)
             }
             pdfPickerOpen -> {
@@ -546,6 +585,7 @@ class MainActivity : ComponentActivity() {
                 reviewViewModel.clearSensitiveState()
                 familyViewModel.clearSensitiveState()
                 custodyViewModel.clearSensitiveState()
+                manualTradeViewModel.clearSensitiveState()
                 vaultViewModel.onIntent(VaultIntent.Close)
             }
             pendingCredential == null -> lockSensitiveUi()

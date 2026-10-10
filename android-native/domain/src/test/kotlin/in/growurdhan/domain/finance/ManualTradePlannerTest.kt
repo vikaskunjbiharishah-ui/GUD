@@ -1,0 +1,156 @@
+package `in`.growurdhan.domain.finance
+
+import `in`.growurdhan.core.model.*
+import java.time.LocalDate
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
+
+class ManualTradePlannerTest {
+    private val owner = OwnerId("owner")
+    private val holding = Holding(
+        HoldingId("fund"), owner, "registrar", "Synthetic index fund",
+        "MUTUAL_FUND", QuantityScaled(0), MoneyScaled(15_000),
+    )
+    private val member = FamilyMember(owner, "Primary", "Self", true)
+    private val today = LocalDate.parse("2026-10-10")
+    private val purchase = LedgerEvent(
+        "purchase", holding.id, owner, LedgerKind.BUY, "2026-09-01",
+        200_000_000L, MoneyScaled(300_000), null, MoneyScaled(15_000),
+    )
+    private fun book(events: List<LedgerEvent> = emptyList()) =
+        VaultBook(listOf(member), listOf(holding), events)
+    private fun draft(
+        kind: ManualTradeKind = ManualTradeKind.BUY,
+        date: String = "2026-10-10",
+        qty: String = "1.5",
+        price: String = "12.3456",
+        fees: String = "0",
+    ) = ManualTradeDraft(holding.id, kind, date, qty, price, fees)
+
+    @Test fun explicitBuyComputesExactScaledPrincipalAndCharges() {
+        val result = ManualTradePlanner.prepare(
+            book(), draft(fees = "1.0000"), "synthetic-event", today,
+        )
+        assertEquals(FinancialEventKind.BUY, result.event.kind)
+        assertEquals(150_000_000L, result.event.quantityScaled)
+        assertEquals(185_184L, result.gross.raw)
+        assertEquals(195_184L, result.cashAmount.raw)
+        assertEquals(owner, result.event.ownerId)
+        assertEquals("synthetic-event", result.event.id)
+    }
+
+    @Test fun validSellOnlyConsumesRecordedAcquisitionLots() {
+        val result = ManualTradePlanner.prepare(
+            book(listOf(purchase)),
+            draft(ManualTradeKind.SELL, qty = "1", price = "17", fees = "0.25"),
+            "sale", today,
+        )
+        assertEquals(FinancialEventKind.SELL, result.event.kind)
+        assertEquals(-100_000_000L, result.event.quantityScaled)
+        assertEquals(170_000L, result.gross.raw)
+        assertEquals(167_500L, result.cashAmount.raw)
+    }
+
+    @Test fun casQuantityWithoutPurchasesCannotBeSoldWithUnknownCost() {
+        val recordedOnly = holding.copy(quantity = QuantityScaled(200_000_000L))
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book().copy(holdings = listOf(recordedOnly)),
+                draft(ManualTradeKind.SELL), "sale", today)
+        }
+    }
+
+    @Test fun preventsOversellingAndBackdatedDisposal() {
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book(listOf(purchase)),
+                draft(ManualTradeKind.SELL, qty = "3"), "oversell", today)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book(listOf(purchase)),
+                draft(ManualTradeKind.SELL, date = "2026-08-01", qty = "1"),
+                "backdated", today)
+        }
+    }
+
+    @Test fun rejectsCrossOwnerUnknownAndLiabilityHoldings() {
+        val stranger = holding.copy(ownerId = OwnerId("stranger"))
+        val liability = holding.copy(assetCategory = "LIABILITY")
+        for (bad in listOf(stranger, liability)) {
+            assertThrows(IllegalArgumentException::class.java) {
+                ManualTradePlanner.prepare(book().copy(holdings = listOf(bad)),
+                    draft(), "event", today)
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book(), draft().copy(holdingId = HoldingId("other")),
+                "event", today)
+        }
+    }
+
+    @Test fun rejectsFutureImpossibleAndInvalidDateAndUnrepresentablePrecision() {
+        for (date in listOf("2026-10-11", "2026-02-30", "1899-12-31", "today")) {
+            assertThrows(Exception::class.java) {
+                ManualTradePlanner.prepare(book(), draft(date = date), "event", today)
+            }
+        }
+        for (quantity in listOf("1.000000001", "-1", "NaN", "0", "1e6", "")) {
+            assertThrows(Exception::class.java) {
+                ManualTradePlanner.prepare(book(), draft(qty = quantity), "event", today)
+            }
+        }
+        for (price in listOf("1.00001", "-1", "0", "1e15", "9".repeat(25))) {
+            assertThrows(Exception::class.java) {
+                ManualTradePlanner.prepare(book(), draft(price = price), "event", today)
+            }
+        }
+    }
+
+    @Test fun feesCannotExceedProceedsOrOverflowBookMoney() {
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book(listOf(purchase)), draft(
+                ManualTradeKind.SELL, qty = "1", price = "1", fees = "1",
+            ), "event", today)
+        }
+        assertThrows(Exception::class.java) {
+            ManualTradePlanner.prepare(book(), draft(qty = "999999999999",
+                price = "999999999999"), "event", today)
+        }
+    }
+
+    @Test fun positiveCasAdjustmentDoesNotCreateSaleableAcquisitionLots() {
+        val syntheticSnapshot = LedgerEvent(
+            "cas-observation", holding.id, owner, LedgerKind.SNAPSHOT_ADJUSTMENT,
+            "2026-09-15", 500_000_000L, MoneyScaled(750_000), null,
+            MoneyScaled(15_000),
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book(listOf(purchase, syntheticSnapshot)),
+                draft(ManualTradeKind.SELL, qty = "1"), "sale", today)
+        }
+    }
+
+    @Test fun oldUnpricedAcquisitionCannotBeSoldAsProvenCost() {
+        val legacy = purchase.copy(id = "legacy", unitPrice = null)
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book(listOf(legacy)),
+                draft(ManualTradeKind.SELL, qty = "1"), "sale", today)
+        }
+    }
+
+    @Test fun changedBookFingerprintRefusesStalePreviewEvenForSameHolding() {
+        val original = ManualTradePlanner.prepare(book(), draft(), "event", today)
+        val newer = ManualTradePlanner.prepare(book(listOf(purchase)), draft(), "event", today)
+        assertNotEquals(original.bookFingerprint, newer.bookFingerprint)
+        assertNotEquals(original, newer)
+        val renamed = ManualTradePlanner.prepare(book().copy(
+            holdings = listOf(holding.copy(name = "Renamed fund")),
+        ), draft(), "event", today)
+        assertNotEquals(original.bookFingerprint, renamed.bookFingerprint)
+    }
+
+    @Test fun smallFractionalTradesUseIntegerHalfUpRounding() {
+        val result = ManualTradePlanner.prepare(
+            book(), draft(qty = "0.00000001", price = "5000"), "event", today,
+        )
+        assertEquals(1L, result.gross.raw)
+    }
+}
