@@ -67,7 +67,9 @@ class PortableRecoveryAuthorizationTest {
         waitingCleanup.complete(Unit)
         advanceUntilIdle()
 
-        assertTrue(vm.state.value is PortableRecoveryUiState.Error)
+        // A revoked/old challenge MUST NOT publish even a stale error in the
+        // current UI. Empty state and zero repository calls are fail-closed.
+        assertEquals(PortableRecoveryUiState.Empty, vm.state.value)
         assertTrue(password.all { it == '\u0000' })
         coVerify(exactly = 0) { repo.openOrCreate() }
         coVerify(exactly = 0) { repo.restoreEncryptedBackup(any(), any()) }
