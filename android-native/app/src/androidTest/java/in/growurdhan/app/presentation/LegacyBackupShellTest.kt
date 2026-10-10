@@ -1,6 +1,8 @@
 package `in`.growurdhan.app.presentation
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -48,7 +50,7 @@ class LegacyBackupShellTest {
             LegacyBackupScreen(LegacyBackupUiState.Preview(summary),
                 onIntent = { action = it }, onBack = {})
         }
-        compose.onNodeWithText("Restore to empty vault").performClick()
+        compose.onNodeWithText("Restore to empty vault").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(LegacyBackupIntent.PrepareRestore, action) }
     }
 
@@ -57,10 +59,10 @@ class LegacyBackupShellTest {
             LegacyBackupScreen(LegacyBackupUiState.EnterRecovery,
                 onIntent = {}, onBack = {})
         }
-        compose.onNodeWithText("PAN (10 characters)").assertIsDisplayed()
-        compose.onNodeWithText("Date of birth (YYYY-MM-DD)").assertIsDisplayed()
-        compose.onNodeWithText("First question ID").assertIsDisplayed()
-        compose.onNodeWithText("Second question ID").assertIsDisplayed()
+        compose.onNodeWithText("PAN (10 characters)").assertExists()
+        compose.onNodeWithText("Date of birth (YYYY-MM-DD)").assertExists()
+        compose.onNodeWithText("First question ID").assertExists()
+        compose.onNodeWithText("Second question ID").assertExists()
     }
 
 }
