@@ -263,6 +263,9 @@ object LegacyVaultMigration {
             put("custody_profile", mapOf(
                 "account_id" to id, "owner_id" to owner,
                 "custodian" to a.optionalString("custodian"),
+                // Conversion uses an explicit column list, so a bound NULL would
+                // bypass the SQL DEFAULT and violate the NOT NULL constraint.
+                "base_currency" to (a.optionalString("baseCurrency") ?: "INR"),
                 "dp_id" to a.optionalString("dpId"), "client_id" to a.optionalString("clientId"),
                 "bo_id" to a.optionalString("boId"), "nominee" to a.optionalString("nominee"),
                 "extra_json" to a.toString(),

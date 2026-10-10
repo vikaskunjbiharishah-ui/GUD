@@ -172,6 +172,13 @@ class LegacyVaultMigrationInstrumentedTest {
                     assertEquals("Retirement", JSONArray(c.getString(1)).getString(0))
                     assertEquals("Synthetic Fund", JSONObject(c.getString(2)).getString("name"))
                 }
+                // The converter must explicitly supply NOT NULL profile fields:
+                // native backup rows bind all columns, including unprovided ones.
+                db.rawQuery("SELECT base_currency FROM custody_profile WHERE account_id='acct'", null)
+                    .use { c ->
+                        assertTrue(c.moveToFirst())
+                        assertEquals("INR", c.getString(0))
+                    }
                 db.rawQuery("SELECT target_scaled FROM family_goal WHERE id='goal'", null).use { c ->
                     assertTrue(c.moveToFirst())
                     assertTrue(c.isNull(0))
