@@ -41,8 +41,11 @@ class CustodyHoldingShellTest {
         compose.onNodeWithText("Open vault").performScrollTo().performClick()
         compose.onNodeWithText("Manage accounts & holdings").performScrollTo().performClick()
         compose.onNodeWithText("Accounts & holdings").assertIsDisplayed()
-        compose.onNodeWithText("Save a CAMS or KFINTECH registrar account first.")
-            .performScrollTo().assertIsDisplayed()
+        // The guidance includes a follow-up explanation in the same Text node.
+        // Match the stable instruction without requiring an exact full-string match.
+        compose.onNodeWithText(
+            "Save a CAMS or KFINTECH registrar account first.", substring = true,
+        ).performScrollTo().assertIsDisplayed()
     }
 
     @Test fun accountNeedsNicknameAndOnlyStagesUserRequestedWrite() {
