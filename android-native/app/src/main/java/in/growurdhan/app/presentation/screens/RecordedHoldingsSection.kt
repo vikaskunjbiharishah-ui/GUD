@@ -71,11 +71,12 @@ internal fun RecordedHoldingsSection(holdings: List<RecordedHoldingDashboard>) {
                                 .stripTrailingZeros().toPlainString(),
                             style = MaterialTheme.typography.bodySmall,
                         )
+                        val verifiedGain = holding.unrealisedGain
                         Text(
                             when {
                                 holding.unknownHistoricalCost -> "Historical cost unknown; gain unavailable"
-                                holding.unrealisedGain != null -> "Unrealised gain/loss: " +
-                                    holding.unrealisedGain.rupees().toPlainString() + " INR"
+                                verifiedGain != null -> "Unrealised gain/loss: " +
+                                    verifiedGain.rupees().toPlainString() + " INR"
                                 else -> "Unrealised gain/loss unavailable"
                             },
                             style = MaterialTheme.typography.bodySmall,

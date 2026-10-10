@@ -64,9 +64,10 @@ fun InsightsScreen(
                         Text("Assets: ${dashboard.assets.rupees().toPlainString()} INR")
                         Text("Liabilities: ${dashboard.liabilities.rupees().toPlainString()} INR")
                         Text("Net worth: ${dashboard.netWorth.rupees().toPlainString()} INR")
-                        if (result.reconciled && result.debtToAssetsPercent != null) {
+                        val debtRatio = result.debtToAssetsPercent
+                        if (result.reconciled && debtRatio != null) {
                             Text(
-                                "Debt-to-assets: ${result.debtToAssetsPercent.toPlainString()}% " +
+                                "Debt-to-assets: ${debtRatio.toPlainString()}% " +
                                     "(recorded balances only)",
                             )
                         } else if (result.reconciled) {
