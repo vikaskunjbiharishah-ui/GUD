@@ -1,5 +1,7 @@
 package `in`.growurdhan.app.presentation
 
+import `in`.growurdhan.domain.vault.UnitTestPasswordAdmission
+
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -7,7 +9,7 @@ import org.junit.Test
 /** Synthetic challenge revisions; no real PDF, credentials or family data. */
 class PdfImportGuardTest {
     @Test fun newDeviceChallengeCannotRescuePreviousImport() {
-        val session = VaultSessionGate().also { it.grantDeviceCredential() }
+        val session = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val guard = PdfImportGuard(session)
         val old = guard.begin()
         assertTrue(guard.isCurrent(old))
@@ -20,7 +22,7 @@ class PdfImportGuardTest {
     }
 
     @Test fun explicitCancellationInvalidatesImportEvenWhileStillUnlocked() {
-        val session = VaultSessionGate().also { it.grantDeviceCredential() }
+        val session = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val guard = PdfImportGuard(session)
         val request = guard.begin()
 
@@ -31,7 +33,7 @@ class PdfImportGuardTest {
     }
 
     @Test fun newPickerSelectionSupersedesOlderImport() {
-        val session = VaultSessionGate().also { it.grantDeviceCredential() }
+        val session = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val guard = PdfImportGuard(session)
         val older = guard.begin()
         val newer = guard.begin()
@@ -42,7 +44,7 @@ class PdfImportGuardTest {
 
     @Test fun expiredSessionBlocksCompletedParserResult() {
         var now = 1_000L
-        val session = VaultSessionGate().also {
+        val session = VaultSessionGate(UnitTestPasswordAdmission).also {
             it.useClockForTest { now }
             it.grantDeviceCredential()
         }

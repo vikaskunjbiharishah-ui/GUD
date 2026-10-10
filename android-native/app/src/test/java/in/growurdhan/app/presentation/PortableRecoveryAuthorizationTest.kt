@@ -1,5 +1,7 @@
 package `in`.growurdhan.app.presentation
 
+import `in`.growurdhan.domain.vault.UnitTestPasswordAdmission
+
 import android.content.Context
 import android.content.ContentResolver
 import android.net.Uri
@@ -28,7 +30,7 @@ import org.junit.Test
 class PortableRecoveryAuthorizationTest {
     @get:Rule val mainDispatcherRule = MainDispatcherRule()
     @Test fun exportCannotReuseCredentialThatPredatedDocumentSelection() {
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         gate.grantDeviceCredential()
         val repo = mockk<VaultRepository>()
         val vm = PortableRecoveryViewModel(mockk<Context>(), repo, gate)
@@ -45,7 +47,7 @@ class PortableRecoveryAuthorizationTest {
     }
 
     @Test fun expiredCredentialDuringPickerCleanupNeverOpensBackupVault() = runTest {
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val repo = mockk<VaultRepository>()
         val vm = PortableRecoveryViewModel(mockk<Context>(), repo, gate).also {
             it.workDispatcher = StandardTestDispatcher(testScheduler)
@@ -72,7 +74,7 @@ class PortableRecoveryAuthorizationTest {
     }
 
     @Test fun completedCleanupAllowsFreshApprovalToReachBackupStatus() = runTest {
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val repo = mockk<VaultRepository>()
         coEvery { repo.status() } returns VaultStatus(false, false, 0)
         val vm = PortableRecoveryViewModel(mockk<Context>(), repo, gate).also {
@@ -98,7 +100,7 @@ class PortableRecoveryAuthorizationTest {
     }
 
     @Test fun startingNewBackupPickerWipesPasswordEvenBeforeCancelledJobStarts() = runTest {
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val repo = mockk<VaultRepository>()
         val vm = PortableRecoveryViewModel(mockk<Context>(), repo, gate)
         vm.offerPickedDocument(PortableRecoveryMode.EXPORT)
@@ -119,7 +121,7 @@ class PortableRecoveryAuthorizationTest {
 
     @Test fun completedExportFromOldChallengeIsNotConfirmedInNewSession() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val uri = mockk<Uri>()
         val context = mockk<Context>()
         val resolver = mockk<ContentResolver>()
@@ -153,7 +155,7 @@ class PortableRecoveryAuthorizationTest {
 
     @Test fun oldRestoreResultCannotClaimSuccessUnderReplacementChallenge() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val uri = mockk<Uri>()
         val context = mockk<Context>()
         val resolver = mockk<ContentResolver>()
@@ -182,7 +184,7 @@ class PortableRecoveryAuthorizationTest {
     }
 
     @Test fun restoreCannotReuseOldCredentialOrAccessVaultWithoutNewChallenge() {
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         gate.grantDeviceCredential()
         val repo = mockk<VaultRepository>()
         val vm = PortableRecoveryViewModel(mockk<Context>(), repo, gate)

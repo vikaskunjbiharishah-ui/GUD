@@ -1,5 +1,7 @@
 package `in`.growurdhan.app.presentation
 
+import `in`.growurdhan.domain.vault.UnitTestPasswordAdmission
+
 import `in`.growurdhan.core.model.VaultHealth
 import `in`.growurdhan.core.model.VaultStatus
 import `in`.growurdhan.domain.vault.VaultRepository
@@ -27,7 +29,7 @@ class VaultViewModelTest {
         coEvery { repo.status() } returns VaultStatus(false, false, 0)
         coEvery { repo.openOrCreate() } returns VaultStatus(true, true, 1)
         coEvery { repo.health() } returns VaultHealth("ok", 0, 0, 0, 0)
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val vm = VaultViewModel(repo, gate)
 
         advanceUntilIdle()
@@ -43,7 +45,7 @@ class VaultViewModelTest {
 
     @Test fun unauthorizedDirectVaultOpenNeverTouchesRepository() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         coEvery { repo.status() } returns VaultStatus(false, false, 0)
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
@@ -57,7 +59,7 @@ class VaultViewModelTest {
 
     @Test fun closingVaultRevokesSessionAndMustCloseDatabase() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         coEvery { repo.status() } returns VaultStatus(true, false, 2)
         coEvery { repo.openOrCreate() } returns VaultStatus(true, true, 2)
         coEvery { repo.health() } returns VaultHealth("ok", 0, 0, 0, 0)
@@ -76,7 +78,7 @@ class VaultViewModelTest {
 
     @Test fun closingDuringRestorePickerDoesNotInventAnInitializedVault() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         coEvery { repo.status() } returns VaultStatus(false, false, 0)
         coEvery { repo.close() } returns Unit
         val vm = VaultViewModel(repo, gate)
@@ -96,7 +98,7 @@ class VaultViewModelTest {
         coEvery { repo.openOrCreate() } coAnswers { pendingOpen.await() }
         coEvery { repo.health() } returns VaultHealth("ok", 0, 0, 0, 0)
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
         gate.grantDeviceCredential()
@@ -120,7 +122,7 @@ class VaultViewModelTest {
         coEvery { repo.openOrCreate() } returns VaultStatus(true, true, 2)
         coEvery { repo.health() } coAnswers { pendingHealth.await() }
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
         gate.grantDeviceCredential()
@@ -141,7 +143,7 @@ class VaultViewModelTest {
         coEvery { repo.status() } returns VaultStatus(true, false, 2)
         coEvery { repo.openOrCreate() } coAnswers { pendingOpen.await() }
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
         gate.grantDeviceCredential()
@@ -161,7 +163,7 @@ class VaultViewModelTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.status() } returns VaultStatus(true, false, 2)
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
 
@@ -179,7 +181,7 @@ class VaultViewModelTest {
         val pendingClose = CompletableDeferred<Unit>()
         coEvery { repo.status() } returns VaultStatus(true, false, 2)
         coEvery { repo.close() } coAnswers { pendingClose.await() }
-        val vm = VaultViewModel(repo, VaultSessionGate())
+        val vm = VaultViewModel(repo, VaultSessionGate(UnitTestPasswordAdmission))
         advanceUntilIdle()
 
         vm.onIntent(VaultIntent.Close)
@@ -203,7 +205,7 @@ class VaultViewModelTest {
         coEvery { repo.openOrCreate() } returns VaultStatus(true, true, 3)
         coEvery { repo.health() } coAnswers { pendingHealth.await() }
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
 
@@ -226,7 +228,7 @@ class VaultViewModelTest {
         coEvery { repo.status() } returns VaultStatus(true, true, 3)
         coEvery { repo.health() } coAnswers { pendingHealth.await() }
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = VaultViewModel(repo, gate)
         runCurrent()
         gate.lock()
@@ -243,7 +245,7 @@ class VaultViewModelTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.status() } returns VaultStatus(true, false, 2)
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
 
@@ -269,7 +271,7 @@ class VaultViewModelTest {
         }
         coEvery { repo.openOrCreate() } coAnswers { pendingOpen.await() }
         coEvery { repo.health() } returns VaultHealth("ok", 0, 0, 0, 0)
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
         gate.grantDeviceCredential()
@@ -292,7 +294,7 @@ class VaultViewModelTest {
         val pendingClose = CompletableDeferred<Unit>()
         coEvery { repo.status() } returns VaultStatus(true, false, 2)
         coEvery { repo.close() } coAnswers { pendingClose.await() }
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
 
@@ -312,7 +314,7 @@ class VaultViewModelTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.status() } returns VaultStatus(true, true, 2)
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val vm = VaultViewModel(repo, gate)
 
         advanceUntilIdle()
@@ -328,7 +330,7 @@ class VaultViewModelTest {
         coEvery { repo.status() } returns VaultStatus(true, true, 2)
         coEvery { repo.health() } coAnswers { pendingHealth.await() }
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = VaultViewModel(repo, gate)
         runCurrent()
 
@@ -345,7 +347,7 @@ class VaultViewModelTest {
         coEvery { repo.status() } returns VaultStatus(true, true, 3)
         coEvery { repo.health() } returns VaultHealth("corrupt", 0, 1, 1, 1)
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
 
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
@@ -364,7 +366,7 @@ class VaultViewModelTest {
         coEvery { repo.openOrCreate() } returns VaultStatus(true, true, 3)
         coEvery { repo.health() } returns VaultHealth("ok", 2, 1, 1, 1)
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
 
@@ -385,7 +387,7 @@ class VaultViewModelTest {
             "synthetic private key and financial row details",
         )
         coEvery { repo.close() } returns Unit
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
 
@@ -402,7 +404,7 @@ class VaultViewModelTest {
     @Test fun damagedVaultIsReportedRatherThanSilentlyReset() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.status() } throws IllegalStateException("missing device key")
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val vm = VaultViewModel(repo, gate)
         advanceUntilIdle()
         val state = vm.state.value as VaultUiState.Error

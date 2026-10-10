@@ -132,6 +132,10 @@ def app_password_gate_errors(
 ) -> list[str]:
     """Deny native access unless BOTH local-password and OS gates are active."""
     problems: list[str] = []
+    if "UnitTestPasswordAdmission" in session or (
+        "AppPasswordAuthorization =" in session
+    ):
+        problems.append("Production vault authentication must not default to test-only password admission.")
     for expected in (
         "localPassword.hasVerifiedPassword() && freshWithin(maxSessionAgeMillis)",
         "localPassword.hasVerifiedPassword() && freshWithin(maxApprovalAgeMillis)",

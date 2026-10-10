@@ -1,5 +1,7 @@
 package `in`.growurdhan.app.presentation
 
+import `in`.growurdhan.domain.vault.UnitTestPasswordAdmission
+
 import `in`.growurdhan.core.model.FamilyMember
 import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.domain.vault.VaultRepository
@@ -25,7 +27,7 @@ class FamilyMemberViewModelTest {
         val repo = mockk<VaultRepository>()
         val pending = CompletableDeferred<List<FamilyMember>>()
         coEvery { repo.members() } coAnswers { pending.await() }
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = FamilyMemberViewModel(repo, gate)
         vm.onIntent(FamilyMemberIntent.Refresh)
         runCurrent()
@@ -43,7 +45,7 @@ class FamilyMemberViewModelTest {
         coEvery { repo.members() } returns emptyList()
         val pending = CompletableDeferred<FamilyMember>()
         coEvery { repo.registerFamilyMember(any(), any()) } coAnswers { pending.await() }
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = FamilyMemberViewModel(repo, gate)
         vm.onIntent(FamilyMemberIntent.Refresh)
         advanceUntilIdle()
@@ -63,7 +65,7 @@ class FamilyMemberViewModelTest {
 
     @Test fun lockedSessionCannotReadOrStageAnyFamilyInformation() = runTest {
         val repo = mockk<VaultRepository>()
-        val vm = FamilyMemberViewModel(repo, VaultSessionGate())
+        val vm = FamilyMemberViewModel(repo, VaultSessionGate(UnitTestPasswordAdmission))
         vm.onIntent(FamilyMemberIntent.Refresh)
         advanceUntilIdle()
         assertEquals(FamilyMemberUiState.Locked, vm.state.value)
@@ -74,7 +76,7 @@ class FamilyMemberViewModelTest {
 
     @Test fun openingFormReadsMembersButDoesNotCreateThem() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.members() } returns emptyList()
         val vm = FamilyMemberViewModel(repo, gate)
         vm.onIntent(FamilyMemberIntent.Refresh)
@@ -85,7 +87,7 @@ class FamilyMemberViewModelTest {
 
     @Test fun formRequiresNewCredentialAfterStagingNotJustRecentUnlock() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.members() } returns emptyList()
         val vm = FamilyMemberViewModel(repo, gate)
         vm.onIntent(FamilyMemberIntent.Refresh)
@@ -102,7 +104,7 @@ class FamilyMemberViewModelTest {
 
     @Test fun stagedFormIsSavedOnlyOnceAfterFreshCredential() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.members() } returns emptyList()
         coEvery { repo.registerFamilyMember("Synthetic Primary", "Self") } returns owner
         val vm = FamilyMemberViewModel(repo, gate)
@@ -121,7 +123,7 @@ class FamilyMemberViewModelTest {
 
     @Test fun invalidMemberAndDuplicateDisplayNameAreRejectedBeforeChallenge() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.members() } returns listOf(owner)
         val vm = FamilyMemberViewModel(repo, gate)
         vm.onIntent(FamilyMemberIntent.Refresh)
@@ -136,7 +138,7 @@ class FamilyMemberViewModelTest {
 
     @Test fun cancelClearsPendingIdentityEvenIfCredentialLaterSucceeds() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.members() } returns emptyList()
         val vm = FamilyMemberViewModel(repo, gate)
         vm.onIntent(FamilyMemberIntent.Refresh)
@@ -152,7 +154,7 @@ class FamilyMemberViewModelTest {
 
     @Test fun repositoryRejectionDoesNotPretendMemberWasSaved() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.members() } returns emptyList()
         coEvery { repo.registerFamilyMember(any(), any()) } throws IllegalStateException("private SQL error")
         val vm = FamilyMemberViewModel(repo, gate)

@@ -2,7 +2,6 @@ package `in`.growurdhan.app.presentation
 
 import `in`.growurdhan.domain.vault.VaultAuthorization
 import `in`.growurdhan.domain.vault.AppPasswordAuthorization
-import `in`.growurdhan.domain.vault.UnitTestPasswordAdmission
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,7 +14,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class VaultSessionGate @Inject constructor(
-    private val localPassword: AppPasswordAuthorization = UnitTestPasswordAdmission,
+    private val localPassword: AppPasswordAuthorization,
 ) : VaultAuthorization {
     private var nowMillis: () -> Long = { System.nanoTime() / 1_000_000L }
     private var verifiedAtMillis: Long? = null

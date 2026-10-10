@@ -1,5 +1,7 @@
 package `in`.growurdhan.app.presentation
 
+import `in`.growurdhan.domain.vault.UnitTestPasswordAdmission
+
 import `in`.growurdhan.core.model.*
 import `in`.growurdhan.domain.finance.*
 import `in`.growurdhan.domain.vault.VaultRepository
@@ -33,7 +35,7 @@ class ManualTradeViewModelTest {
 
     @Test fun lockedScreenCannotReadBookOrWriteTrade() = runTest {
         val repo = mockk<VaultRepository>()
-        val vm = ManualTradeViewModel(repo, VaultSessionGate())
+        val vm = ManualTradeViewModel(repo, VaultSessionGate(UnitTestPasswordAdmission))
         vm.onIntent(ManualTradeIntent.Refresh)
         vm.onIntent(ManualTradeIntent.Stage(draft))
         vm.onIntent(ManualTradeIntent.SaveAfterCredential)
@@ -46,7 +48,7 @@ class ManualTradeViewModelTest {
     @Test fun stagingAndOldCredentialCannotWrite() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.readBook() } returns book
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = ManualTradeViewModel(repo, gate)
         vm.onIntent(ManualTradeIntent.Refresh)
         advanceUntilIdle()
@@ -62,7 +64,7 @@ class ManualTradeViewModelTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.readBook() } returns book
         coEvery { repo.commitManualTrade(any(), any()) } returns Unit
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = ManualTradeViewModel(repo, gate)
         vm.onIntent(ManualTradeIntent.Refresh)
         advanceUntilIdle()
@@ -87,7 +89,7 @@ class ManualTradeViewModelTest {
         coEvery { repo.readBook() } returnsMany listOf(
             book, book.copy(holdings = listOf(holding.copy(name = "Changed name"))),
         )
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = ManualTradeViewModel(repo, gate)
         vm.onIntent(ManualTradeIntent.Refresh)
         advanceUntilIdle()
@@ -104,7 +106,7 @@ class ManualTradeViewModelTest {
         coEvery { repo.readBook() } returns book
         val pending = CompletableDeferred<Unit>()
         coEvery { repo.commitManualTrade(any(), any()) } coAnswers { pending.await() }
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = ManualTradeViewModel(repo, gate)
         vm.onIntent(ManualTradeIntent.Refresh)
         advanceUntilIdle()
@@ -122,7 +124,7 @@ class ManualTradeViewModelTest {
     @Test fun cancelledDraftCannotBeSavedAfterUnlockingAgain() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.readBook() } returns book
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = ManualTradeViewModel(repo, gate)
         vm.onIntent(ManualTradeIntent.Refresh)
         advanceUntilIdle()

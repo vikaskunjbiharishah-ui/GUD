@@ -1,5 +1,7 @@
 package `in`.growurdhan.app.presentation
 
+import `in`.growurdhan.domain.vault.UnitTestPasswordAdmission
+
 import `in`.growurdhan.core.model.CasHoldingIdentity
 import `in`.growurdhan.core.model.FamilyMember
 import `in`.growurdhan.core.model.CustodyAccount
@@ -51,7 +53,7 @@ class StatementReviewViewModelTest {
         coEvery { repo.prepareStatementReview(any(), any(), any(), any()) } coAnswers {
             pending.await()
         }
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = StatementReviewViewModel(repo, gate)
         vm.prepareFromValidatedParser("snap", owner, sha, listOf(line))
         runCurrent()
@@ -68,7 +70,7 @@ class StatementReviewViewModelTest {
         val repo = mockk<VaultRepository>()
         val pending = CompletableDeferred<VaultBook>()
         coEvery { repo.readBook() } coAnswers { pending.await() }
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = StatementReviewViewModel(repo, gate)
         vm.onIntent(StatementReviewIntent.LoadOwners)
         runCurrent()
@@ -85,7 +87,7 @@ class StatementReviewViewModelTest {
 
     @Test fun unauthenticatedPreviewNeverReadsFromVault() = runTest {
         val repo = mockk<VaultRepository>()
-        val vm = StatementReviewViewModel(repo, VaultSessionGate())
+        val vm = StatementReviewViewModel(repo, VaultSessionGate(UnitTestPasswordAdmission))
         vm.prepareFromValidatedParser("snap", owner, sha, listOf(line))
         advanceUntilIdle()
         assertTrue(vm.state.value is StatementReviewUiState.Error)
@@ -94,7 +96,7 @@ class StatementReviewViewModelTest {
 
     @Test fun previewNeedsExplicitApprovalAndCanBeCancelledWithoutWrites() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val receipt = receipt()
         coEvery { repo.prepareStatementReview(any(), any(), any(), any()) } returns receipt
         val vm = StatementReviewViewModel(repo, gate)
@@ -110,7 +112,7 @@ class StatementReviewViewModelTest {
 
     @Test fun confirmedCredentialCommitsOnceThenForgetsReceipt() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val receipt = receipt()
         coEvery { repo.prepareStatementReview(any(), any(), any(), any()) } returns receipt
         coEvery { repo.commitReviewedStatement(receipt) } returns SnapshotResult.IMPORTED
@@ -127,7 +129,7 @@ class StatementReviewViewModelTest {
 
     @Test fun lockingClearsReceiptAndBlocksCommit() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.prepareStatementReview(any(), any(), any(), any()) } returns receipt()
         val vm = StatementReviewViewModel(repo, gate)
         vm.prepareFromValidatedParser("snap", owner, sha, listOf(line))
@@ -141,7 +143,7 @@ class StatementReviewViewModelTest {
     }
     @Test fun noFamilyOwnerPromptsFamilyEnrollmentWithoutImport() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns VaultBook(emptyList(), emptyList(), emptyList())
         val vm = StatementReviewViewModel(repo, gate)
         vm.onIntent(StatementReviewIntent.LoadOwners)
@@ -152,7 +154,7 @@ class StatementReviewViewModelTest {
 
     @Test fun familyWithoutEnrolledHoldingIsSentToCustodySetup() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns VaultBook(
             listOf(FamilyMember(owner, "Synthetic", "Self", true)), emptyList(), emptyList(),
         )
@@ -165,7 +167,7 @@ class StatementReviewViewModelTest {
 
     @Test fun onlyOwnersWithEnrolledCasIdentityCanChooseAPdf() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val spouse = OwnerId("spouse")
         val primary = FamilyMember(owner, "Synthetic Primary", "Self", true)
         val other = FamilyMember(spouse, "Synthetic Spouse", "Spouse", false)

@@ -1,5 +1,7 @@
 package `in`.growurdhan.app.presentation
 
+import `in`.growurdhan.domain.vault.UnitTestPasswordAdmission
+
 import org.junit.Assert.assertFalse
 import `in`.growurdhan.domain.vault.AppPasswordAuthorization
 import org.junit.Assert.assertThrows
@@ -30,7 +32,7 @@ class VaultSessionGateTest {
     }
 
     @Test fun oldCredentialChallengeCannotAuthorizeNewSessionResults() {
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         gate.grantDeviceCredential()
         val original = gate.credentialEpoch()
         assertTrue(gate.isCurrentSession(original))
@@ -45,7 +47,7 @@ class VaultSessionGateTest {
     }
 
     @Test fun oldFinancialApprovalExpiresBeforeGeneralUnlock() {
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         var now = 10_000L
         gate.useClockForTest { now }
         gate.grantDeviceCredential()
@@ -57,7 +59,7 @@ class VaultSessionGateTest {
 
     @Test fun requiresSuccessfulCredentialAndExpiresAfterFiveMinutes() {
         var now = 1_000L
-        val session = VaultSessionGate()
+        val session = VaultSessionGate(UnitTestPasswordAdmission)
         session.useClockForTest { now }
         assertFalse(session.isUnlocked())
         assertFalse(session.canCommitFinancialChanges())
@@ -72,7 +74,7 @@ class VaultSessionGateTest {
 
     @Test fun financialApprovalNeedsCredentialWithinThirtySeconds() {
         var now = 50_000L
-        val session = VaultSessionGate()
+        val session = VaultSessionGate(UnitTestPasswordAdmission)
         session.useClockForTest { now }
         session.grantDeviceCredential()
         now += 29_999L
@@ -85,7 +87,7 @@ class VaultSessionGateTest {
     }
 
     @Test fun backgroundLockAlwaysRevokesPriorCredential() {
-        val session = VaultSessionGate()
+        val session = VaultSessionGate(UnitTestPasswordAdmission)
         session.grantDeviceCredential()
         session.lock()
         assertFalse(session.isUnlocked())
@@ -93,7 +95,7 @@ class VaultSessionGateTest {
     }
 
     @Test fun successfulCredentialChallengesAdvanceRepositorySessionRevision() {
-        val gate = VaultSessionGate()
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
         val before = gate.sessionRevision()
         gate.grantDeviceCredential()
         val first = gate.sessionRevision()
@@ -107,7 +109,7 @@ class VaultSessionGateTest {
 
     @Test fun reversedMonotonicClockFailsClosed() {
         var now = 2_000L
-        val session = VaultSessionGate()
+        val session = VaultSessionGate(UnitTestPasswordAdmission)
         session.useClockForTest { now }
         session.grantDeviceCredential()
         now -= 100

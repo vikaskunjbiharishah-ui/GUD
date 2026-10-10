@@ -1,5 +1,7 @@
 package `in`.growurdhan.app.presentation
 
+import `in`.growurdhan.domain.vault.UnitTestPasswordAdmission
+
 import `in`.growurdhan.core.model.*
 import `in`.growurdhan.domain.vault.VaultRepository
 import io.mockk.coEvery
@@ -28,7 +30,7 @@ class CustodyHoldingViewModelTest {
         val repo = mockk<VaultRepository>()
         val pending = CompletableDeferred<VaultBook>()
         coEvery { repo.readBook() } coAnswers { pending.await() }
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = CustodyHoldingViewModel(repo, gate)
         vm.onIntent(CustodyHoldingIntent.Refresh)
         runCurrent()
@@ -47,7 +49,7 @@ class CustodyHoldingViewModelTest {
         coEvery { repo.registerCustodyAccount(any(), any(), any()) } coAnswers {
             pending.await()
         }
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = CustodyHoldingViewModel(repo, gate)
         vm.onIntent(CustodyHoldingIntent.Refresh)
         advanceUntilIdle()
@@ -66,7 +68,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun manualNpsAssetStartsAtZeroAfterSeparateCredentialApproval() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book()
         val asset = Holding(
             HoldingId("nps-test"), owner, null, "Synthetic NPS Tier I", "NPS",
@@ -96,7 +98,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun lockedRefreshNeverReadsEncryptedBook() = runTest {
         val repo = mockk<VaultRepository>()
-        val viewModel = CustodyHoldingViewModel(repo, VaultSessionGate())
+        val viewModel = CustodyHoldingViewModel(repo, VaultSessionGate(UnitTestPasswordAdmission))
         viewModel.onIntent(CustodyHoldingIntent.Refresh)
         advanceUntilIdle()
         assertEquals(CustodyHoldingUiState.Locked, viewModel.state.value)
@@ -105,7 +107,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun validAccountFormNeedsNewCredentialAfterStaging() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book()
         val vm = CustodyHoldingViewModel(repo, gate)
         vm.onIntent(CustodyHoldingIntent.Refresh)
@@ -120,7 +122,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun freshCredentialAllowsOneExplicitRegistrarRegistration() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book()
         coEvery { repo.registerCustodyAccount(owner, "CAMS", "Main") } returns account
         val vm = CustodyHoldingViewModel(repo, gate)
@@ -138,7 +140,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun invalidAndCrossOwnerEnrolmentCannotAskForCredential() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book(listOf(account))
         val vm = CustodyHoldingViewModel(repo, gate)
         vm.onIntent(CustodyHoldingIntent.Refresh)
@@ -156,7 +158,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun approvedHoldingCreatesNoLedgerEventOrAutomaticStatementImport() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book(listOf(account))
         val enrolled = Holding(
             HoldingId("new"), owner, account.id, "Synthetic fund",
@@ -184,7 +186,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun lockClearsStagedHoldingCredentialsAndForbidsPostLogoutWrite() = runTest {
         val repo = mockk<VaultRepository>()
-        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book(listOf(account))
         val vm = CustodyHoldingViewModel(repo, gate)
         vm.onIntent(CustodyHoldingIntent.Refresh)

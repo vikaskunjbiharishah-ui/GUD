@@ -209,6 +209,14 @@ class RepositoryPolicyRoutingTests(unittest.TestCase):
         self.assertTrue(app_password_gate_errors(
             without_password, binding, store, activity,
         ))
+        unsafe_default = gate.replace(
+            "private val localPassword: AppPasswordAuthorization,",
+            "private val localPassword: AppPasswordAuthorization = UnitTestPasswordAdmission,",
+            1,
+        )
+        self.assertTrue(app_password_gate_errors(
+            unsafe_default, binding, store, activity,
+        ))
         without_binding = binding.replace(
             "bindAppPassword(store: LocalAppPasswordStore): AppPasswordAuthorization",
             "bindAppPassword(): AppPasswordAuthorization", 1,
