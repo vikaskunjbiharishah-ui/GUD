@@ -26,6 +26,7 @@ import `in`.growurdhan.domain.finance.PortfolioEngine
 import `in`.growurdhan.domain.finance.HouseholdDashboardProjector
 import `in`.growurdhan.domain.finance.EmergencyDossierCsv
 import java.time.LocalDate
+import `in`.growurdhan.domain.vault.LegacyRestoreIdentity
 import `in`.growurdhan.domain.vault.VaultRepository
 import `in`.growurdhan.app.presentation.FamilyMemberIntent
 import `in`.growurdhan.app.presentation.FamilyMemberUiState
@@ -91,6 +92,7 @@ class MainActivity : ComponentActivity() {
     private var legacyFileUri: Uri? = null
     private var legacyEmail: String? = null
     private var legacySecret: CharArray? = null
+    private var legacyRestoreIdentity: LegacyRestoreIdentity? = null
     private var legacyGeneration = 0L
     private var legacyUiState by mutableStateOf<LegacyBackupUiState>(LegacyBackupUiState.Empty)
     private var loginOperationGeneration = 0L
@@ -105,7 +107,7 @@ class MainActivity : ComponentActivity() {
     private enum class CredentialAction {
         OPEN_VAULT, APPROVE_REVIEW, IMPORT_PDF, ADD_FAMILY_MEMBER, REGISTER_CUSTODY,
         PORTABLE_BACKUP, APPROVE_MANUAL_TRADE, ENROLL_APP_PASSWORD, INSPECT_LEGACY,
-        CHANGE_APP_PASSWORD, EXPORT_DOSSIER,
+        CHANGE_APP_PASSWORD, EXPORT_DOSSIER, RESTORE_LEGACY,
     }
     private var pendingCredential: CredentialAction? = null
     private var pdfPickerOpen: Boolean = false
@@ -177,6 +179,7 @@ class MainActivity : ComponentActivity() {
             when (action) {
                 CredentialAction.ENROLL_APP_PASSWORD -> Unit // handled above
                 CredentialAction.INSPECT_LEGACY -> inspectLegacyAfterCredential()
+                CredentialAction.RESTORE_LEGACY -> restoreLegacyAfterCredential()
                 CredentialAction.CHANGE_APP_PASSWORD -> finishPasswordRotation()
                 CredentialAction.EXPORT_DOSSIER -> exportDossierAfterCredential()
                 CredentialAction.OPEN_VAULT -> vaultViewModel.onIntent(VaultIntent.OpenOrCreate)
@@ -258,6 +261,8 @@ class MainActivity : ComponentActivity() {
         legacyEmail = null
         legacySecret?.fill('\u0000')
         legacySecret = null
+        legacyRestoreIdentity?.wipeSecrets()
+        legacyRestoreIdentity = null
         legacyFileUri = null
         legacyPickerOpen = false
         legacyUiState = LegacyBackupUiState.Empty
@@ -318,6 +323,70 @@ class MainActivity : ComponentActivity() {
             } finally {
                 sourceBytes?.fill(0)
                 password.fill('\u0000')
+            }
+        }
+    }
+
+    /**
+     * Strict original archive import: the SAF picker never grants broader access,
+     * the local application password is required separately, the OS challenge
+     * must have succeeded after preparing this import, and SQLCipher enforces
+     * empty-vault atomic commit. Do not use this to reset a lost native password.
+     */
+    private fun restoreLegacyAfterCredential() {
+        val uri = legacyFileUri
+        val identity = legacyRestoreIdentity
+        legacyRestoreIdentity = null
+        if (uri == null || identity == null || !sessionGate.canCommitFinancialChanges()) {
+            identity?.wipeSecrets()
+            clearLegacySensitive()
+            return
+        }
+        val generation = ++legacyGeneration
+        val revision = sessionGate.credentialEpoch()
+        legacyUiState = LegacyBackupUiState.Restoring
+        lifecycleScope.launch {
+            var archive: ByteArray? = null
+            try {
+                vaultViewModel.awaitPendingCleanup()
+                check(legacyGeneration == generation && sessionGate.isCurrentApproval(revision))
+                val bytes = withContext(Dispatchers.IO) {
+                    contentResolver.openInputStream(uri)?.use { input ->
+                        val output = ByteArrayOutputStream()
+                        val buffer = ByteArray(8192)
+                        while (true) {
+                            val size = input.read(buffer)
+                            if (size < 0) break
+                            check(output.size() + size <=
+                                LegacyLockedBackupInspector.MAX_INPUT_BYTES) {
+                                "Original archive exceeds the supported safe size."
+                            }
+                            output.write(buffer, 0, size)
+                        }
+                        buffer.fill(0)
+                        output.toByteArray()
+                    } ?: error("Original archive is unavailable.")
+                }
+                archive = bytes
+                check(legacyGeneration == generation && sessionGate.isCurrentApproval(revision))
+                repository.openOrCreate()
+                repository.restoreOriginalLegacyBackup(identity, bytes)
+                if (legacyGeneration == generation && sessionGate.isCurrentSession(revision)) {
+                    legacyUiState = LegacyBackupUiState.Recovered
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                if (legacyGeneration == generation && sessionGate.isCurrentSession(revision)) {
+                    legacyUiState = LegacyBackupUiState.Error(
+                        "Original account verification or encrypted restore did not complete. " +
+                            "Existing financial records were not merged or overwritten. " +
+                            "If a commit may have occurred, reopen your vault to confirm it.",
+                    )
+                }
+            } finally {
+                archive?.fill(0)
+                identity.wipeSecrets()
             }
         }
     }
@@ -801,6 +870,29 @@ class MainActivity : ComponentActivity() {
 
     private fun handleLegacyBackupIntent(intent: LegacyBackupIntent) {
         when (intent) {
+            LegacyBackupIntent.PrepareRestore -> {
+                if (legacyFileUri != null && legacyUiState is LegacyBackupUiState.Preview &&
+                    sessionGate.isUnlocked()
+                ) {
+                    legacyUiState = LegacyBackupUiState.EnterRecovery
+                }
+            }
+            is LegacyBackupIntent.Restore -> {
+                if (legacyFileUri == null || legacyUiState != LegacyBackupUiState.EnterRecovery ||
+                    !sessionGate.isUnlocked()
+                ) {
+                    clearLegacySensitive()
+                    return
+                }
+                legacyRestoreIdentity?.wipeSecrets()
+                legacyRestoreIdentity = LegacyRestoreIdentity(
+                    intent.email, intent.password.toCharArray(), intent.pan,
+                    intent.dateOfBirth, intent.firstQuestionId,
+                    intent.firstAnswer.toCharArray(), intent.secondQuestionId,
+                    intent.secondAnswer.toCharArray(),
+                )
+                requestCredential(CredentialAction.RESTORE_LEGACY)
+            }
             LegacyBackupIntent.SelectFile -> {
                 clearLegacySensitive()
                 if (!appPassword.hasVerifiedPassword()) return
@@ -910,6 +1002,7 @@ class MainActivity : ComponentActivity() {
             CredentialAction.APPROVE_MANUAL_TRADE -> "Approve recorded buy or sell"
             CredentialAction.ENROLL_APP_PASSWORD -> "Protect GrowUrDhan login"
             CredentialAction.INSPECT_LEGACY -> "Inspect legacy encrypted backup"
+            CredentialAction.RESTORE_LEGACY -> "Restore original GrowUrDhan family book"
             CredentialAction.CHANGE_APP_PASSWORD -> "Change GrowUrDhan app password"
             CredentialAction.EXPORT_DOSSIER -> "Export household emergency summary"
         }
@@ -932,6 +1025,8 @@ class MainActivity : ComponentActivity() {
                 "Confirm your Android screen lock before registering this device's local app password."
             CredentialAction.INSPECT_LEGACY ->
                 "Confirm device identity before reading the selected old GrowUrDhan backup."
+            CredentialAction.RESTORE_LEGACY ->
+                "Verify device identity before converting the original backup into an empty vault."
             CredentialAction.CHANGE_APP_PASSWORD ->
                 "Confirm your device lock to change your local GrowUrDhan password."
             CredentialAction.EXPORT_DOSSIER ->

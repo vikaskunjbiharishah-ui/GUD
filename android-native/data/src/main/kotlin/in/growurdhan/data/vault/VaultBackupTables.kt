@@ -92,6 +92,35 @@ internal object VaultBackupTables {
     private const val MAX_ROWS_PER_TABLE = 100_000
     private val legacyLedgerColumns = columns.getValue("ledger_event").take(8)
 
+    /** M25: use the same strict native v4 backup-column contract for validated
+     *  legacy migration. Only the approved whitelist can be emitted, and all
+     *  original record objects are separately preserved as encrypted JSON. */
+    fun emptyLegacyConversion(): JSONObject = JSONObject()
+        .put("format", 4).put("databaseVersion", VaultSchema.VERSION).also { payload ->
+            for (table in columns.keys) payload.put(table, JSONArray())
+        }
+
+    fun appendConvertedLegacyRow(payload: JSONObject, table: String, fields: Map<String, Any?>) {
+        val allowed = columns[table] ?: error("Unsupported legacy destination.")
+        require(fields.keys.all { it in allowed }) { "Invalid native conversion field." }
+        val row = JSONArray()
+        for (name in allowed) {
+            val value = fields[name]
+            row.put(when (value) {
+                null -> JSONObject.NULL
+                is String -> {
+                    require(value.length <= 1_048_576) { "Converted field too large." }
+                    if (name in integers) value.toLong().toString() else value
+                }
+                is Int, is Long -> value.toString()
+                else -> throw IllegalArgumentException("Unsupported field type.")
+            })
+        }
+        val rows = payload.getJSONArray(table)
+        require(rows.length() < MAX_ROWS_PER_TABLE) { "Too many converted records." }
+        rows.put(row)
+    }
+
     fun export(db: SQLiteDatabase): ByteArray {
         val payload = JSONObject().put("format", 4).put("databaseVersion", VaultSchema.VERSION)
         for ((table, names) in columns) {

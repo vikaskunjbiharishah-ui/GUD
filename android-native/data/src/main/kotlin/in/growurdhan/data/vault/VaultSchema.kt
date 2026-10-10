@@ -279,7 +279,7 @@ internal object VaultSchema {
           id TEXT PRIMARY KEY NOT NULL,
           owner_id TEXT REFERENCES family_member(id) ON DELETE RESTRICT,
           name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 300),
-          target_scaled INTEGER NOT NULL CHECK(target_scaled >= 0),
+          target_scaled INTEGER CHECK(target_scaled >= 0),
           target_date TEXT, priority TEXT, created_at TEXT NOT NULL, extra_json TEXT
         )
         """.trimIndent(),

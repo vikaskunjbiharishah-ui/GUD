@@ -61,4 +61,7 @@ interface VaultRepository {
     suspend fun exportEncryptedBackup(passphrase: CharArray): ByteArray
     /** Restores ONLY into a new, empty vault; database transaction rolls back on any error. */
     suspend fun restoreEncryptedBackup(passphrase: CharArray, ciphertext: ByteArray)
+    /** M25: strictly verified old GUDVLT01 backup, empty-vault only; not a native login reset. */
+    suspend fun restoreOriginalLegacyBackup(identity: LegacyRestoreIdentity, archive: ByteArray)
+
 }

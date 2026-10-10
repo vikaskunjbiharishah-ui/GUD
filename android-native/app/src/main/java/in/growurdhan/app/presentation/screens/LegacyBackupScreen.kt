@@ -28,16 +28,25 @@ sealed interface LegacyBackupUiState {
     data object EnterCredentials : LegacyBackupUiState
     data object Inspecting : LegacyBackupUiState
     data class Preview(val summary: LegacyBackupPreview) : LegacyBackupUiState
+    data object EnterRecovery : LegacyBackupUiState
+    data object Restoring : LegacyBackupUiState
+    data object Recovered : LegacyBackupUiState
     data class Error(val message: String) : LegacyBackupUiState
 }
 
 sealed interface LegacyBackupIntent {
     data object SelectFile : LegacyBackupIntent
+    data object PrepareRestore : LegacyBackupIntent
+    class Restore(
+        val email: String, val password: String, val pan: String, val dateOfBirth: String,
+        val firstQuestionId: String, val firstAnswer: String,
+        val secondQuestionId: String, val secondAnswer: String,
+    ) : LegacyBackupIntent
     data class Authenticate(val email: String, val password: String) : LegacyBackupIntent
     data object Cancel : LegacyBackupIntent
 }
 
-/** Safe inspection only; neither import nor password reset is offered. */
+/** M25: inspect first, then require full original identity plus fresh OS credential for empty-vault restore. */
 @Composable
 fun LegacyBackupScreen(
     state: LegacyBackupUiState,
@@ -51,8 +60,9 @@ fun LegacyBackupScreen(
         Text("Inspect older backup", style = MaterialTheme.typography.headlineMedium)
         Text(
             "Original GrowUrDhan .kosha archives use a different encrypted format. " +
-                "This inspection shows record counts only. Nothing is imported, " +
-                "merged, overwritten, or sent to GrowUrDhan servers.",
+                "Inspect first. Restore is available only for an empty native book, " +
+                "after PAN, DOB, both security answers and a fresh device challenge. " +
+                "Nothing is sent to GrowUrDhan servers.",
             style = MaterialTheme.typography.bodyMedium,
         )
         when (state) {
@@ -92,6 +102,72 @@ fun LegacyBackupScreen(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
+            LegacyBackupUiState.EnterRecovery -> {
+                var email by remember { mutableStateOf("") }
+                var password by remember { mutableStateOf("") }
+                var pan by remember { mutableStateOf("") }
+                var dob by remember { mutableStateOf("") }
+                var q1 by remember { mutableStateOf("") }
+                var a1 by remember { mutableStateOf("") }
+                var q2 by remember { mutableStateOf("") }
+                var a2 by remember { mutableStateOf("") }
+                Text("Restore original backup", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "Requires the source vault login, PAN, birth date and both original " +
+                        "security-question IDs and answers. Your native vault must contain " +
+                        "no existing financial records. A failed restore changes nothing.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OutlinedTextField(email, { if (it.length <= 254) email = it },
+                    label = { Text("Original account email") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(password, { if (it.length <= 1024) password = it },
+                    label = { Text("Original password") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(pan, { if (it.length <= 10) pan = it.uppercase() },
+                    label = { Text("PAN (10 characters)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(dob, { if (it.length <= 10) dob = it },
+                    label = { Text("Date of birth (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
+                Text(
+                    "Original question IDs: maiden, school, pet, city, teacher, vehicle. " +
+                        "Use the same two selected questions as the old app.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OutlinedTextField(q1, { if (it.length <= 32) q1 = it },
+                    label = { Text("First question ID") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(a1, { if (it.length <= 256) a1 = it },
+                    label = { Text("First answer") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(q2, { if (it.length <= 32) q2 = it },
+                    label = { Text("Second question ID") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(a2, { if (it.length <= 256) a2 = it },
+                    label = { Text("Second answer") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth())
+                Button(
+                    enabled = email.isNotBlank() && password.isNotBlank() &&
+                        pan.length == 10 && dob.length == 10 &&
+                        q1.isNotBlank() && q2.isNotBlank() &&
+                        a1.isNotBlank() && a2.isNotBlank(),
+                    onClick = {
+                        val request = LegacyBackupIntent.Restore(
+                            email, password, pan, dob, q1, a1, q2, a2,
+                        )
+                        email = ""; password = ""; pan = ""; dob = ""
+                        q1 = ""; a1 = ""; q2 = ""; a2 = ""
+                        onIntent(request)
+                    },
+                ) { Text("Verify identity, device lock and restore") }
+            }
+            LegacyBackupUiState.Restoring -> Text(
+                "Verifying original identity and restoring encrypted records. " +
+                    "Do not close the application."
+            )
+            LegacyBackupUiState.Recovered -> {
+                Text("Legacy book restored successfully into the private SQLCipher vault.")
+                Text("Close and reopen the vault to reload the complete family and holdings.")
+            }
             LegacyBackupUiState.Inspecting -> {
                 Text("Authenticating and inspecting the selected archive on-device.")
             }
@@ -123,12 +199,13 @@ fun LegacyBackupScreen(
                     }
                 }
                 Text(
-                    "A lossless migration is not yet available. Goals, CAS history, " +
-                        "and legacy holding metadata are not all represented in the " +
-                        "current native schema. An automatic import could lose records; " +
-                        "the application correctly refuses it.",
+                    "The original archive remains unchanged. Restoration requires the " +
+                        "full identity check and an otherwise empty native vault; merging is refused.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                Button(onClick = { onIntent(LegacyBackupIntent.PrepareRestore) }) {
+                    Text("Restore to empty vault")
+                }
                 OutlinedButton(onClick = { onIntent(LegacyBackupIntent.SelectFile) }) {
                     Text("Inspect another archive")
                 }
