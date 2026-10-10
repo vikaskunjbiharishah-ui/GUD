@@ -240,6 +240,7 @@ def main() -> int:
            "current == pending.plan" in trades and
            "vault.commitManualTrade(pending.draft, current)" in trades,
            "Manual financial write must revalidate draft, original approval and latest book.")
+    binding = read("android-native/data/src/main/kotlin/in/growurdhan/data/vault/SqlCipherVaultRepository.kt")
     ensure("override suspend fun commitManualTrade(" in binding and
            "mutate { db ->" in binding and
            "current == reviewed" in binding and
@@ -256,7 +257,6 @@ def main() -> int:
            "OS credential confirmation is missing.")
     ensure("sessionGate.lock()" in activity, "Activity fails to invalidate expired authorization.")
 
-    binding = read("android-native/data/src/main/kotlin/in/growurdhan/data/vault/SqlCipherVaultRepository.kt")
     ensure("private val authorization: VaultAuthorization" in binding,
            "Production repository must inject deny-by-default VaultAuthorization.")
     # Current architecture uses shared guard helpers, not repeated inline

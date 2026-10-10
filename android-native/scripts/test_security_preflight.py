@@ -189,6 +189,12 @@ class RepositoryPolicyRoutingTests(unittest.TestCase):
         self.assertTrue(any("commitManualTrade" in issue
                             for issue in repository_binding_errors(mutant)))
 
+    def test_full_security_preflight_source_runs_without_initialization_errors(self):
+        # Regression: static policy individually passed but main() accessed the
+        # repository source variable before initialization (UnboundLocalError).
+        from security_preflight import main
+        self.assertEqual(0, main())
+
     def test_local_password_gates_are_necessary_for_os_and_financial_access(self):
         root = "android-native/app/src/main/java/in/growurdhan/app/presentation/"
         gate = read(root + "VaultSessionGate.kt")

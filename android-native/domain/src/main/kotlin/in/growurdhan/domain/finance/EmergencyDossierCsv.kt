@@ -14,9 +14,9 @@ object EmergencyDossierCsv {
         val clean = value.replace(Regex("[\\r\\n\\t\\u0000-\\u001f]"), " ")
             .trim().take(300)
         // Prevent CSV formula injection in common spreadsheet readers.
-        val protected = if (clean.firstOrNull() in listOf('=', '+', '-', '@')) "'$clean"
+        val safeValue = if (clean.firstOrNull() in listOf('=', '+', '-', '@')) "'$clean"
             else clean
-        return "\"" + protected.replace("\"", "\"\"") + "\""
+        return "\"" + safeValue.replace("\"", "\"\"") + "\""
     }
 
     private fun line(vararg fields: String) = fields.joinToString(",") { quoted(it) } + "\r\n"
