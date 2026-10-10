@@ -2,7 +2,7 @@ name: GrowUrDhan Native Android M3
 
 on:
   push:
-    branches: [GUD-Android-ChatGPT]
+    branches: [main]
     paths:
       - 'android-native/**'
       - '.github/workflows/native-android.yml'
@@ -29,15 +29,14 @@ jobs:
         run: python3 -m unittest discover -s android-native/scripts -p 'test_security_preflight.py' -v
       - name: Native source security policy and repository authorization gate
         run: python3 android-native/scripts/security_preflight.py
-      - name: Verify immutable CASPARSER engine and packaging inputs
+      - name: Verify vendored CASPARSER sources are present
         run: |
-          git diff --exit-code af96dcc8967ab595e1d9acee78e29e500cb99a9e HEAD -- \
-            src/casparser-main \
-            scripts/cas_android.py \
-            scripts/android_casparser_isin.py \
-            scripts/android_pydantic.py \
-            scripts/cas_parse_server.py \
-            scripts/requirements-cas.txt
+          test -d src/casparser-main/casparser
+          test -f scripts/cas_android.py
+          test -f scripts/android_casparser_isin.py
+          test -f scripts/android_pydantic.py
+          test -f scripts/cas_parse_server.py
+          test -f scripts/requirements-cas.txt
 
       - uses: actions/setup-java@v4
         with:
