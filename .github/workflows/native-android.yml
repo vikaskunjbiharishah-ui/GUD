@@ -5,6 +5,11 @@ name: GrowUrDhan Native Android M3
 # .github/ci-trigger/native-regression.txt after the milestone is complete.
 on:
   workflow_dispatch:
+    inputs:
+      source_sha:
+        description: 'Optional exact source SHA for the native regression run'
+        type: string
+        required: false
   push:
     branches: [main]
     paths:
@@ -25,6 +30,30 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Checkout exact requested source SHA for this regression
+        shell: bash
+        env:
+          REGRESSION_EVENT: ${{ github.event_name }}
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$REGRESSION_EVENT" == "push" ]]; then
+            test -f .github/ci-trigger/native-regression.txt
+            source_sha="$(head -n 1 .github/ci-trigger/native-regression.txt)"
+          else
+            source_sha="${REQUESTED_SHA:-$(git rev-parse HEAD)}"
+          fi
+          if [[ ! "$source_sha" =~ ^[a-f0-9]{40}$ ]]; then
+            echo "::error::A valid exact 40-character source commit SHA is required."
+            exit 1
+          fi
+          git cat-file -e "$source_sha^{commit}"
+          git checkout --detach "$source_sha"
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$source_sha"
+          echo "REGRESSION_SOURCE_SHA=$actual" >> "$GITHUB_ENV"
+          echo "TESTED SOURCE SHA: $actual"
+          echo "WORKFLOW TRIGGER SHA: $GITHUB_SHA"
       - name: Preflight native SQLite v1-to-v2 migration and ledger guards
         run: python3 android-native/scripts/validate_schema.py
       - name: Verify native security and build-budget regression tests
