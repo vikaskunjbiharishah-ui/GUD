@@ -78,7 +78,7 @@ class NativeCustodyHoldingInstrumentedTest {
         assertEquals(account, vault.accounts().single())
         assertEquals(holding.id, vault.casIdentities().single().holdingId)
         vault.close()
-        assertEquals(3, vault.openOrCreate().schemaVersion)
+        assertEquals(VaultSchema.VERSION, vault.openOrCreate().schemaVersion)
         assertEquals(account, vault.accounts().single())
         assertEquals(holding, vault.holdings().single())
         assertEquals("INF000000001", vault.casIdentities().single().isin)
@@ -185,7 +185,7 @@ class NativeCustodyHoldingInstrumentedTest {
         }
     }
 
-    @Test fun realSqlCipherV2UpgradesToV3WithoutModifyingExistingFinancialRows(): Unit = runBlocking {
+    @Test fun realSqlCipherV2UpgradesToCurrentSchemaWithoutModifyingExistingFinancialRows(): Unit = runBlocking {
         assertTrue(folder.mkdirs())
         val key = VaultKeyEnvelope(File(folder, "wrapped.key"), alias)
             .unwrapOrCreate(allowCreate = true)
@@ -215,7 +215,7 @@ class NativeCustodyHoldingInstrumentedTest {
             key.fill(0)
         }
         File(folder, "ready").writeText("GUDREADY02")
-        assertEquals(3, vault.openOrCreate().schemaVersion)
+        assertEquals(VaultSchema.VERSION, vault.openOrCreate().schemaVersion)
         assertEquals("evt", vault.events().single().id)
         assertTrue(vault.casIdentities().isEmpty())
         assertEquals("Old synthetic fund", vault.holdings().single().name)

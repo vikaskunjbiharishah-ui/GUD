@@ -109,7 +109,7 @@ class NativeFinancialPersistenceInstrumentedTest {
         // Emulate a valid M2 vault's already committed ready marker.
         File(folder, "ready").writeText("GUDREADY02")
         val opened = vault.openOrCreate()
-        assertEquals(3, opened.schemaVersion)
+        assertEquals(VaultSchema.VERSION, opened.schemaVersion)
         assertEquals("Original M2 Member", vault.members().single().displayName)
         assertEquals("Original M2 Holding", vault.holdings().single().name)
         val migrated = vault.events().single()
@@ -120,7 +120,7 @@ class NativeFinancialPersistenceInstrumentedTest {
         assertEquals(0L, migrated.charges.raw)
         assertEquals(0, vault.health().foreignKeyViolations)
         vault.close()
-        assertEquals(3, vault.openOrCreate().schemaVersion)
+        assertEquals(VaultSchema.VERSION, vault.openOrCreate().schemaVersion)
         assertEquals("v1-event", vault.events().single().id)
     }
 
