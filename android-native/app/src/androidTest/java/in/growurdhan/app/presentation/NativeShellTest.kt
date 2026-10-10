@@ -1,7 +1,6 @@
 package `in`.growurdhan.app.presentation
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.runtime.getValue
