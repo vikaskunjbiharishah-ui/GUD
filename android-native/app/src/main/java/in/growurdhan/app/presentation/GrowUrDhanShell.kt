@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
@@ -41,6 +43,8 @@ import `in`.growurdhan.app.presentation.screens.PortableRecoveryScreen
 import `in`.growurdhan.app.presentation.screens.CustodyHoldingScreen
 import `in`.growurdhan.app.presentation.screens.FamilyMemberScreen
 import `in`.growurdhan.app.presentation.screens.HomeScreen
+import `in`.growurdhan.app.presentation.screens.PortfolioScreen
+import `in`.growurdhan.app.presentation.screens.InsightsScreen
 import `in`.growurdhan.app.presentation.screens.StatementReviewScreen
 import `in`.growurdhan.app.presentation.screens.PrivacyScreen
 import `in`.growurdhan.app.presentation.screens.SettingsScreen
@@ -52,13 +56,15 @@ private enum class MainDestination(
     val icon: ImageVector,
 ) {
     HOME("home", "Home", Icons.Outlined.Home),
-    VAULT("vault", "Vault", Icons.Outlined.Lock),
+    PORTFOLIO("portfolio", "Portfolio", Icons.Outlined.AccountBalanceWallet),
     REVIEW("review", "Statements", Icons.Outlined.Description),
-    PRIVACY("privacy", "Privacy", Icons.Outlined.Shield),
+    INSIGHTS("insights", "Insights", Icons.Outlined.BarChart),
     SETTINGS("settings", "Settings", Icons.Outlined.Settings),
 }
 
-/** Secondary route; intentionally not another bottom-navigation tab. */
+/** Secondary routes remain reachable from Home and Settings without crowding navigation. */
+private const val VAULT_ROUTE = "vault"
+private const val PRIVACY_ROUTE = "privacy"
 private const val FAMILY_ROUTE = "family"
 /** Secondary secure registrar/holding setup route, not an extra bottom tab. */
 private const val CUSTODY_ROUTE = "custody"
@@ -157,12 +163,29 @@ fun GrowUrDhanShell(
                             dashboardState = dashboardState,
                             onRefreshDashboard = onDashboardRefresh,
                             onOpenSettings = { navigate(MainDestination.SETTINGS.route) },
-                            onOpenPrivacy = { navigate(MainDestination.PRIVACY.route) },
-                            onOpenVault = { navigate(MainDestination.VAULT.route) },
+                            onOpenPrivacy = { navigate(PRIVACY_ROUTE) },
+                            onOpenVault = { navigate(VAULT_ROUTE) },
                             onOpenStatements = { navigate(MainDestination.REVIEW.route) },
+                            onOpenPortfolio = { navigate(MainDestination.PORTFOLIO.route) },
+                            onOpenInsights = { navigate(MainDestination.INSIGHTS.route) },
                         )
                     }
-                    composable(MainDestination.VAULT.route) {
+                    composable(MainDestination.PORTFOLIO.route) {
+                        PortfolioScreen(
+                            state = dashboardState,
+                            onOpenVault = { navigate(VAULT_ROUTE) },
+                            onRefresh = onDashboardRefresh,
+                            onManageHoldings = { navigate(CUSTODY_ROUTE) },
+                        )
+                    }
+                    composable(MainDestination.INSIGHTS.route) {
+                        InsightsScreen(
+                            state = dashboardState,
+                            onOpenVault = { navigate(VAULT_ROUTE) },
+                            onRefresh = onDashboardRefresh,
+                        )
+                    }
+                    composable(VAULT_ROUTE) {
                         VaultScreen(
                             state = vaultState,
                             onIntent = onVaultIntent,
@@ -188,7 +211,7 @@ fun GrowUrDhanShell(
                             onIntent = onFamilyIntent,
                             onReturnToVault = {
                                 onFamilyIntent(FamilyMemberIntent.Cancel)
-                                navigate(MainDestination.VAULT.route)
+                                navigate(VAULT_ROUTE)
                             },
                             onContinueToStatements = {
                                 onFamilyIntent(FamilyMemberIntent.Cancel)
@@ -210,7 +233,7 @@ fun GrowUrDhanShell(
                             onIntent = onCustodyIntent,
                             onBackToVault = {
                                 onCustodyIntent(CustodyHoldingIntent.Cancel)
-                                navigate(MainDestination.VAULT.route)
+                                navigate(VAULT_ROUTE)
                             },
                             onContinueToStatements = {
                                 onCustodyIntent(CustodyHoldingIntent.Cancel)
@@ -225,17 +248,19 @@ fun GrowUrDhanShell(
                             onIntent = onRecoveryIntent,
                             onReturnToVault = {
                                 onRecoveryIntent(PortableRecoveryIntent.Cancel)
-                                navigate(MainDestination.VAULT.route)
+                                navigate(VAULT_ROUTE)
                             },
                         )
                     }
-                    composable(MainDestination.PRIVACY.route) {
+                    composable(PRIVACY_ROUTE) {
                         PrivacyScreen()
                     }
                     composable(MainDestination.SETTINGS.route) {
                         SettingsScreen(
                             appearance = state.appearance,
                             onIntent = onIntent,
+                            onOpenVault = { navigate(VAULT_ROUTE) },
+                            onOpenPrivacy = { navigate(PRIVACY_ROUTE) },
                         )
                     }
                 }

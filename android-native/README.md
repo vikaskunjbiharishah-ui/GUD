@@ -1,7 +1,7 @@
 # GrowUrDhan — Native Kotlin Android
 
-**Branch:** `GUD-Android-ChatGPT`  
-**Status:** Active native development. The latest `GUD-Android-ChatGPT` changes are **not yet Gradle- or device-verified**. Historical M6 baseline `3a4dfa0790f` passed 102 JVM tests and 35 Android tests on API 35 (also 35 on each of APIs 26/30/36); those results **do not verify this branch**. Full legacy parity, physical-device acceptance, independent AppSec review and Play release remain OPEN.  
+**Repository:** `vikaskunjbiharishah-ui/GUD`, development branch `main` only.  
+**Status:** Active isolated native development. The latest consolidated `main` milestone is **not yet Gradle- or device-verified**. Historical M6 baseline `3a4dfa0790f` passed 102 JVM tests and 35 Android tests on API 35 (also 35 on each of APIs 26/30/36); those results **do not verify this branch**. Full legacy parity, physical-device acceptance, independent AppSec review and Play release remain OPEN.  
 **Application ID:** `in.growurdhan.app` (pre-release development only). No Google Play version has been published.
 
 ## Modules and active implementation
@@ -345,3 +345,52 @@ GitHub Actions runner availability is restored.
 
 No CASPARSER code, bundled statement parser, financial ledger or private
 on-phone records were changed by this milestone.
+
+## Isolated mainline portfolio and regression-budget milestone — October 2026
+
+**Scope:** The native bottom navigation has five concise destinations: Home,
+Portfolio, Statements, Insights and Settings. Encrypted vault actions and privacy
+information remain directly reachable through Home or Settings. This changes
+native navigation only; it does not migrate or modify the original React/Tauri
+database.
+
+**Portfolio:** The new native `PortfolioScreen` uses the same authorized,
+atomic `HouseholdDashboard` snapshot already shown by Home. Families can
+filter recorded holdings locally by category and family member, then search
+and page through the filtered list. Displayed category, owner nickname and
+holding names come from the enrolled book; structured PAN/folio/account IDs
+are not added. Applying filters does not change household asset, debt or
+net-worth totals. Locking removes the selected filters and the private rows.
+
+**Insights:** `PortfolioInsightsProjector` computes exact-checked asset
+allocation percentages and a recorded debt-to-assets percentage using
+BigInteger/BigDecimal, not floating-point money. It reconciles household
+net worth, category totals, member assets/debts and, when provided, recorded
+holding totals and counts. If any of these disagree, or the finance engine
+reports an integrity warning, allocation and leverage percentages are
+**withheld**, not guessed. Debt-only/zero-asset books never divide by zero.
+The page explicitly says recorded prices may be stale; no NAV network
+refresh, XIRR, tax advice or historical-cost inference was added.
+
+**CI budget:** Ordinary changes to `main` do not run GitHub-hosted builds.
+The full native build is available via the GitHub Actions `Run workflow`
+control, or by **a deliberate later commit** touching
+`.github/ci-trigger/native-regression.txt`. Do NOT add or update that marker
+as part of a development milestone. The three-device API 26/30/36 matrix,
+legacy JS checks and production signing remain opt-in/manual. A Python
+unittest suite now checks these workflow trigger contracts, alongside the
+existing security/preflight tests.
+
+**Tests staged for the next build:** domain unit tests cover category
+rounding, overflow, debt-only, inconsistent totals, member mismatches and a
+real `PortfolioEngine` to dashboard-to-insights calculation. Android Compose
+tests cover locked routes, filtering, allocation disclosure/withholding and
+lock-time removal of holdings. The older shell navigation tests were adapted
+for Vault/Privacy secondary routes.
+
+**Not proven by source or isolated tests:** Android Gradle/Kotlin 2.2 compile,
+JVM JUnit5/MockK tests, Compose accessibility and connected emulator tests,
+real ARM64 CASParser/PDFium behavior, standalone GrowUrDhan login,
+Gmail OAuth sync, NPS support, live market prices, paid licences and a
+production Play-signed AAB. These are **open E2/E3/E4 delivery gates** and
+must not be described as fully implemented or commercially accepted.

@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,6 +35,8 @@ import `in`.growurdhan.core.model.ThemeMode
 fun SettingsScreen(
     appearance: AppearanceSettings,
     onIntent: (AppIntent) -> Unit,
+    onOpenVault: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
 ) {
     val haptics = LocalHapticFeedback.current
     Column(
@@ -73,6 +77,34 @@ fun SettingsScreen(
                         RadioButton(selected = selected, onClick = null)
                         Text(label, style = MaterialTheme.typography.bodyLarge)
                     }
+                }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Security and privacy", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Your books stay on this device. Manage your encrypted vault " +
+                        "and read the privacy details without connecting to a server.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(
+                        onClick = onOpenVault,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Vault settings"
+                        },
+                    ) { Text("Vault") }
+                    OutlinedButton(
+                        onClick = onOpenPrivacy,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Privacy information"
+                        },
+                    ) { Text("Privacy") }
                 }
             }
         }

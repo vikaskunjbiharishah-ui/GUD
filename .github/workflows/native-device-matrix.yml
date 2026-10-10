@@ -1,11 +1,8 @@
 name: GrowUrDhan Native API Device Matrix
 
+# Full three-API emulator matrix is intentionally manual and never runs
+# on every push (three separate, expensive emulator jobs).
 on:
-  push:
-    branches: [GUD-Android-ChatGPT]
-    paths:
-      - 'android-native/**'
-      - '.github/workflows/native-device-matrix.yml'
   workflow_dispatch:
 
 permissions:

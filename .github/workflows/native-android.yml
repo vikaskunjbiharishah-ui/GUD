@@ -1,12 +1,14 @@
 name: GrowUrDhan Native Android M3
 
+# Main-only development is intentionally NOT a build trigger.
+# The owner can use Run workflow, or an explicit small commit that changes
+# .github/ci-trigger/native-regression.txt after the milestone is complete.
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'android-native/**'
-      - '.github/workflows/native-android.yml'
-  workflow_dispatch:
+      - '.github/ci-trigger/native-regression.txt'
 
 permissions:
   contents: read
@@ -25,8 +27,8 @@ jobs:
           fetch-depth: 0
       - name: Preflight native SQLite v1-to-v2 migration and ledger guards
         run: python3 android-native/scripts/validate_schema.py
-      - name: Verify native security preflight rejects repository bypasses
-        run: python3 -m unittest discover -s android-native/scripts -p 'test_security_preflight.py' -v
+      - name: Verify native security and build-budget regression tests
+        run: python3 -m unittest discover -s android-native/scripts -p 'test_*.py' -v
       - name: Native source security policy and repository authorization gate
         run: python3 android-native/scripts/security_preflight.py
       - name: Verify vendored CASPARSER sources are present

@@ -38,7 +38,7 @@ class CustodyHoldingShellTest {
                 )
             }
         }
-        compose.onNodeWithContentDescription("Vault").performClick()
+        compose.onNodeWithText("Open vault").performScrollTo().performClick()
         compose.onNodeWithText("Manage accounts & holdings").performScrollTo().performClick()
         compose.onNodeWithText("Accounts & holdings").assertIsDisplayed()
         compose.onNodeWithText("Save a CAMS or KFINTECH registrar account first.")
@@ -56,7 +56,7 @@ class CustodyHoldingShellTest {
                 )
             }
         }
-        compose.onNodeWithContentDescription("Vault").performClick()
+        compose.onNodeWithText("Open vault").performScrollTo().performClick()
         compose.onNodeWithText("Manage accounts & holdings").performScrollTo().performClick()
         compose.onNodeWithText("Save registrar account securely")
             .performScrollTo().assertIsNotEnabled()
@@ -82,7 +82,7 @@ class CustodyHoldingShellTest {
                 )
             }
         }
-        compose.onNodeWithContentDescription("Vault").performClick()
+        compose.onNodeWithText("Open vault").performScrollTo().performClick()
         compose.onNodeWithText("Manage accounts & holdings").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Mutual fund scheme name input")
             .performScrollTo().performTextInput("Synthetic Index")

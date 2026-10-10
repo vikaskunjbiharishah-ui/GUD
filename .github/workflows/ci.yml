@@ -1,9 +1,9 @@
 name: Kosha CI
 
+# Archived React/Tauri regression workflow. Run manually when needed; it
+# must not consume Actions credits on every native-development commit.
 on:
-  push:
-    branches: ['**']
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   validate:

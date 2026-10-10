@@ -38,7 +38,7 @@ class PortableRecoveryShellTest {
                 )
             }
         }
-        compose.onNodeWithContentDescription("Vault").performClick()
+        compose.onNodeWithText("Open vault").performScrollTo().performClick()
         compose.onNodeWithText("Recover from encrypted backup").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Backup & recovery").assertIsDisplayed()
@@ -66,7 +66,7 @@ class PortableRecoveryShellTest {
                 )
             }
         }
-        compose.onNodeWithContentDescription("Vault").performClick()
+        compose.onNodeWithText("Open vault").performScrollTo().performClick()
         compose.onNodeWithText("Recover from encrypted backup").performClick()
         compose.onNodeWithText("Confirm device lock and restore").assertIsNotEnabled()
         compose.onNode(hasSetTextAction()).performTextInput("synthetic12characters")

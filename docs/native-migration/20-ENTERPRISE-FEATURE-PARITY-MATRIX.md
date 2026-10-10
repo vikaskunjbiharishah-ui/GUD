@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-09  
 **Reference:** `GUD-Android-Gmail` (read-only)  
-**Target:** `GUD-Android-ChatGPT` (only permitted write branch)  
+**Original audit target:** `GUD-Android-ChatGPT` (historical). **Current isolated target:** `vikaskunjbiharishah-ui/GUD` / `main`. Original repository remains read-only.  
 **Evidence standard:** SOURCE VERIFIED = relevant code inspected; IMPLEMENTED ≠ tested; TESTED requires test evidence for current commit; RELEASE ACCEPTED requires device and security signoff. This is a *first-pass* source audit, not a completed exhaustive inventory.
 
 ## Audited feature register
@@ -49,3 +49,21 @@
 ## Change-control and test policy
 
 All work occurs on `GUD-Android-ChatGPT`. Original branch and frozen parser remain untouched. No completion percentage is asserted from file counts. A feature is accepted only when a user-visible workflow, financial invariants, current-commit CI and relevant real-device evidence agree.
+
+## Incremental native parity update — isolated GUD/main, October 2026
+
+This first-pass register above is **preserved as dated evidence**; its F02
+“MISSING dashboard” statement predates `HomeScreen.kt` and is superseded
+by this addendum. No feature is marked release accepted from source alone.
+
+| Feature | Current native source evidence | Current development status |
+| --- | --- | --- |
+| F02 Household dashboard | `HouseholdDashboardViewModel.kt`, `PortfolioEngine.kt`, `HomeScreen.kt` | **IMPLEMENTED for recorded-price offline summaries; build/device pending** |
+| F03 Portfolio | `PortfolioScreen.kt`, `RecordedHoldingsSection.kt`, `GrowUrDhanShell.kt` | **PARTIAL; read-only holdings/filtering implemented; transaction editor missing** |
+| F08 Insights | `PortfolioInsightsProjector.kt`, `InsightsScreen.kt`, `PortfolioInsightsProjectorTest.kt` | **PARTIAL; validated allocation and debt ratio only; cash-flow returns, XIRR UI and tax UI missing** |
+| F13-F14 Navigation and appearance | `GrowUrDhanTheme.kt`, `SettingsScreen.kt`, `GrowUrDhanShell.kt` | **PARTIAL; five top-level native destinations, secondary vault and privacy; visual/device signoff pending** |
+| F01/F06/F07/F09/F10 | No completed new production app login, NPS, Gmail OAuth, live pricing or Play billing flows in this milestone | **OPEN / NOT RELEASE ACCEPTED** |
+
+The new `main` repository keeps the full legacy code and original tests for
+reference without altering their source branches. Only the consolidated
+native milestone and the budget-controlled workflow configuration are new.

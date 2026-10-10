@@ -7,9 +7,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsOff
@@ -275,7 +272,7 @@ class NativeShellTest {
                 )
             }
         }
-        compose.onNodeWithContentDescription("Vault").performClick()
+        compose.onNodeWithText("Open vault").performScrollTo().performClick()
         compose.onNodeWithText("No native vault found").assertIsDisplayed()
         compose.runOnIdle { assertEquals(null, action) }
         compose.onNodeWithText("Create encrypted vault").performClick()
@@ -289,7 +286,8 @@ class NativeShellTest {
                 GrowUrDhanShell(AppUiState(), onIntent = {})
             }
         }
-        compose.onNodeWithContentDescription("Privacy").performClick()
+        compose.onNodeWithContentDescription("Settings").performClick()
+        compose.onNodeWithContentDescription("Privacy information").performScrollTo().performClick()
         compose.onNodeWithText("Privacy by construction").assertIsDisplayed()
         // Additional privacy copy moved this card below the initial viewport.
         // Test its actual visible, scrollable state rather than initial placement.
@@ -297,6 +295,22 @@ class NativeShellTest {
             .performScrollTo()
             .assertIsDisplayed()
     }
+    @Test fun portfolioAndInsightsTabsDoNotShowLockedFamilyInformation() {
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                GrowUrDhanShell(AppUiState(), onIntent = {})
+            }
+        }
+        compose.onNodeWithContentDescription("Portfolio").performClick()
+        compose.onNodeWithText("Unlock the vault to see your family's recorded holdings.")
+            .assertIsDisplayed()
+        compose.onNodeWithContentDescription("Insights").performClick()
+        compose.onNodeWithText(
+            "Unlock the vault to view your family's private financial insights.",
+        ).assertIsDisplayed()
+        compose.onNodeWithText("Synthetic private holding").assertDoesNotExist()
+    }
+
     @Test fun emptyStatementDestinationCannotOfferUnverifiedImport() {
         compose.setContent {
             GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {

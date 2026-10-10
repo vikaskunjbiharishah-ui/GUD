@@ -40,6 +40,8 @@ fun HomeScreen(
     onOpenVault: () -> Unit = {},
     onRefreshDashboard: () -> Unit = {},
     onOpenStatements: () -> Unit = {},
+    onOpenPortfolio: () -> Unit = {},
+    onOpenInsights: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -211,6 +213,15 @@ fun HomeScreen(
             dashboardState.dashboard.recordedHoldings.isNotEmpty()
         ) {
             RecordedHoldingsSection(dashboardState.dashboard.recordedHoldings)
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(onClick = onOpenPortfolio, modifier = Modifier.weight(1f)) {
+                Text("Portfolio")
+            }
+            OutlinedButton(onClick = onOpenInsights, modifier = Modifier.weight(1f)) {
+                Text("Insights")
+            }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

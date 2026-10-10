@@ -1,42 +1,57 @@
-# GrowUrDhan (Android)
+# GrowUrDhan — Isolated Android Development Mainline
 
-Local-first family wealth tracker for Indian households.
-Application id: `in.growurdhan.app`.
+This private repository is the **independent development copy** at
+`vikaskunjbiharishah-ui/GUD`. All future changes are made to **`main` only**.
+It was seeded from `shahvikask/kosha`, branch `GUD-Android-ChatGPT`,
+commit `d98f0945a924049c67cf376b8cc6d78a171dc3d5`.
+The original repositories and all of their protected branches are
+separate; do not push changes back to them.
 
-This branch (`GUD-Android-APK`) is the **sideload test APK**. Production Play AAB lives on `GUD-Android`. Windows stays on `GUD-Windows`.
+## What is here
 
-## What this repo is
+- **Current native Android migration:** `android-native/` — Kotlin,
+  Jetpack Compose, SQLCipher, Keystore-wrapped database keys, family
+  onboarding, strict manual CAS review, append-only money ledger,
+  locally encrypted portable backups, portfolio and read-only insights.
+- **Original reference application:** `src/`, `src-tauri/` and
+  `package.json` — the React/Tauri codebase retained as an as-built
+  functional reference, not overwritten or automatically migrated.
+- **Frozen statement parser:** `src/casparser-main/` and its invocation
+  scripts. Do **not** edit or replace this code.
+- **Engineering and verification documents:** `docs/`, including
+  [the native architecture](docs/native-migration/19-ENTERPRISE-REDEVELOPMENT-MASTER-PLAN.md)
+  and [feature parity register](docs/native-migration/20-ENTERPRISE-FEATURE-PARITY-MATRIX.md).
 
-- React + Vite UI in `src/`
-- Tauri 2 Android shell in `src-tauri/`
-- Play Billing, Integrity, encrypted vault, in-app review in `GrowUrDhanPlugin.kt`
-- Play listing, privacy, terms, and account-deletion pages in `marketing/`
+Application ID: `in.growurdhan.app`. The native version is a development
+build; it is **not yet accepted for public Google Play distribution**.
 
-## Licence (two products only)
+## One development commit, one deliberate build
 
-1. Lifetime — ₹249 (required after the 30-day trial)
-2. Annual support — ₹299 / year (optional; lifetime first)
+**Normal changes to `main` do not start paid GitHub Actions builds.**
+Development work is staged and reviewed as a complete milestone, then pushed
+with one final commit. Build and regression testing is a separate owner-approved
+gate.
 
-No bundle. No per-member seats. Family members are unlimited under the lifetime licence.
+To start the full native pipeline, use **Actions → GrowUrDhan Native Android M3 →
+Run workflow → main**, or create/update *only* the explicit file
+`.github/ci-trigger/native-regression.txt` in a separate follow-up commit.
+That single trigger runs native schema and security preflights, JVM tests,
+debug APK/test APK builds, disposable-key release AAB smoke compilation and
+Android API 35 instrumentation. The API 26/30/36 emulator matrix and
+React/Tauri JS CI are also manual workflows.
 
-## Docs that belong on this branch
+The manual production-signing workflow remains protected by separately
+approved exact commit SHA, `play-release` environment and owner-provided
+signing secrets. There is no automated Play publication.
 
-| File | Purpose |
-|---|---|
-| [docs/ANDROID-APK.md](docs/ANDROID-APK.md) | How to sideload the test APK |
-| [docs/ANDROID.md](docs/ANDROID.md) | Play / AAB identity, SKUs, encryption |
-| [docs/PLAY-CONSOLE.md](docs/PLAY-CONSOLE.md) | Store listing and billing checklist |
-| [docs/RELEASE-CHANNELS.md](docs/RELEASE-CHANNELS.md) | Which branch ships what |
-| [docs/README.md](docs/README.md) | Engineering notes index |
+Run locally with the prerequisites from
+[android-native/README.md](android-native/README.md). Passing historic CI runs
+from the old account does not verify this repository's newer commits.
 
-## Build
+## Commercial acceptance remains open
 
-```bash
-npm install
-npm test
-npm run android:prepare
-npm run android:apk    # this branch
-# on GUD-Android: npm run android:aab
-```
-
-Do not upload this branch's APK to Google Play.
+The new Portfolio and Insights pages are read-only, not substitutes for
+app-password login parity, full transaction editing, Gmail OAuth, NPS import,
+official price refresh, Google Play billing, independent AppSec audit or
+physical-device signoff. Nothing in this repository should be called
+commercially ready until those gates have evidence.

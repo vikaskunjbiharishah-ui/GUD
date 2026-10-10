@@ -102,7 +102,7 @@ class FamilyOnboardingShellTest {
                 )
             }
         }
-        compose.onNodeWithContentDescription("Vault").performClick()
+        compose.onNodeWithText("Open vault").performScrollTo().performClick()
         compose.onNodeWithText("Add first family member").performScrollTo().performClick()
         compose.onNodeWithText("Add yourself as the primary owner").assertIsDisplayed()
     }
