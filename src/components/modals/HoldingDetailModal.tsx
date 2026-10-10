@@ -1,0 +1,846 @@
+import React, { useEffect, useState } from 'react';
+import { useKosha } from '../../context/KoshaContext';
+import { ASSET_CATEGORIES, EmiStatus } from '../../types';
+import { MoneyEngine, QTY_SCALE } from '../../lib/money';
+import { PrivacyValue, PrivacyDelta } from '../common/PrivacyValue';
+import {
+  metricsOf,
+  eventLabel,
+  unitWord,
+  formatCalendarDate,
+  whereHeld,
+  displayHoldingName,
+  isCertificateSgb,
+  isDematSgb,
+} from '../../lib/holdingView';
+import { X, Edit3, Plus, Trash2, Calendar, Coins } from 'lucide-react';
+import { resumeEmiDate } from '../../lib/emi';
+import { holdingReturn, isStatementOnlyHistory } from '../../lib/returnMetrics';
+import { detailsLines, isReitLike, nameLooksLikeEtf, nameLooksLikeReit, usesUnits } from '../../lib/holdingForm';
+import { isUnknownInvested, planInvestedCorrection, UNKNOWN_INVESTED_LABEL } from '../../lib/costBasis';
+import { holdingHasStatementHistory } from '../../lib/holdingForm';
+
+interface HoldingDetailModalProps {
+  holdingId: string | null;
+  onClose: () => void;
+  onOpenAddRecord: (holdingId: string) => void;
+}
+
+export const HoldingDetailModal: React.FC<HoldingDetailModalProps> = ({
+  holdingId,
+  onClose,
+  onOpenAddRecord,
+}) => {
+  const {
+    holdings,
+    ledgerEvents,
+    familyMembers,
+    accounts,
+    updateHolding,
+    updateHoldingPrice,
+    deleteHolding,
+    correctInvested,
+    sgbValuationMode,
+    ibjaRupeesPerGram,
+    derived,
+  } = useKosha();
+
+  const [isEditingPrice, setIsEditingPrice] = useState(false);
+  const [newPriceInput, setNewPriceInput] = useState('');
+  const [isEditingAll, setIsEditingAll] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editSymbol, setEditSymbol] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [editCoupon, setEditCoupon] = useState('');
+  const [editNextCoupon, setEditNextCoupon] = useState('');
+  const [editMaturity, setEditMaturity] = useState('');
+  const [editEmi, setEditEmi] = useState('');
+  const [editRemaining, setEditRemaining] = useState('');
+  const [editRate, setEditRate] = useState('');
+  const [editInvested, setEditInvested] = useState('');
+  const [editAcquiredOn, setEditAcquiredOn] = useState('');
+  const [editIssuePrice, setEditIssuePrice] = useState('');
+  const [editIncome, setEditIncome] = useState('');
+  const [editIncomeDay, setEditIncomeDay] = useState('');
+  const [editIncomeStart, setEditIncomeStart] = useState('');
+  const [editIncomeEnd, setEditIncomeEnd] = useState('');
+  const [editError, setEditError] = useState('');
+
+  useEffect(() => {
+    setIsEditingAll(false);
+    setIsEditingPrice(false);
+    setNewPriceInput('');
+  }, [holdingId]);
+
+  if (!holdingId) return null;
+  const holding = holdings.find(h => h.id === holdingId);
+  if (!holding) return null;
+
+  const catInfo = ASSET_CATEGORIES[holding.category];
+  const owner = familyMembers.find(m => m.id === holding.ownerId);
+  const ibja = ibjaRupeesPerGram && ibjaRupeesPerGram > 0 ? MoneyEngine.fromRupees(ibjaRupeesPerGram) : null;
+  const m = metricsOf(holding, derived, sgbValuationMode, ibja);
+  const holdingEvents = ledgerEvents
+    .filter(ev => ev.holdingId === holding.id)
+    .sort((a, b) => b.eventDate.localeCompare(a.eventDate));
+  const acct = accounts.find(a => a.id === holding.accountId);
+  const isElss = /elss|tax.?sav/i.test(`${holding.name} ${holding.subCategory} ${holding.schemeType || ''}`);
+  const isGovt = /ppf|epf|nps|sukanya|ssy/i.test(`${holding.name} ${holding.subCategory}`);
+  const isSgb = holding.category === 'GOLD_SGB' && /sovereign|^sgb$/i.test(holding.subCategory || 'Sovereign');
+  const unitBased = usesUnits(holding.category, holding.subCategory, holding.details);
+  const isReit = isReitLike(holding.subCategory) || nameLooksLikeReit(holding.name);
+  const paidPerUnitMinor = m.qty > 0n ? (m.cost * QTY_SCALE) / m.qty : m.cost;
+  const paidPerUnitRupees = MoneyEngine.toRupees(paidPerUnitMinor);
+  const statementOnly = isStatementOnlyHistory(holdingEvents);
+  const unknownInvested = isUnknownInvested(holding, holdingEvents, m.cost, m.value);
+  const investedLooksLikeCmp = unknownInvested || (!catInfo.isLiability && m.cost > 0n && m.value > 0n && (
+    m.cost === m.value || (m.cost > m.value ? m.cost - m.value : m.value - m.cost) < 10_000n
+  ));
+
+  const handleStartEditAll = () => {
+    setEditName(holding.name);
+    setEditSymbol(holding.symbolOrFolio);
+    setEditPrice(MoneyEngine.toRupees(m.price).toString());
+    setEditCoupon(
+      isSgb
+        ? String(holding.couponRatePercent ?? 2.5)
+        : holding.category === 'FIXED_INCOME'
+          ? (holding.interestRatePercent != null ? String(holding.interestRatePercent) : '')
+          : (holding.couponRatePercent != null ? String(holding.couponRatePercent) : '')
+    );
+    setEditNextCoupon(holding.nextCouponDate || '');
+    setEditMaturity(holding.maturityDate || '');
+    setEditEmi(holding.monthlyEmiMinor ? String(MoneyEngine.toRupees(BigInt(holding.monthlyEmiMinor))) : '');
+    setEditRemaining(holding.remainingEmiCount != null ? String(holding.remainingEmiCount) : '');
+    setEditRate(holding.interestRatePercent != null ? String(holding.interestRatePercent) : '');
+    setEditInvested(paidPerUnitRupees > 0 ? String(paidPerUnitRupees) : '');
+    setEditAcquiredOn(holding.acquiredOn || '');
+    setEditIssuePrice(holding.issuePriceMinor ? String(MoneyEngine.toRupees(BigInt(holding.issuePriceMinor))) : '');
+    setEditIncome(holding.details?.monthlyIncomeMinor ? String(MoneyEngine.toRupees(BigInt(holding.details.monthlyIncomeMinor))) : '');
+    setEditIncomeDay(holding.details?.incomeDay != null ? String(holding.details.incomeDay) : '');
+    setEditIncomeStart(holding.details?.incomeStart || '');
+    setEditIncomeEnd(holding.details?.incomeEnd || '');
+    setEditError('');
+    setIsEditingAll(true);
+  };
+
+  const handleSaveEditAll = async () => {
+    setEditError('');
+    const priceVal = parseFloat(editPrice);
+    if (!editName.trim()) return;
+    if (isNaN(priceVal) || priceVal < 0) return;
+    const coupon = parseFloat(editCoupon);
+    const rate = parseFloat(editRate);
+    const emiVal = parseFloat(editEmi);
+    const remainVal = parseInt(editRemaining, 10);
+    const investedVal = parseFloat(editInvested);
+    const issueVal = parseFloat(editIssuePrice);
+    const ratePatch =
+      holding.category === 'GOLD_SGB'
+        ? { couponRatePercent: !isNaN(coupon) ? coupon : holding.couponRatePercent ?? 2.5 }
+        : holding.category === 'FIXED_INCOME'
+          ? { interestRatePercent: !isNaN(coupon) ? coupon : holding.interestRatePercent }
+          : { interestRatePercent: !isNaN(rate) ? rate : holding.interestRatePercent };
+    const priceUnchanged = editPrice === MoneyEngine.toRupees(m.price).toString();
+    const pricePatch = priceUnchanged
+      ? {}
+      : {
+          currentPriceMinor: MoneyEngine.fromRupees(priceVal).toString(),
+          lastPriceUpdated: new Date().toISOString(),
+          priceSource: 'Manual Verified Entry',
+        };
+    let details = holding.details;
+    if (isReit) {
+      const inc = parseFloat(editIncome);
+      const day = parseInt(editIncomeDay, 10);
+      const nextDetails = { ...(holding.details || {}) };
+      if (!isNaN(inc) && inc > 0) nextDetails.monthlyIncomeMinor = MoneyEngine.fromRupees(inc).toString();
+      else delete nextDetails.monthlyIncomeMinor;
+      if (!isNaN(day) && day > 0) nextDetails.incomeDay = Math.min(28, Math.max(1, day));
+      else delete nextDetails.incomeDay;
+      if (editIncomeStart) nextDetails.incomeStart = editIncomeStart;
+      else delete nextDetails.incomeStart;
+      if (editIncomeEnd) nextDetails.incomeEnd = editIncomeEnd;
+      else delete nextDetails.incomeEnd;
+      details = nextDetails;
+    }
+    const saved = await updateHolding(holding.id, {
+      name: editName.trim(),
+      symbolOrFolio: editSymbol.trim() || holding.symbolOrFolio,
+      ...pricePatch,
+      ...ratePatch,
+      nextCouponDate: editNextCoupon || undefined,
+      maturityDate: editMaturity || undefined,
+      ...(!isNaN(issueVal) && issueVal > 0
+        ? { issuePriceMinor: MoneyEngine.fromRupees(issueVal).toString() }
+        : {}),
+      monthlyEmiMinor: !isNaN(emiVal) && emiVal > 0 ? MoneyEngine.fromRupees(emiVal).toString() : holding.monthlyEmiMinor,
+      remainingEmiCount: !isNaN(remainVal) ? remainVal : holding.remainingEmiCount,
+      ...(editAcquiredOn ? { acquiredOn: editAcquiredOn } : {}),
+      ...(isReit ? { details } : {}),
+    });
+    if (!catInfo.isLiability && !isNaN(investedVal) && investedVal > 0) {
+      let unitRupees = investedVal;
+      if (!unitBased && m.qty > 0n) {
+        const totalMinor = MoneyEngine.fromRupees(investedVal);
+        unitRupees = MoneyEngine.toRupees((totalMinor * QTY_SCALE) / m.qty);
+      }
+      const when = editAcquiredOn || holding.acquiredOn || '';
+      const unitPriceMinor = MoneyEngine.fromRupees(unitRupees);
+      const planned = planInvestedCorrection({
+        holding,
+        events: holdingEvents,
+        unitPriceMinor,
+        acquiredOn: when,
+      });
+      if (!planned && unitPriceMinor !== paidPerUnitMinor) {
+        setEditError('Could not save what you paid — this holding has no units on the books.');
+        setIsEditingAll(false);
+        return;
+      }
+      await correctInvested(holding.id, {
+        unitPriceRupees: unitRupees,
+        acquiredOn: when,
+        issuePriceRupees: !isNaN(issueVal) && issueVal > 0 ? issueVal : undefined,
+        seed: saved || undefined,
+      });
+    }
+    setIsEditingAll(false);
+  };
+
+  const handleSavePrice = () => {
+    const p = parseFloat(newPriceInput);
+    if (!isNaN(p) && p > 0) {
+      updateHoldingPrice(holding.id, p);
+      setIsEditingPrice(false);
+      setNewPriceInput('');
+    }
+  };
+
+  const field = (label: string, value?: string | null) =>
+    value ? (
+      <div className="text-xs">
+        <div style={{ color: 'var(--muted)' }}>{label}</div>
+        <div className="font-medium mt-0.5 break-all">{value}</div>
+      </div>
+    ) : null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+      <div
+        className="card max-w-2xl w-full p-6 sm:p-7 max-h-[90vh] overflow-y-auto space-y-6"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: catInfo.color }} />
+              <h2 className="text-xl font-bold">{displayHoldingName(holding.name)}</h2>
+              {owner && (
+                <span
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full text-white"
+                  style={{ backgroundColor: owner.color }}
+                >
+                  {owner.name}
+                </span>
+              )}
+            </div>
+            <div className="text-xs" style={{ color: 'var(--muted)' }}>
+              {catInfo.shortName}
+              {holding.subCategory ? ` · ${holding.subCategory}` : ''}
+              {` · ${whereHeld(holding)}`}
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleStartEditAll}
+              className="px-2.5 py-1 text-xs rounded-lg border flex items-center gap-1"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <Edit3 className="w-3 h-3" /> Edit
+            </button>
+            <button onClick={onClose} className="p-2 rounded-xl">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {isEditingAll && (
+          <div className="p-4 rounded-2xl border space-y-3" style={{ borderColor: 'var(--border)', background: 'var(--input)' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <label className="block">
+                <span style={{ color: 'var(--muted)' }}>Name</span>
+                <input
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 rounded-xl border"
+                  style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                />
+              </label>
+              <label className="block">
+                <span style={{ color: 'var(--muted)' }}>Folio / ticker</span>
+                <input
+                  value={editSymbol}
+                  onChange={e => setEditSymbol(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 rounded-xl border font-mono"
+                  style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                />
+              </label>
+              <label className="block">
+                <span style={{ color: 'var(--muted)' }}>{holding.category === 'LIABILITY' ? 'Outstanding (₹)' : unitBased ? 'Price per unit (₹)' : 'Current value (₹)'}</span>
+                <input
+                  type="number"
+                  step="any"
+                  value={editPrice}
+                  onChange={e => setEditPrice(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 rounded-xl border"
+                  style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                />
+              </label>
+              {!catInfo.isLiability && (
+                <>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>
+                      {unitBased && holding.category === 'EQUITY'
+                        ? 'Price you paid (₹ / share)'
+                        : unitBased && isSgb
+                          ? 'Price you paid (₹ / g)'
+                          : unitBased
+                            ? 'Amount you paid (₹ / unit)'
+                            : 'Amount you put in (₹)'}
+                    </span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editInvested}
+                      onChange={e => setEditInvested(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>
+                      {holding.category === 'EQUITY' || (holding.category === 'SPECIALISED' && unitBased)
+                        ? 'Trade / purchase date'
+                        : holding.category === 'FIXED_INCOME'
+                          ? 'Account opened / bought on'
+                          : 'Bought on'}
+                    </span>
+                    <input
+                      type="date"
+                      value={editAcquiredOn}
+                      onChange={e => setEditAcquiredOn(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                    <span className="text-[11px] mt-1 block" style={{ color: 'var(--muted)' }}>
+                      Optional. Leave blank to keep the statement date.
+                    </span>
+                  </label>
+                  {isSgb && (
+                    <label className="block">
+                      <span style={{ color: 'var(--muted)' }}>Issue price (₹ / g)</span>
+                      <input
+                        type="number"
+                        step="any"
+                        value={editIssuePrice}
+                        onChange={e => setEditIssuePrice(e.target.value)}
+                        className="w-full mt-1 px-3 py-2 rounded-xl border"
+                        style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                      />
+                    </label>
+                  )}
+                </>
+              )}
+              {(holding.category === 'GOLD_SGB' || holding.category === 'FIXED_INCOME') && (
+                <>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>Interest / coupon % a year</span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editCoupon}
+                      onChange={e => setEditCoupon(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>Next interest date</span>
+                    <input
+                      type="date"
+                      value={editNextCoupon}
+                      onChange={e => setEditNextCoupon(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>Matures / lock-in ends</span>
+                    <input
+                      type="date"
+                      value={editMaturity}
+                      onChange={e => setEditMaturity(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                </>
+              )}
+              {holding.category === 'LIABILITY' && (
+                <>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>Monthly EMI (₹)</span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editEmi}
+                      onChange={e => setEditEmi(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>Interest % a year</span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editRate}
+                      onChange={e => setEditRate(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>Remaining EMI months</span>
+                    <input
+                      type="number"
+                      step="1"
+                      value={editRemaining}
+                      onChange={e => setEditRemaining(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>Next EMI date</span>
+                    <input
+                      type="date"
+                      value={editNextCoupon}
+                      onChange={e => setEditNextCoupon(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                </>
+              )}
+              {isReit && (
+                <>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>Monthly income (₹)</span>
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="optional"
+                      value={editIncome}
+                      onChange={e => setEditIncome(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>Paid on day (1–28)</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={28}
+                      step="1"
+                      placeholder="15"
+                      value={editIncomeDay}
+                      onChange={e => setEditIncomeDay(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>Income from</span>
+                    <input
+                      type="date"
+                      value={editIncomeStart}
+                      onChange={e => setEditIncomeStart(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span style={{ color: 'var(--muted)' }}>Income until</span>
+                    <input
+                      type="date"
+                      value={editIncomeEnd}
+                      onChange={e => setEditIncomeEnd(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-xl border"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                  </label>
+                </>
+              )}
+            </div>
+            <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
+              CDSL/NSDL holdings statements print today's market price, not what you paid. Put in (Invested) and absolute return use the price you paid. Units still come from the statement — record a buy or sell to change them. Purchase date is optional.
+            </p>
+            {editError && (
+              <p className="text-[11px] font-semibold" style={{ color: 'var(--bad)' }}>{editError}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveEditAll}
+                className="px-4 py-2 rounded-xl text-xs font-bold"
+                style={{ background: 'var(--accent)', color: 'var(--accent-fg)' }}
+              >
+                Save
+              </button>
+              <button onClick={() => setIsEditingAll(false)} className="px-4 py-2 rounded-xl text-xs border" style={{ borderColor: 'var(--border)' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-4 rounded-2xl border" style={{ borderColor: 'var(--border)', background: 'var(--input)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--muted)' }}>
+              {catInfo.isLiability ? 'Still owed' : 'Worth today'}
+            </div>
+            <PrivacyValue minor={m.value} className="text-xl font-bold" showCompact includePaise={false} />
+            {isCertificateSgb(holding) && (
+              <p className="text-[11px] mt-1" style={{ color: 'var(--muted)' }}>
+                {ibja ? `RBI certificate, priced at ₹${ibjaRupeesPerGram?.toLocaleString('en-IN')} /g.` : 'RBI certificate. The price saved on this holding is used.'}
+              </p>
+            )}
+            {isDematSgb(holding) && ibja && m.qty > 0n && (
+              <p className="text-[11px] mt-1" style={{ color: 'var(--muted)' }}>
+                Exchange price is used here. RBI redemption would be ₹{Math.round(Number((m.qty * ibja) / QTY_SCALE) / 10000).toLocaleString('en-IN')}.
+              </p>
+            )}
+          </div>
+          <div className="p-4 rounded-2xl border" style={{ borderColor: 'var(--border)', background: 'var(--input)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--muted)' }}>
+              {catInfo.isLiability ? 'Original loan' : 'Put in (Invested)'}
+            </div>
+            {unknownInvested
+              ? <div className="text-xl font-bold" style={{ color: 'var(--muted)' }}>—</div>
+              : <PrivacyValue minor={m.cost} className="text-xl font-bold" includePaise={false} />}
+            {(statementOnly || investedLooksLikeCmp) && (
+              <button
+                type="button"
+                onClick={handleStartEditAll}
+                className="text-[11px] mt-1 text-left"
+                style={{ color: 'var(--accent)' }}
+              >
+                Statement has no buy price — add what you paid
+              </button>
+            )}
+          </div>
+          {!catInfo.isLiability && (
+          <div className="p-4 rounded-2xl border" style={{ borderColor: 'var(--border)', background: 'var(--input)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--muted)' }}>Gain or loss</div>
+            {unknownInvested
+              ? <div className="text-xl font-bold" style={{ color: 'var(--bad)' }}>{UNKNOWN_INVESTED_LABEL}</div>
+              : <PrivacyDelta minor={m.gain} className="text-xl font-bold" />}
+          </div>
+          )}
+        </div>
+
+        {!catInfo.isLiability && (
+          <ReturnPanel holding={holding} />
+        )}
+
+        {!catInfo.isLiability && (
+        <div className="text-sm" style={{ color: 'var(--muted)' }}>
+          {unitWord(holding) && m.qty > 0n
+            ? `${MoneyEngine.toQty(m.qty).toLocaleString('en-IN')} ${unitWord(holding)} · `
+            : ''}
+          {MoneyEngine.formatRupees(m.price, true)} each
+          {isEditingPrice ? (
+            <span className="ml-2 inline-flex gap-1">
+              <input
+                value={newPriceInput}
+                onChange={e => setNewPriceInput(e.target.value)}
+                className="w-24 px-2 py-0.5 rounded border text-xs"
+                style={{ background: 'var(--input)', borderColor: 'var(--border)', color: 'var(--text)' }}
+              />
+              <button onClick={handleSavePrice} className="text-xs font-bold" style={{ color: 'var(--accent)' }}>
+                Save
+              </button>
+            </span>
+          ) : (
+            <button onClick={() => setIsEditingPrice(true)} className="ml-2 text-xs" style={{ color: 'var(--accent)' }}>
+              change price
+            </button>
+          )}
+        </div>
+        )}
+        {holding.lastPriceUpdated && !catInfo.isLiability && (
+          <div className="text-[11px] -mt-1" style={{ color: 'var(--muted)' }}>
+            {holding.priceSource || 'Price'} as on {holding.lastPriceUpdated.slice(0, 10)}
+            {/NSE|BSE|AMFI/i.test(holding.priceSource || '') ? ' — last close, not live' : ''}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {field('AMC', holding.amc)}
+          {field('RTA', holding.rta)}
+          {field('AMFI code', holding.amfiCode)}
+          {field('ISIN', holding.isin)}
+          {field(
+            holding.category === 'EQUITY' || nameLooksLikeEtf(holding.name) ? 'Symbol' : 'Folio',
+            holding.symbolOrFolio
+          )}
+          {field('Demat / BOID', holding.accountNumberMasked)}
+          {field('Depository', holding.dpName)}
+          {field('Exchange', holding.exchange)}
+          {field('Advisor', holding.advisor)}
+          {acct?.nominee && field('Family note (not the registrar nominee)', acct.nominee)}
+          {holding.institutionName && field(
+            holding.category === 'LIABILITY' ? 'Lender' : holding.category === 'CASH_BANK' ? 'Bank' : 'Institution',
+            holding.institutionName
+          )}
+          {holding.location && field('Location', holding.location)}
+          {detailsLines(holding).map(row => {
+            const looksDate = /^\d{4}-\d{2}-\d{2}$/.test(row.value);
+            return field(row.label, looksDate ? formatCalendarDate(row.value) : row.value);
+          })}
+          {holding.details?.linkedHoldingId && (() => {
+            const linked = holdings.find(x => x.id === holding.details?.linkedHoldingId);
+            return field(holding.category === 'LIABILITY' ? 'Linked property' : 'Linked loan', linked?.name || 'Linked holding');
+          })()}
+        </div>
+
+        {holding.category === 'LIABILITY' && (
+          <div className="p-4 rounded-2xl border space-y-3" style={{ borderColor: 'var(--border)' }}>
+            <div className="text-sm font-bold">Loan EMI</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+              {holding.monthlyEmiMinor && (
+                <div>
+                  <div className="text-xs" style={{ color: 'var(--muted)' }}>Monthly EMI</div>
+                  <PrivacyValue minor={BigInt(holding.monthlyEmiMinor)} includePaise={false} className="font-semibold" />
+                </div>
+              )}
+              {holding.interestRatePercent != null && (
+                <div>
+                  <div className="text-xs" style={{ color: 'var(--muted)' }}>Interest</div>
+                  <div className="font-semibold">{holding.interestRatePercent}% a year</div>
+                </div>
+              )}
+              {holding.remainingEmiCount != null && (
+                <div>
+                  <div className="text-xs" style={{ color: 'var(--muted)' }}>Remaining</div>
+                  <div className="font-semibold">{holding.remainingEmiCount} months</div>
+                </div>
+              )}
+              {holding.nextCouponDate && (
+                <div>
+                  <div className="text-xs" style={{ color: 'var(--muted)' }}>Next EMI</div>
+                  <div className="font-semibold">{formatCalendarDate(holding.nextCouponDate)}</div>
+                </div>
+              )}
+              <div>
+                <div className="text-xs" style={{ color: 'var(--muted)' }}>Status</div>
+                <div className="font-semibold">
+                  {holding.emiStatus === 'PAUSED' ? 'Paused' : holding.emiStatus === 'STOPPED' ? 'Stopped' : 'Paying'}
+                </div>
+              </div>
+            </div>
+            <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
+              While Paying, each due EMI is written into the record book when you open the vault, and outstanding falls by the EMI amount.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {holding.emiStatus !== 'PAYING' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const asOf = new Date().toISOString().slice(0, 10);
+                    updateHolding(holding.id, {
+                      emiStatus: 'PAYING' as EmiStatus,
+                      nextCouponDate: resumeEmiDate(holding.nextCouponDate, asOf),
+                    });
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                  style={{ borderColor: 'var(--border)' }}
+                >
+                  Resume EMI
+                </button>
+              )}
+              {holding.emiStatus !== 'PAUSED' && holding.emiStatus !== 'STOPPED' && (
+                <button
+                  type="button"
+                  onClick={() => updateHolding(holding.id, { emiStatus: 'PAUSED' as EmiStatus })}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                  style={{ borderColor: 'var(--border)' }}
+                >
+                  Pause EMI
+                </button>
+              )}
+              {holding.emiStatus !== 'STOPPED' && (
+                <button
+                  type="button"
+                  onClick={() => updateHolding(holding.id, { emiStatus: 'STOPPED' as EmiStatus })}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                  style={{ borderColor: 'var(--border)', color: 'var(--bad)' }}
+                >
+                  Stop EMI
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {(holding.nextCouponDate || holding.maturityDate || holding.couponRatePercent || isElss || isGovt) && (
+          <div className="p-4 rounded-2xl border space-y-2" style={{ borderColor: 'var(--border)' }}>
+            <div className="text-sm font-bold flex items-center gap-2">
+              <Calendar className="w-4 h-4" /> Dates that matter
+            </div>
+            {holding.couponRatePercent != null && (
+              <div className="text-sm flex items-center gap-2">
+                <Coins className="w-3.5 h-3.5" />
+                {holding.couponRatePercent}% a year
+                {holding.category === 'GOLD_SGB' ? ' (gold bond interest; booked on 31 March)' : ''}
+              </div>
+            )}
+            {holding.interestRatePercent != null && holding.category === 'FIXED_INCOME' && (
+              <div className="text-sm flex items-center gap-2">
+                <Coins className="w-3.5 h-3.5" />
+                {holding.interestRatePercent}% a year (credited 31 March)
+              </div>
+            )}
+            {holding.nextCouponDate && (
+              <div className="text-sm">Next interest · {formatCalendarDate(holding.nextCouponDate)}</div>
+            )}
+            {holding.maturityDate && (
+              <div className="text-sm">
+                {holding.category === 'GOLD_SGB'
+                  ? 'Matures'
+                  : isGovt
+                    ? 'Matures / withdrawable'
+                    : isElss
+                      ? 'Lock-in ends'
+                      : 'Matures'}{' '}
+                · {formatCalendarDate(holding.maturityDate)}
+              </div>
+            )}
+            {isElss && !holding.maturityDate && (
+              <div className="text-xs" style={{ color: 'var(--muted)' }}>
+                ELSS funds lock in for 3 years from each purchase. Add the end date above if you know it.
+              </div>
+            )}
+            {isGovt && !holding.maturityDate && (
+              <div className="text-xs" style={{ color: 'var(--muted)' }}>
+                PPF, EPF and NPS have their own lock-in. Add a maturity date if you want it on the Home calendar.
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => onOpenAddRecord(holding.id)}
+            className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
+            style={{ background: 'var(--accent)', color: 'var(--accent-fg)' }}
+          >
+            <Plus className="w-3.5 h-3.5" /> {catInfo.isLiability ? 'Record an extra payment' : 'Record a buy or sell'}
+          </button>
+          <button
+            onClick={async () => {
+              const fromStatement = holdingHasStatementHistory(holding, ledgerEvents);
+              try {
+                if (fromStatement) {
+                  if (!window.confirm('Remove this holding? Records from the statement are kept.')) return;
+                  await deleteHolding(holding.id, false);
+                  onClose();
+                  return;
+                }
+                if (!window.confirm('Remove this holding?')) return;
+                const also = window.confirm('Also delete it from the record book? Yes deletes those records. Cancel keeps them.');
+                await deleteHolding(holding.id, also);
+                onClose();
+              } catch (err) {
+                window.alert(err instanceof Error ? err.message : 'Could not remove this holding.');
+              }
+            }}
+            className="px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border"
+            style={{ borderColor: 'var(--border)', color: 'var(--bad)' }}
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Remove holding
+          </button>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-bold mb-2">Record book</h3>
+          {holdingEvents.length === 0 ? (
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+              No rows yet. Confirm a statement or add a buy.
+            </p>
+          ) : (
+            <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+              {holdingEvents.slice(0, 20).map(ev => (
+                <div key={ev.id} className="py-2 flex items-center justify-between text-sm gap-3">
+                  <div>
+                    <div className="font-medium">{eventLabel(ev.eventType, ev.notes)}</div>
+                    <div className="text-[11px]" style={{ color: 'var(--muted)' }}>
+                      {formatCalendarDate(ev.eventDate)}
+                      {ev.notes ? ` · ${ev.notes}` : ''}
+                    </div>
+                  </div>
+                  <PrivacyValue
+                    minor={BigInt(ev.totalAmountMinor || '0')}
+                    includePaise={false}
+                    className="text-sm font-semibold"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ReturnPanel: React.FC<{ holding: import('../../types').Holding }> = ({ holding }) => {
+  const { ledgerEvents, derived, sgbValuationMode, ibjaRupeesPerGram } = useKosha();
+  const asOf = new Date().toISOString().slice(0, 10);
+  const ibja = ibjaRupeesPerGram && ibjaRupeesPerGram > 0 ? MoneyEngine.fromRupees(ibjaRupeesPerGram) : null;
+  const r = holdingReturn(holding, ledgerEvents, derived, sgbValuationMode, asOf, ibja);
+  const absColor = r.unknownInvested ? 'var(--bad)' : (r.primaryPct ?? 0) >= 0 ? 'var(--good)' : 'var(--bad)';
+  const annColor = r.annualReason === 'ok'
+    ? ((r.secondaryPct ?? 0) >= 0 ? 'var(--good)' : 'var(--bad)')
+    : 'var(--muted)';
+  return (
+    <div className="p-4 rounded-2xl border space-y-3" style={{ borderColor: 'var(--border)', background: 'var(--input)' }}>
+      <div className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+        Return for this instrument
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <div className="text-[11px]" style={{ color: 'var(--muted)' }}>Abs. return</div>
+          <div className="text-lg font-bold" style={{ color: absColor }}>
+            {r.primaryText}
+          </div>
+        </div>
+        <div>
+          <div className="text-[11px]" style={{ color: 'var(--muted)' }}>Annual return</div>
+          <div className="text-lg font-bold" style={{ color: annColor }}>
+            {r.secondaryText}
+          </div>
+        </div>
+      </div>
+      <p className="text-[11px] leading-relaxed" style={{ color: 'var(--muted)' }}>{r.profile.why}</p>
+      <p className="text-[11px] leading-relaxed" style={{ color: r.annualReason === 'changed' ? 'var(--accent)' : 'var(--muted)' }}>
+        {r.annualWhy}
+      </p>
+      <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
+        Nifty, category average, G-sec and CRISIL figures are not in this vault — we only compute what your record book supports. CMP is last close / NAV, not live.
+      </p>
+    </div>
+  );
+};

@@ -1,0 +1,383 @@
+package `in`.growurdhan.app.presentation
+
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import `in`.growurdhan.app.presentation.theme.GrowUrDhanTheme
+import `in`.growurdhan.core.model.AppearanceSettings
+import `in`.growurdhan.core.model.HoldingId
+import `in`.growurdhan.core.model.MoneyScaled
+import `in`.growurdhan.core.model.OwnerId
+import `in`.growurdhan.domain.finance.FinancialHolding
+import `in`.growurdhan.domain.finance.HouseholdDashboard
+import `in`.growurdhan.domain.finance.MemberDashboard
+import `in`.growurdhan.domain.finance.RecordedHoldingDashboard
+import `in`.growurdhan.app.presentation.screens.HomeScreen
+import `in`.growurdhan.domain.finance.ReviewedStatement
+import `in`.growurdhan.domain.finance.SnapshotReconciler
+import `in`.growurdhan.domain.finance.StatementLine
+import java.time.LocalDate
+import `in`.growurdhan.core.model.ThemeMode
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class NativeShellTest {
+    @get:Rule val compose = createComposeRule()
+
+    @Test fun unlockedDashboardShowsRecordedFamilyAndDebtBreakdown() {
+        val owner = OwnerId("synthetic-owner")
+        val dashboard = HouseholdDashboard(
+            asOf = LocalDate.parse("2026-10-09"),
+            assets = MoneyScaled(250_000),
+            liabilities = MoneyScaled(75_000),
+            netWorth = MoneyScaled(175_000),
+            memberCount = 1,
+            holdingCount = 2,
+            unknownCostHoldings = 0,
+            integrityWarnings = emptyList(),
+            byMember = listOf(
+                MemberDashboard(owner, MoneyScaled(250_000), MoneyScaled(75_000),
+                    MoneyScaled(175_000), 2, "Synthetic Member"),
+            ),
+        )
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                HomeScreen(
+                    dashboardState = HouseholdDashboardUiState.Ready(dashboard),
+                    onOpenSettings = {},
+                    onOpenPrivacy = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Synthetic Member").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(
+            "Assets: 25.0000 INR; liabilities: 7.5000 INR; net worth: 17.5000 INR; holdings: 2",
+        ).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun recordedHoldingsShowAssetsAndLiabilitiesWithoutPrivateIdentifiers() {
+        val owner = OwnerId("synthetic-owner")
+        val dashboard = HouseholdDashboard(
+            asOf = LocalDate.parse("2026-10-09"),
+            assets = MoneyScaled(240_000),
+            liabilities = MoneyScaled(50_000),
+            netWorth = MoneyScaled(190_000),
+            memberCount = 1,
+            holdingCount = 2,
+            unknownCostHoldings = 1,
+            integrityWarnings = emptyList(),
+            byMember = emptyList(),
+            recordedHoldings = listOf(
+                RecordedHoldingDashboard("Synthetic Index Fund", "MUTUAL_FUND", "Synthetic Member",
+                    100_000_000L, MoneyScaled(240_000), null, true, false),
+                RecordedHoldingDashboard("Synthetic Home Loan", "LIABILITY", "Synthetic Member",
+                    100_000_000L, MoneyScaled(50_000), null, false, true),
+            ),
+        )
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                HomeScreen(
+                    dashboardState = HouseholdDashboardUiState.Ready(dashboard),
+                    onOpenSettings = {},
+                    onOpenPrivacy = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Synthetic Index Fund").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Historical cost unknown; gain unavailable")
+            .performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Synthetic Home Loan").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Outstanding liability: 5.0000 INR")
+            .performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("synthetic-owner").assertDoesNotExist()
+    }
+
+    @Test fun knownCostHoldingShowsVerifiedGainInsteadOfUnknownCostWarning() {
+        val row = RecordedHoldingDashboard(
+            "Synthetic Verified Cost Asset", "EQUITY", "Synthetic Member",
+            100_000_000L, MoneyScaled(175_000), MoneyScaled(45_000), false, false,
+        )
+        val dashboard = HouseholdDashboard(
+            asOf = LocalDate.parse("2026-10-09"),
+            assets = MoneyScaled(175_000),
+            liabilities = MoneyScaled(0),
+            netWorth = MoneyScaled(175_000),
+            memberCount = 1,
+            holdingCount = 1,
+            unknownCostHoldings = 0,
+            integrityWarnings = emptyList(),
+            byMember = emptyList(),
+            recordedHoldings = listOf(row),
+        )
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                HomeScreen(
+                    dashboardState = HouseholdDashboardUiState.Ready(dashboard),
+                    onOpenSettings = {},
+                    onOpenPrivacy = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Synthetic Verified Cost Asset").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Unrealised gain/loss: 4.5000 INR")
+            .performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Historical purchase cost unavailable").assertDoesNotExist()
+    }
+
+    @Test fun holdingsSearchFiltersUnmatchedNamesWithoutChangingTotals() {
+        val rows = listOf(
+            RecordedHoldingDashboard("Synthetic Alpha Fund", "MUTUAL_FUND", "Primary",
+                100_000_000L, MoneyScaled(200_000), null, true, false),
+            RecordedHoldingDashboard("Synthetic Home Loan", "LIABILITY", "Primary",
+                100_000_000L, MoneyScaled(100_000), null, false, true),
+        )
+        val dashboard = HouseholdDashboard(
+            asOf = LocalDate.parse("2026-10-09"),
+            assets = MoneyScaled(200_000), liabilities = MoneyScaled(100_000),
+            netWorth = MoneyScaled(100_000), memberCount = 1, holdingCount = 2,
+            unknownCostHoldings = 1, integrityWarnings = emptyList(),
+            byMember = emptyList(), recordedHoldings = rows,
+        )
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                HomeScreen(
+                    dashboardState = HouseholdDashboardUiState.Ready(dashboard),
+                    onOpenSettings = {}, onOpenPrivacy = {},
+                )
+            }
+        }
+        compose.onNodeWithTag("RecordedHoldingsSearch").performScrollTo()
+            .performTextInput("home loan")
+        compose.onNodeWithText("Synthetic Home Loan").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Synthetic Alpha Fund").assertDoesNotExist()
+        compose.onNodeWithText("Showing 1 of 1 matching holding(s); 2 recorded in total.")
+            .performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun holdingsBeyondFirstThirtyAreAvailableThroughShowMore() {
+        val rows = (1..31).map { i ->
+            RecordedHoldingDashboard("Synthetic Holding ${i.toString().padStart(2, '0')}",
+                "MUTUAL_FUND", null, 100_000_000L, MoneyScaled(10_000),
+                null, true, false)
+        }
+        val dashboard = HouseholdDashboard(
+            asOf = LocalDate.parse("2026-10-09"),
+            assets = MoneyScaled(310_000), liabilities = MoneyScaled(0),
+            netWorth = MoneyScaled(310_000), memberCount = 1, holdingCount = rows.size,
+            unknownCostHoldings = rows.size, integrityWarnings = emptyList(),
+            byMember = emptyList(), recordedHoldings = rows,
+        )
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                HomeScreen(dashboardState = HouseholdDashboardUiState.Ready(dashboard),
+                    onOpenSettings = {}, onOpenPrivacy = {})
+            }
+        }
+        compose.onNodeWithText("Synthetic Holding 31").assertDoesNotExist()
+        compose.onNodeWithText("Show more holdings").performScrollTo().performClick()
+        compose.onNodeWithText("Synthetic Holding 31").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun lockingDashboardDiscardsSensitiveSearchBeforeNextUnlock() {
+        val item = RecordedHoldingDashboard(
+            "Synthetic Family Investment", "MUTUAL_FUND", "Primary",
+            100_000_000L, MoneyScaled(120_000), null, true, false,
+        )
+        val dashboard = HouseholdDashboard(
+            asOf = LocalDate.parse("2026-10-09"),
+            assets = MoneyScaled(120_000), liabilities = MoneyScaled(0),
+            netWorth = MoneyScaled(120_000), memberCount = 1, holdingCount = 1,
+            unknownCostHoldings = 1, integrityWarnings = emptyList(),
+            byMember = emptyList(), recordedHoldings = listOf(item),
+        )
+        var display by mutableStateOf<HouseholdDashboardUiState>(
+            HouseholdDashboardUiState.Ready(dashboard),
+        )
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                HomeScreen(dashboardState = display, onOpenSettings = {}, onOpenPrivacy = {})
+            }
+        }
+        compose.onNodeWithTag("RecordedHoldingsSearch").performScrollTo()
+            .performTextInput("not present")
+        compose.onNodeWithText("Synthetic Family Investment").assertDoesNotExist()
+
+        compose.runOnIdle { display = HouseholdDashboardUiState.Locked }
+        compose.onNodeWithTag("RecordedHoldingsSearch").assertDoesNotExist()
+        compose.onNodeWithText("Synthetic Family Investment").assertDoesNotExist()
+
+        compose.runOnIdle { display = HouseholdDashboardUiState.Ready(dashboard) }
+        compose.onNodeWithText("Synthetic Family Investment")
+            .performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun lockedDashboardNeverRendersFamilyNames() {
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                HomeScreen(
+                    dashboardState = HouseholdDashboardUiState.Locked,
+                    onOpenSettings = {},
+                    onOpenPrivacy = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Unlock the vault to view your family wealth.").assertIsDisplayed()
+        compose.onNodeWithText("Synthetic Member").assertDoesNotExist()
+    }
+
+    @Test
+    fun settingsNavigationAndThemeIntent() {
+        var lastIntent: AppIntent? = null
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(theme = ThemeMode.LIGHT, dynamicColor = false)) {
+                GrowUrDhanShell(
+                    state = AppUiState(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)),
+                    onIntent = { lastIntent = it },
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Settings").performClick()
+        compose.onNodeWithText("Appearance").assertIsDisplayed()
+        compose.onNodeWithText("Dark").performClick()
+        compose.runOnIdle { assertEquals(AppIntent.SelectTheme(ThemeMode.DARK), lastIntent) }
+    }
+
+    @Test
+    fun vaultIsCreatedOnlyAfterExplicitUserAction() {
+        var action: VaultIntent? = null
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                GrowUrDhanShell(
+                    state = AppUiState(),
+                    onIntent = {},
+                    vaultState = VaultUiState.NotCreated,
+                    onVaultIntent = { action = it },
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Vault").performClick()
+        compose.onNodeWithText("No native vault found").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(null, action) }
+        compose.onNodeWithText("Create encrypted vault").performClick()
+        compose.runOnIdle { assertEquals(VaultIntent.OpenOrCreate, action) }
+    }
+
+    @Test
+    fun privacyDestinationShowsActualStorageStatus() {
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                GrowUrDhanShell(AppUiState(), onIntent = {})
+            }
+        }
+        compose.onNodeWithContentDescription("Privacy").performClick()
+        compose.onNodeWithText("Privacy by construction").assertIsDisplayed()
+        // Additional privacy copy moved this card below the initial viewport.
+        // Test its actual visible, scrollable state rather than initial placement.
+        compose.onNodeWithText("Preferences on this device")
+            .performScrollTo()
+            .assertIsDisplayed()
+    }
+    @Test fun emptyStatementDestinationCannotOfferUnverifiedImport() {
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                GrowUrDhanShell(AppUiState(), onIntent = {})
+            }
+        }
+        compose.onNodeWithContentDescription("Statements").performClick()
+        compose.onNodeWithText("No statement ready for review").assertIsDisplayed()
+        compose.onNodeWithText("Confirm and authenticate approval").assertDoesNotExist()
+    }
+
+    @Test fun consentButtonNeedsExplicitAcknowledgement() {
+        val owner = OwnerId("self")
+        val holdingId = HoldingId("holding")
+        val line = StatementLine(
+            holdingId, owner, LocalDate.parse("2026-10-08"), 100_000_000L,
+            MoneyScaled(100_000),
+        )
+        val plan = SnapshotReconciler.review(
+            listOf(line),
+            listOf(FinancialHolding(holdingId, owner, "Synthetic fund", "MUTUAL_FUND", MoneyScaled(100_000))),
+            emptyList(), owner, "a".repeat(64),
+        )
+        val receipt = ReviewedStatement(
+            "snapshot", owner, listOf(line), "b".repeat(64), plan, "c".repeat(64),
+        )
+        var action: StatementReviewIntent? = null
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                GrowUrDhanShell(
+                    state = AppUiState(),
+                    onIntent = {},
+                    reviewState = StatementReviewUiState.Reviewing(receipt),
+                    onReviewIntent = { action = it },
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Statements").performClick()
+        compose.onNodeWithText("Confirm and authenticate approval").assertIsNotEnabled()
+        compose.runOnIdle { assertEquals(null, action) }
+        // The review screen scrolls behind the bottom navigation. Scroll the
+        // real checkbox into view BEFORE clicking so the navigation bar cannot
+        // intercept an off-screen tap. Verify its semantic state changes.
+        compose.onNodeWithContentDescription("Confirm statement changes")
+            .performScrollTo()
+            .assertIsOff()
+            .performClick()
+            .assertIsOn()
+        compose.waitForIdle()
+        compose.onNodeWithText("Confirm and authenticate approval")
+            .performScrollTo()
+            .assertIsEnabled()
+            .performClick()
+        compose.runOnIdle { assertEquals(StatementReviewIntent.RequestApproval, action) }
+    }
+
+    @Test fun conflictedStatementCannotBeApproved() {
+        val owner = OwnerId("self")
+        val line = StatementLine(
+            HoldingId("unknown"), owner, LocalDate.parse("2026-10-08"),
+            100_000_000L, MoneyScaled(100_000),
+        )
+        val plan = SnapshotReconciler.review(
+            listOf(line), emptyList(), emptyList(), owner, "d".repeat(64),
+        )
+        val receipt = ReviewedStatement(
+            "conflict", owner, listOf(line), "e".repeat(64), plan, "f".repeat(64),
+        )
+        var action: StatementReviewIntent? = null
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                GrowUrDhanShell(
+                    state = AppUiState(), onIntent = {},
+                    reviewState = StatementReviewUiState.Reviewing(receipt),
+                    onReviewIntent = { action = it },
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Statements").performClick()
+        compose.onNodeWithText("Approval blocked by conflicts").assertIsNotEnabled()
+        compose.runOnIdle { assertEquals(null, action) }
+    }
+
+}

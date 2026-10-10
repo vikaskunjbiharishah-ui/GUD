@@ -1,0 +1,37 @@
+name: GrowUrDhan support-channel notes
+
+# Play delivers one AAB to every installer, including after the annual
+# service lapses or is cancelled. That update still installs.
+# New features inside it unlock only while gud_support_annual is active
+# (or during the 30-day trial). licence.ts enhancementsEnabled is the gate.
+
+on:
+  push:
+    tags: ['support-*']
+  workflow_dispatch:
+    inputs:
+      note:
+        description: 'What supporters receive'
+        required: true
+
+jobs:
+  note:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish supporter note artifact
+        run: |
+          mkdir -p dist-support
+          {
+            echo "# GrowUrDhan support drop"
+            echo
+            echo "Only devices with an active gud_support_annual subscription unlock in-app enhancements."
+            echo
+            echo "${{ github.event.inputs.note || github.ref_name }}"
+            echo
+            echo "Security patches continue to ship to every licensed install via android-aab.yml."
+          } > dist-support/NOTES.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: support-notes
+          path: dist-support/NOTES.md

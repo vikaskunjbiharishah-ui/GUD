@@ -1,0 +1,132 @@
+name: GrowUrDhan Android APK (device test)
+
+on:
+  push:
+    branches: [GUD-Android-APK, GUD-Android-Gmail]
+  workflow_dispatch:
+
+env:
+  VITE_GUD_TEST_APK: "1"
+  GUD_TEST_APK: "1"
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK packages
+        run: |
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          SM=$(ls -d "$SDK"/cmdline-tools/*/bin/sdkmanager "$SDK"/cmdline-tools/latest/bin/sdkmanager 2>/dev/null | tail -1)
+          echo "sdkmanager=$SM"
+          yes | "$SM" --licenses >/dev/null || true
+          "$SM" --install "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018" "platform-tools"
+          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
+          echo "$SDK/ndk/27.2.12479018" >> "$GITHUB_PATH"
+          echo "ANDROID_NDK_HOME=$SDK/ndk/27.2.12479018" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$SDK/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Install stable test signing key
+        run: |
+          test -f src-tauri/keystore/gud-test.keystore
+          mkdir -p "$HOME/.android"
+          cp src-tauri/keystore/gud-test.keystore "$HOME/.android/debug.keystore"
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | grep -E 'SHA1:|Owner:'
+
+      - name: Install JS
+        run: npm ci || npm install
+
+      - name: Ensure RGBA icons
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y imagemagick python3-pil
+          python3 scripts/ensure_rgba_icons.py
+
+      - name: Init Android project
+        run: |
+          npx tauri android init --ci || npx tauri android init || true
+          node scripts/android_prepare.mjs
+
+      - name: Build debug APK
+        run: |
+          node scripts/android_prepare.mjs
+          npx tauri android build --apk --debug --target aarch64
+
+      - name: Stage APK
+        run: |
+          mkdir -p dist-apk
+          find src-tauri/gen/android src-tauri/target -name '*.apk' -print
+          find src-tauri/gen/android src-tauri/target -name '*.apk' -exec cp {} dist-apk/ \;
+          ls -la dist-apk
+
+      - name: Resign APK with the stable test key
+        run: |
+          set -euo pipefail
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort | tail -1)
+          python3 - << 'PY'
+          import struct, pathlib, zipfile, shutil, os
+          src = next(pathlib.Path('dist-apk').glob('*.apk'))
+          raw = src.read_bytes()
+          eocd = raw.rfind(b'PK\x05\x06')
+          cd_off = struct.unpack_from('<I', raw, eocd + 16)[0]
+          magic = b'APK Sig Block 42'
+          sig_off = raw.rfind(magic, 0, cd_off)
+          if sig_off < 0:
+              stripped = raw
+          else:
+              block_size = struct.unpack_from('<Q', raw, sig_off - 8)[0]
+              block_start = sig_off - block_size + 8
+              stripped = raw[:block_start] + raw[cd_off:]
+              # fix central-directory offset
+              new_cd = block_start
+              eocd = stripped.rfind(b'PK\x05\x06')
+              stripped = stripped[:eocd+16] + struct.pack('<I', new_cd) + stripped[eocd+20:]
+          tmp = pathlib.Path('dist-apk/unsigned.apk')
+          tmp.write_bytes(stripped)
+          # drop v1 signature entries
+          out = pathlib.Path('dist-apk/stripped.apk')
+          with zipfile.ZipFile(tmp, 'r') as zin, zipfile.ZipFile(out, 'w') as zout:
+              for info in zin.infolist():
+                  if info.filename.startswith('META-INF/'):
+                      continue
+                  zout.writestr(info, zin.read(info.filename))
+          print('stripped', out)
+          PY
+          "$BT/zipalign" -f -p 4 dist-apk/stripped.apk dist-apk/aligned.apk
+          "$BT/apksigner" sign --ks src-tauri/keystore/gud-test.keystore \
+            --ks-key-alias androiddebugkey --ks-pass pass:android --key-pass pass:android \
+            --out dist-apk/growurdhan-test.apk dist-apk/aligned.apk
+          "$BT/apksigner" verify --print-certs dist-apk/growurdhan-test.apk | tee dist-apk/certs.txt
+          grep -qi 'c67fa0cef955dcb7e9bef5f32c26d96091ed4921' dist-apk/certs.txt
+          find dist-apk -name '*.apk' ! -name 'growurdhan-test.apk' -delete
+          ls -la dist-apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GrowUrDhan-Android-APK
+          path: dist-apk/*.apk
+          if-no-files-found: error

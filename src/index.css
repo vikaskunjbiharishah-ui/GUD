@@ -1,0 +1,272 @@
+@import "tailwindcss";
+
+:root {
+  --app: #07131f;
+  --chrome: #0c1c2c;
+  --card: #102536;
+  --border: #1e3a4f;
+  --text: #f4f7fb;
+  --muted: #9bb3c7;
+  --subtle: #6b879c;
+  --accent: #f5c14a;
+  --accent-fg: #1a1204;
+  --accent-2: #2dd4bf;
+  --accent-2-fg: #042f2e;
+  --good: #34d399;
+  --bad: #fb7185;
+  --warn: #fbbf24;
+  --chip: #163044;
+  --input: #081824;
+  --shadow: 0 16px 40px rgba(4, 16, 28, 0.45);
+  --wash-1: rgba(245, 193, 74, 0.16);
+  --wash-2: rgba(45, 212, 191, 0.14);
+  --bucket-shares: #38bdf8;
+  --bucket-funds: #818cf8;
+  --bucket-gold: #f5c14a;
+  --bucket-govt: #34d399;
+  --bucket-property: #c084fc;
+  --bucket-bank: #22d3ee;
+  --bucket-special: #f472b6;
+  --bucket-loan: #fb7185;
+}
+
+html.theme-light {
+  --app: #f6efe3;
+  --chrome: #fffaf3;
+  --card: #ffffff;
+  --border: #eadcc8;
+  --text: #1c1917;
+  --muted: #6b5e52;
+  --subtle: #a89886;
+  --accent: #d97706;
+  --accent-fg: #fffbeb;
+  --accent-2: #0f766e;
+  --accent-2-fg: #f0fdfa;
+  --good: #047857;
+  --bad: #be123c;
+  --warn: #b45309;
+  --chip: #f4eadc;
+  --input: #faf6ef;
+  --shadow: 0 12px 28px rgba(80, 50, 20, 0.08);
+  --wash-1: rgba(217, 119, 6, 0.12);
+  --wash-2: rgba(15, 118, 110, 0.10);
+  --bucket-shares: #0284c7;
+  --bucket-funds: #4f46e5;
+  --bucket-gold: #d97706;
+  --bucket-govt: #047857;
+  --bucket-property: #7c3aed;
+  --bucket-bank: #0e7490;
+  --bucket-special: #be185d;
+  --bucket-loan: #be123c;
+}
+
+@layer base {
+  * {
+    border-color: color-mix(in srgb, var(--border) 80%, transparent);
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    min-height: 100dvh;
+    color: var(--text);
+  }
+
+  html,
+  body {
+    background-color: var(--app);
+    background-image:
+      radial-gradient(1200px 520px at -10% -20%, var(--wash-1), transparent 58%),
+      radial-gradient(900px 480px at 110% -10%, var(--wash-2), transparent 52%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  #root {
+    background: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--app);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--subtle);
+    border-radius: 9999px;
+  }
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.card-hero {
+  background:
+    radial-gradient(900px 220px at 0% 0%, var(--wash-1), transparent 55%),
+    radial-gradient(700px 200px at 100% 0%, var(--wash-2), transparent 50%),
+    var(--card);
+}
+
+.chip {
+  background: var(--chip);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* Shared UX polish. Keep motion subtle and respect reduced-motion preferences. */
+button,
+a,
+input,
+select {
+  transition: opacity 120ms ease, background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+@media (max-width: 767px) {
+  .card {
+    border-radius: 1rem;
+    box-shadow: 0 8px 18px rgba(28, 18, 8, 0.06);
+  }
+
+  .app-main {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .page-kicker,
+  .page-lead {
+    display: none;
+  }
+
+  h1.page-title {
+    font-size: 1.25rem;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+  }
+}
+
+.onboard-spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: translateX(-0.5px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.onboard-logo {
+  position: relative;
+  z-index: 2;
+  background: var(--app);
+  border-radius: 1.25rem;
+  padding: 0.35rem;
+  box-shadow: var(--shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button, a, input, select { transition: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* Light-theme remap of leftover dark utility classes on older screens. */
+html.theme-light .bg-slate-900,
+html.theme-light .bg-slate-900\/80,
+html.theme-light .bg-slate-900\/90,
+html.theme-light .bg-slate-950,
+html.theme-light .bg-slate-950\/40,
+html.theme-light .bg-slate-950\/50,
+html.theme-light .bg-slate-950\/60,
+html.theme-light .bg-slate-950\/70,
+html.theme-light .bg-slate-950\/80 {
+  background-color: var(--card);
+}
+html.theme-light .bg-slate-800,
+html.theme-light .bg-slate-800\/40,
+html.theme-light .bg-slate-800\/80,
+html.theme-light .bg-slate-800\/90 {
+  background-color: var(--chip);
+}
+html.theme-light .text-slate-100,
+html.theme-light .text-slate-200,
+html.theme-light .text-white {
+  color: var(--text);
+}
+html.theme-light .text-slate-300,
+html.theme-light .text-slate-400,
+html.theme-light .text-slate-500 {
+  color: var(--muted);
+}
+html.theme-light .border-slate-800,
+html.theme-light .border-slate-800\/80,
+html.theme-light .border-slate-800\/90,
+html.theme-light .border-slate-700,
+html.theme-light .border-slate-700\/80 {
+  border-color: var(--border);
+}
+html.theme-light .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+html.theme-light .divide-slate-900 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border);
+}
+html.theme-light .placeholder-slate-500::placeholder {
+  color: var(--subtle);
+}
+html.theme-light .text-amber-400 {
+  color: var(--accent);
+}
+html.theme-light .text-emerald-400 {
+  color: var(--accent-2);
+}
