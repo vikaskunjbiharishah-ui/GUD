@@ -445,3 +445,24 @@ for an audit or Play provider-side signature verification.
 SQLCipher Android instrumentation tests are staged for the next deliberate
 GitHub regression run. They are not current-commit PASS results. The frozen
 CASPARSER, legacy React/Tauri books and old GitHub branches were not altered.
+
+## Isolated offline development milestone 23 — October 2026
+
+New native screens and secured logic provide a separate local app-password
+gate with Android Keystore-bound verifier, device lock **in addition** to
+the password, password rotation requiring the original password and a fresh
+OS confirmation, manual zero-balance NPS/PPF/EPF/gold/equity/property
+enrollment, original `.kosha` **read-only** authenticated inspection,
+and user-directed unencrypted emergency CSV with explicit warnings.
+
+**Do not misrepresent parity:** the new local password is an authorization
+factor, not the SQLCipher decryption key, and it cannot automatically migrate
+the original email/PAN/security questions. Original `.kosha` backup data
+cannot be restored losslessly into v3 yet; the preview is not migration.
+NPS accounts are manually tracked, not verified PRAN/PDF imports.
+Emergency CSV is readable by recipients and is not a backup.
+
+The current milestone's source and synthetic tests are staged for
+**one** consolidated `main` commit. The complete native Gradle build,
+device tests and independent security acceptance remain unexecuted.
+See [Milestone 23](../docs/native-migration/23-OFFLINE-COMMERCIAL-READINESS.md).

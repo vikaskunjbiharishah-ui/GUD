@@ -47,9 +47,11 @@ fun PrivacyScreen() {
             icon = { Icon(Icons.Outlined.Storage, contentDescription = null) },
         )
         PrivacyFact(
-            title = "Encrypted vault and device credential",
-            detail = "A configured Android screen lock is required before opening the native vault " +
-                "or approving a reviewed statement. A GrowUrDhan-specific login is not yet implemented.",
+            title = "Local password + device credential",
+            detail = "A separate GrowUrDhan app password is verified using a device-bound " +
+                "Keystore HMAC over a PBKDF2 verifier. Android screen-lock confirmation is " +
+                "also required for the encrypted vault and sensitive financial writes. " +
+                "The app password does not decrypt the SQLCipher database key.",
             icon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
         )
     }

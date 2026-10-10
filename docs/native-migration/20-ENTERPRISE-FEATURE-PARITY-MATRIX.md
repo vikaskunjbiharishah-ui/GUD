@@ -81,3 +81,16 @@ native milestone and the budget-controlled workflow configuration are new.
 **Status: source staged / build pending** for all new additions. A policy
 class is not a working external integration and does not satisfy feature
 parity. No external account connection or network permission was introduced.
+
+## Feature updates following independent offline milestone 23 (2026-10-10)
+
+| ID | Native evidence | Precise status |
+| --- | --- | --- |
+| F01 Local app login | `LocalAppPasswordStore.kt`, `LocalLoginScreen.kt`, `VaultSessionGate.kt`, `ChangeLocalPasswordScreen.kt` | **PARTIAL IMPLEMENTED**: dual local app-password and device lock; original email/PAN/answers/recovery parity missing |
+| F04 Offline asset/account enrollment | `ManualAssetOnboarding.kt`, `CustodyHoldingScreen.kt`, SQLCipher `registerManualAsset` | **PARTIAL IMPLEMENTED**: NPS/PPF/EPF etc zero-unit manual registration; verified issuer identities/parsing missing |
+| F06 NPS | `ManualAssetOnboarding.kt` category NPS | **MANUAL CATEGORY ONLY**, not NPS statement/PRAN import |
+| F11 Portability | `LegacyLockedBackupInspector.kt`, `LegacyBackupScreen.kt`, `EmergencyDossierCsv.kt` | **PARTIAL IMPLEMENTED**: safe legacy preview and unencrypted handover; lossless legacy migration/backup schedule missing |
+| F12/F15 Security/QA | `LocalAppPasswordInstrumentedTest.kt`, `LocalLoginShellTest.kt`, security preflight | **SOURCE & TESTS STAGED**, not current-commit JVM/Android tested or release accepted |
+
+Owner remains responsible for legal/privacy and release acceptance.
+No Google OAuth or Play Billing service connection was added.

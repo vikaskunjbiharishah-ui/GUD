@@ -64,6 +64,36 @@ class CustodyHoldingViewModelTest {
         coVerify(exactly = 1) { repo.registerCustodyAccount(any(), any(), any()) }
     }
 
+    @Test fun manualNpsAssetStartsAtZeroAfterSeparateCredentialApproval() = runTest {
+        val repo = mockk<VaultRepository>()
+        val gate = VaultSessionGate().also { it.grantDeviceCredential() }
+        coEvery { repo.readBook() } returns book()
+        val asset = Holding(
+            HoldingId("nps-test"), owner, null, "Synthetic NPS Tier I", "NPS",
+            QuantityScaled(0), MoneyScaled(0),
+        )
+        coEvery { repo.registerManualAsset(owner, "Synthetic NPS Tier I", "NPS") } returns asset
+        val vm = CustodyHoldingViewModel(repo, gate)
+        vm.onIntent(CustodyHoldingIntent.Refresh)
+        advanceUntilIdle()
+        vm.onIntent(CustodyHoldingIntent.StageAsset(owner, "Synthetic NPS Tier I", "NPS"))
+        assertTrue(vm.state.value is CustodyHoldingUiState.AwaitingCredential)
+        vm.onIntent(CustodyHoldingIntent.SaveAfterCredential)
+        advanceUntilIdle()
+        coVerify(exactly = 0) { repo.registerManualAsset(any(), any(), any()) }
+        assertEquals(CustodyHoldingUiState.Locked, vm.state.value)
+
+        vm.onIntent(CustodyHoldingIntent.Refresh)
+        advanceUntilIdle()
+        vm.onIntent(CustodyHoldingIntent.StageAsset(owner, "Synthetic NPS Tier I", "NPS"))
+        gate.grantDeviceCredential()
+        vm.onIntent(CustodyHoldingIntent.SaveAfterCredential)
+        advanceUntilIdle()
+        assertTrue(vm.state.value is CustodyHoldingUiState.Saved)
+        coVerify(exactly = 1) { repo.registerManualAsset(owner, "Synthetic NPS Tier I", "NPS") }
+        coVerify(exactly = 0) { repo.appendFinancialEvents(any()) }
+    }
+
     @Test fun lockedRefreshNeverReadsEncryptedBook() = runTest {
         val repo = mockk<VaultRepository>()
         val viewModel = CustodyHoldingViewModel(repo, VaultSessionGate())

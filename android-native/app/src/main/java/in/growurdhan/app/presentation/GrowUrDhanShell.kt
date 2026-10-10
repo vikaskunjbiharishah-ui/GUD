@@ -50,6 +50,12 @@ import `in`.growurdhan.app.presentation.screens.StatementReviewScreen
 import `in`.growurdhan.app.presentation.screens.PrivacyScreen
 import `in`.growurdhan.app.presentation.screens.SettingsScreen
 import `in`.growurdhan.app.presentation.screens.VaultScreen
+import `in`.growurdhan.app.presentation.screens.LegacyBackupScreen
+import `in`.growurdhan.app.presentation.screens.LegacyBackupUiState
+import `in`.growurdhan.app.presentation.screens.LegacyBackupIntent
+import `in`.growurdhan.app.presentation.screens.ChangeLocalPasswordScreen
+import `in`.growurdhan.app.presentation.screens.EmergencyExportScreen
+import `in`.growurdhan.app.presentation.screens.EmergencyExportUiState
 
 private enum class MainDestination(
     val route: String,
@@ -71,6 +77,9 @@ private const val FAMILY_ROUTE = "family"
 private const val CUSTODY_ROUTE = "custody"
 private const val RECOVERY_ROUTE = "recovery"
 private const val MANUAL_TRADE_ROUTE = "manual-trade"
+private const val LEGACY_PREVIEW_ROUTE = "legacy-preview"
+private const val PASSWORD_CHANGE_ROUTE = "password-change"
+private const val EMERGENCY_EXPORT_ROUTE = "emergency-export"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,6 +100,12 @@ fun GrowUrDhanShell(
     onRecoveryIntent: (PortableRecoveryIntent) -> Unit = {},
     manualTradeState: ManualTradeUiState = ManualTradeUiState.Locked,
     onManualTradeIntent: (ManualTradeIntent) -> Unit = {},
+    legacyBackupState: LegacyBackupUiState = LegacyBackupUiState.Empty,
+    onLegacyBackupIntent: (LegacyBackupIntent) -> Unit = {},
+    onChangeLocalPassword: (String, String) -> Unit = { _, _ -> },
+    dossierStatus: EmergencyExportUiState = EmergencyExportUiState.READY,
+    onChooseDossierDestination: () -> Unit = {},
+    onCancelDossier: () -> Unit = {},
 ) {
     val controller = rememberNavController()
     val currentBackStackEntry by controller.currentBackStackEntryAsState()
@@ -197,6 +212,7 @@ fun GrowUrDhanShell(
                             onAddFamilyMember = { navigate(FAMILY_ROUTE) },
                             onManageHoldings = { navigate(CUSTODY_ROUTE) },
                             onBackupRecovery = { navigate(RECOVERY_ROUTE) },
+                            onInspectLegacyBackup = { navigate(LEGACY_PREVIEW_ROUTE) },
                         )
                     }
                     composable(MainDestination.REVIEW.route) {
@@ -261,6 +277,29 @@ fun GrowUrDhanShell(
                             },
                         )
                     }
+                    composable(EMERGENCY_EXPORT_ROUTE) {
+                        EmergencyExportScreen(
+                            status = dossierStatus,
+                            onSelectDestination = onChooseDossierDestination,
+                            onBack = {
+                                onCancelDossier()
+                                navigate(MainDestination.SETTINGS.route)
+                            },
+                        )
+                    }
+                    composable(PASSWORD_CHANGE_ROUTE) {
+                        ChangeLocalPasswordScreen(
+                            onChange = onChangeLocalPassword,
+                            onBack = { navigate(MainDestination.SETTINGS.route) },
+                        )
+                    }
+                    composable(LEGACY_PREVIEW_ROUTE) {
+                        LegacyBackupScreen(
+                            state = legacyBackupState,
+                            onIntent = onLegacyBackupIntent,
+                            onBack = { navigate(VAULT_ROUTE) },
+                        )
+                    }
                     composable(RECOVERY_ROUTE) {
                         PortableRecoveryScreen(
                             state = recoveryState,
@@ -280,6 +319,8 @@ fun GrowUrDhanShell(
                             onIntent = onIntent,
                             onOpenVault = { navigate(VAULT_ROUTE) },
                             onOpenPrivacy = { navigate(PRIVACY_ROUTE) },
+                            onChangeAppPassword = { navigate(PASSWORD_CHANGE_ROUTE) },
+                            onOpenEmergencyExport = { navigate(EMERGENCY_EXPORT_ROUTE) },
                         )
                     }
                 }

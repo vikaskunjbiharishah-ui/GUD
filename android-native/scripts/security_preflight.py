@@ -47,6 +47,7 @@ def repository_binding_errors(binding: str) -> list[str]:
         "createAccount": "approvedWrite { delegate.createAccount(",
         "registerCustodyAccount": "approvedWrite { delegate.registerCustodyAccount(",
         "createHolding": "approvedWrite { delegate.createHolding(",
+        "registerManualAsset": "approvedWrite { delegate.registerManualAsset(",
         "registerCasHolding": "approvedWrite { delegate.registerCasHolding(",
         "appendEvent": "approvedWrite { delegate.appendEvent(",
         "appendFinancialEvents": "approvedWrite { delegate.appendFinancialEvents(",
@@ -124,6 +125,42 @@ def ui_publication_guard_errors(sources: dict[str, str]) -> list[str]:
             "credentialRevision == originalRevision && canCommitFinancialChanges()" not in gate):
         errors.append("Native credential gate does not bind access to original challenge.")
     return errors
+
+
+def app_password_gate_errors(
+    session: str, binding: str, store: str, activity: str,
+) -> list[str]:
+    """Deny native access unless BOTH local-password and OS gates are active."""
+    problems: list[str] = []
+    for expected in (
+        "localPassword.hasVerifiedPassword() && freshWithin(maxSessionAgeMillis)",
+        "localPassword.hasVerifiedPassword() && freshWithin(maxApprovalAgeMillis)",
+        "check(localPassword.hasVerifiedPassword())",
+    ):
+        if expected not in session:
+            problems.append("VaultSessionGate lost mandatory app-password check: " + expected)
+    if "bindAppPassword(store: LocalAppPasswordStore): AppPasswordAuthorization" not in binding:
+        problems.append("Hilt production app password must be bound to fail-closed store.")
+    for expected in (
+        'KeyStore.getInstance("AndroidKeyStore")',
+        '"PBKDF2WithHmacSHA256"',
+        "MessageDigest.isEqual",
+        "allowCreate = false",
+        "initialStatus() == LocalLoginStatus.NEEDS_SETUP",
+        'prefs.edit()',
+    ):
+        if expected not in store:
+            problems.append("Local-password verifier lost required security property: " + expected)
+    for expected in (
+        "appPassword.hasVerifiedPassword()",
+        "CredentialAction.ENROLL_APP_PASSWORD",
+        "CredentialAction.CHANGE_APP_PASSWORD",
+        "if (loginStatus != LocalLoginStatus.VERIFIED)",
+        "appPassword.lock()",
+    ):
+        if expected not in activity:
+            problems.append("Activity no longer enforces the local login boundary: " + expected)
+    return problems
 
 
 def cipher_page_integrity_errors(schema: str) -> list[str]:
@@ -235,6 +272,27 @@ def main() -> int:
     ensure("authorization.requireRecentApproval()" in helper and
            "bytes.fill(0)" in helper,
            "Portable encrypted export lacks post-operation approval and buffer wiping.")
+
+    gate_source = read(
+        "android-native/app/src/main/java/in/growurdhan/app/presentation/VaultSessionGate.kt")
+    password_source = read(
+        "android-native/app/src/main/java/in/growurdhan/app/presentation/LocalAppPasswordStore.kt")
+    authorization_binding = read(
+        "android-native/app/src/main/java/in/growurdhan/app/presentation/VaultAuthorizationModule.kt")
+    errors.extend(app_password_gate_errors(
+        gate_source, authorization_binding, password_source, activity,
+    ))
+    emergency = read(
+        "android-native/domain/src/main/kotlin/in/growurdhan/domain/finance/EmergencyDossierCsv.kt")
+    ensure("PortfolioInsightsProjector.from(dashboard).reconciled" in emergency
+           and "CSV formula injection" in emergency,
+           "Plaintext emergency export must fail on bad totals and neutralize CSV formulas.")
+    legacy = read(
+        "android-native/data/src/main/kotlin/in/growurdhan/data/vault/LegacyLockedBackupInspector.kt")
+    ensure('"GUDVLT01"' in legacy
+           and "losslessImportAvailable: Boolean = false" in legacy
+           and "600_000" in legacy,
+           "Legacy backup preview must not accept unverified or loss-making imports.")
 
     vault_vm = read("android-native/app/src/main/java/in/growurdhan/app/presentation/VaultViewModel.kt")
     health_gate = read("android-native/domain/src/main/kotlin/in/growurdhan/domain/vault/VaultHealthGate.kt")

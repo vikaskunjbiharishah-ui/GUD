@@ -37,6 +37,8 @@ fun SettingsScreen(
     onIntent: (AppIntent) -> Unit,
     onOpenVault: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
+    onChangeAppPassword: () -> Unit = {},
+    onOpenEmergencyExport: () -> Unit = {},
 ) {
     val haptics = LocalHapticFeedback.current
     Column(
@@ -124,21 +126,31 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    "Before a Play release: app-specific login compatibility, " +
-                        "legacy migration, live prices, NPS, verified Gmail OAuth, " +
+                    "Before a Play release: old account/email recovery compatibility, " +
+                        "legacy migration, live prices, verified NPS imports, Gmail OAuth, " +
                         "Play purchase verification, legal approval, device QA " +
                         "and independent security testing must be accepted.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "The current local vault uses SQLCipher and the Android " +
-                        "device credential. The app password does not yet " +
-                        "protect this native vault.",
+                    "Native financial access requires both the local GrowUrDhan " +
+                        "app password and Android device credential. The app password " +
+                        "is an authorization gate, not the SQLCipher decryption key.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
         }
+
+        OutlinedButton(
+            onClick = onOpenEmergencyExport,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Export emergency summary (unencrypted CSV)") }
+
+        OutlinedButton(
+            onClick = onChangeAppPassword,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Change GrowUrDhan app password") }
 
         val dynamicAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
         Card(modifier = Modifier.fillMaxWidth()) {

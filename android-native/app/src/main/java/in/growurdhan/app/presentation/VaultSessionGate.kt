@@ -1,6 +1,8 @@
 package `in`.growurdhan.app.presentation
 
 import `in`.growurdhan.domain.vault.VaultAuthorization
+import `in`.growurdhan.domain.vault.AppPasswordAuthorization
+import `in`.growurdhan.domain.vault.UnitTestPasswordAdmission
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,7 +14,9 @@ import javax.inject.Singleton
  * Final commercial authentication/session design remains a separate security gate.
  */
 @Singleton
-class VaultSessionGate @Inject constructor() : VaultAuthorization {
+class VaultSessionGate @Inject constructor(
+    private val localPassword: AppPasswordAuthorization = UnitTestPasswordAdmission,
+) : VaultAuthorization {
     private var nowMillis: () -> Long = { System.nanoTime() / 1_000_000L }
     private var verifiedAtMillis: Long? = null
     /** Increments only after Android reports a successful credential challenge. */
@@ -27,6 +31,9 @@ class VaultSessionGate @Inject constructor() : VaultAuthorization {
     }
 
     @Synchronized fun grantDeviceCredential() {
+        check(localPassword.hasVerifiedPassword()) {
+            "GrowUrDhan password verification is required before device credential admission."
+        }
         credentialRevision = Math.addExact(credentialRevision, 1L)
         verifiedAtMillis = nowMillis()
     }
@@ -48,9 +55,11 @@ class VaultSessionGate @Inject constructor() : VaultAuthorization {
         verifiedAtMillis = null
     }
 
-    @Synchronized fun isUnlocked(): Boolean = freshWithin(maxSessionAgeMillis)
+    @Synchronized fun isUnlocked(): Boolean =
+        localPassword.hasVerifiedPassword() && freshWithin(maxSessionAgeMillis)
 
-    @Synchronized fun canCommitFinancialChanges(): Boolean = freshWithin(maxApprovalAgeMillis)
+    @Synchronized fun canCommitFinancialChanges(): Boolean =
+        localPassword.hasVerifiedPassword() && freshWithin(maxApprovalAgeMillis)
 
     @Synchronized override fun requireUnlocked() {
         check(isUnlocked()) { "Native vault access requires verified device session." }

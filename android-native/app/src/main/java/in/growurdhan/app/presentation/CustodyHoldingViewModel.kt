@@ -7,6 +7,7 @@ import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.core.model.HoldingId
 import `in`.growurdhan.core.model.VaultBook
 import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
+import `in`.growurdhan.domain.vault.ManualAssetOnboarding
 import `in`.growurdhan.domain.vault.VaultRepository
 import java.util.UUID
 import javax.inject.Inject
@@ -31,6 +32,9 @@ sealed interface CustodyHoldingUiState {
 }
 
 sealed interface CustodyRegistration {
+    data class Asset(
+        val ownerId: OwnerId, val name: String, val category: String,
+    ) : CustodyRegistration
     data class Account(
         val ownerId: OwnerId, val type: String, val label: String,
     ) : CustodyRegistration
@@ -42,6 +46,9 @@ sealed interface CustodyRegistration {
 
 sealed interface CustodyHoldingIntent {
     data object Refresh : CustodyHoldingIntent
+    data class StageAsset(
+        val ownerId: OwnerId, val name: String, val category: String,
+    ) : CustodyHoldingIntent
     data class StageAccount(
         val ownerId: OwnerId, val type: String, val label: String,
     ) : CustodyHoldingIntent
@@ -73,6 +80,7 @@ class CustodyHoldingViewModel @Inject constructor(
         when (intent) {
             CustodyHoldingIntent.Refresh -> refresh()
             is CustodyHoldingIntent.StageAccount -> stageAccount(intent)
+            is CustodyHoldingIntent.StageAsset -> stageAsset(intent)
             is CustodyHoldingIntent.StageHolding -> stageHolding(intent)
             CustodyHoldingIntent.SaveAfterCredential -> saveAfterCredential()
             CustodyHoldingIntent.Cancel -> clearSensitiveState()
@@ -125,6 +133,25 @@ class CustodyHoldingViewModel @Inject constructor(
         }
     }
 
+    private fun stageAsset(intent: CustodyHoldingIntent.StageAsset) {
+        val ready = mutableState.value as? CustodyHoldingUiState.Ready ?: return
+        if (!session.isUnlocked()) { clearSensitiveState(); return }
+        try {
+            require(ready.book.members.any { it.id == intent.ownerId })
+            val asset = ManualAssetOnboarding.create(
+                intent.ownerId, intent.name, intent.category,
+                HoldingId(UUID.randomUUID().toString()), ready.book.holdings,
+            )
+            mutableState.value = CustodyHoldingUiState.AwaitingCredential(
+                CustodyRegistration.Asset(asset.ownerId, asset.name, asset.assetCategory),
+                session.credentialEpoch(),
+            )
+        } catch (_: Exception) {
+            mutableState.value = ready.copy(error =
+                "Select a family owner and a valid, unique name and supported asset category.")
+        }
+    }
+
     private fun stageHolding(intent: CustodyHoldingIntent.StageHolding) {
         val ready = mutableState.value as? CustodyHoldingUiState.Ready ?: return
         if (!session.isUnlocked()) { clearSensitiveState(); return }
@@ -165,6 +192,13 @@ class CustodyHoldingViewModel @Inject constructor(
         operation = viewModelScope.launch {
             try {
                 val notice = when (val request = pending.request) {
+                    is CustodyRegistration.Asset -> {
+                        vault.registerManualAsset(
+                            request.ownerId, request.name, request.category,
+                        )
+                        "Asset tracked with zero units and zero recorded value. Add a " +
+                            "separately reviewed transaction to record an acquisition."
+                    }
                     is CustodyRegistration.Account -> {
                         vault.registerCustodyAccount(request.ownerId, request.type, request.label)
                         "Registrar account saved in the encrypted vault."

@@ -26,6 +26,7 @@ import java.security.SecureRandom
 import java.util.UUID
 import `in`.growurdhan.domain.vault.FamilyMemberOnboarding
 import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
+import `in`.growurdhan.domain.vault.ManualAssetOnboarding
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import `in`.growurdhan.domain.vault.VaultRepository
@@ -204,6 +205,28 @@ class SqlCipherVaultRepository(
                 holding.assetCategory, holding.quantity.raw, holding.currentUnitPrice.raw,
             ),
         )
+    }
+
+    override suspend fun registerManualAsset(
+        ownerId: OwnerId, name: String, category: String,
+    ): Holding = mutate { db ->
+        require(readMembers(db).any { it.id == ownerId }) {
+            "Manual asset must belong to a registered family member."
+        }
+        val asset = ManualAssetOnboarding.create(
+            ownerId, name, category, HoldingId(UUID.randomUUID().toString()),
+            readHoldings(db),
+        )
+        db.execSQL(
+            """INSERT INTO holding
+               (id,owner_id,account_id,display_name,asset_category,quantity_scaled,price_scaled)
+               VALUES (?,?,?,?,?,?,?)""",
+            arrayOf(
+                asset.id.raw, asset.ownerId.raw, null, asset.name,
+                asset.assetCategory, 0L, 0L,
+            ),
+        )
+        asset
     }
 
     /**
@@ -892,6 +915,11 @@ class DefaultVaultRepository @Inject constructor(
     }
     override suspend fun createHolding(holding: Holding) {
         approvedWrite { delegate.createHolding(holding) }
+    }
+    override suspend fun registerManualAsset(
+        ownerId: OwnerId, name: String, category: String,
+    ): Holding {
+        return approvedWrite { delegate.registerManualAsset(ownerId, name, category) }
     }
     override suspend fun registerCasHolding(
         ownerId: OwnerId, accountId: String, displayName: String,

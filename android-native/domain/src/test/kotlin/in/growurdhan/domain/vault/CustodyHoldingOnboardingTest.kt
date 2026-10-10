@@ -14,6 +14,20 @@ class CustodyHoldingOnboardingTest {
     private fun account(ownerId: OwnerId = owner, label: String = "Primary MF") =
         CustodyHoldingOnboarding.account(ownerId, "CAMS", label, "account-1", emptyList())
 
+    @Test fun nonCasAccountsCanBeRegisteredWithoutClaimingCasParserSupport() {
+        for (type in listOf("NPS", "NSDL", "CDSL", "BANK", "BROKER")) {
+            val account = CustodyHoldingOnboarding.account(
+                owner, type, "Synthetic $type", "account-$type", emptyList(),
+            )
+            assertEquals(type, account.accountType)
+            assertThrows(IllegalArgumentException::class.java) {
+                CustodyHoldingOnboarding.holding(
+                    owner, account, "Synthetic fund", isin, "folio", id, emptyList(),
+                )
+            }
+        }
+    }
+
     @Test fun registrarAccountIsNicknameOnlyAndOwnerScoped() {
         val a = account(label = "  Primary   MF  ")
         assertEquals("Primary MF", a.identifierMasked)

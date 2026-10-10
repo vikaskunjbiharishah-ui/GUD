@@ -47,6 +47,25 @@ class NativeCustodyHoldingInstrumentedTest {
         return vault.registerCustodyAccount(actualOwner, "CAMS", "Synthetic registrar")
     }
 
+    @Test fun manualRetirementAssetIsZeroValueAndRestorableWithoutCasIdentity(): Unit = runBlocking {
+        val account = seed()
+        val asset = vault.registerManualAsset(account.ownerId, "Synthetic NPS Tier I", "NPS")
+        assertEquals(0, asset.quantity.raw)
+        assertEquals(0, asset.currentUnitPrice.raw)
+        assertTrue(vault.casIdentities().isEmpty())
+        assertTrue(vault.events().isEmpty())
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking {
+                vault.registerManualAsset(account.ownerId, " synthetic nps tier i ", "NPS")
+            }
+        }
+        vault.close()
+        vault.openOrCreate()
+        assertEquals(asset, vault.holdings().single())
+        assertTrue(vault.events().isEmpty())
+        assertEquals(0, vault.health().foreignKeyViolations)
+    }
+
     @Test fun accountAndEnrolledHoldingPersistAcrossEncryptedReopen(): Unit = runBlocking {
         val account = seed()
         val holding = vault.registerCasHolding(

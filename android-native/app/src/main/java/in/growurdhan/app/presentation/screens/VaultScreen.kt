@@ -31,6 +31,7 @@ fun VaultScreen(
     onAddFamilyMember: () -> Unit = {},
     onManageHoldings: () -> Unit = {},
     onBackupRecovery: () -> Unit = {},
+    onInspectLegacyBackup: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -66,6 +67,9 @@ fun VaultScreen(
                         OutlinedButton(onClick = onBackupRecovery) {
                             Text("Recover from encrypted backup")
                         }
+                        OutlinedButton(onClick = onInspectLegacyBackup) {
+                            Text("Inspect older .kosha backup (read-only)")
+                        }
                     }
                     VaultUiState.Closed -> {
                         Text("Vault closed", style = MaterialTheme.typography.titleLarge)
@@ -75,6 +79,9 @@ fun VaultScreen(
                         }
                         OutlinedButton(onClick = onBackupRecovery) {
                             Text("Backup & recovery")
+                        }
+                        OutlinedButton(onClick = onInspectLegacyBackup) {
+                            Text("Inspect older .kosha backup (read-only)")
                         }
                     }
                     is VaultUiState.Ready -> {
@@ -96,6 +103,9 @@ fun VaultScreen(
                         OutlinedButton(onClick = onBackupRecovery) {
                             Text("Backup & recovery")
                         }
+                        OutlinedButton(onClick = onInspectLegacyBackup) {
+                            Text("Inspect older .kosha backup (read-only)")
+                        }
                         OutlinedButton(onClick = { onIntent(VaultIntent.Close) }) { Text("Close vault") }
                     }
                     is VaultUiState.Error -> {
@@ -111,8 +121,10 @@ fun VaultScreen(
                 Text("Development security boundaries", style = MaterialTheme.typography.titleMedium)
                 Text(
                     "Android device confirmation and repository authorization guard native " +
-                        "financial writes, but the GrowUrDhan-specific login, full recovery " +
-                        "validation and hardware CAS parser verification remain incomplete. " +
+                        "financial writes. A separate local app-password verifier now guards " +
+                        "the native vault, but legacy email/security-answer recovery and " +
+                        "historical data migration remain incomplete. Hardware CAS parser " +
+                        "verification is also still required. " +
                         "The frozen parser is available only in supported ARM64 release builds. " +
                         "Do not use this development build for live financial records yet.",
                     style = MaterialTheme.typography.bodyMedium,

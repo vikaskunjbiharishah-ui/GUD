@@ -1,11 +1,34 @@
 package `in`.growurdhan.app.presentation
 
 import org.junit.Assert.assertFalse
+import `in`.growurdhan.domain.vault.AppPasswordAuthorization
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** No device credential or password is created in these deterministic-clock tests. */
 class VaultSessionGateTest {
+    @Test fun deviceCredentialAloneCannotAccessProductionPasswordProtectedSession() {
+        class PasswordAdmission : AppPasswordAuthorization {
+            var verified = false
+            override fun hasVerifiedPassword() = verified
+        }
+        val admission = PasswordAdmission()
+        val gate = VaultSessionGate(admission)
+        assertThrows(IllegalStateException::class.java) { gate.grantDeviceCredential() }
+        assertFalse(gate.isUnlocked())
+        admission.verified = true
+        gate.grantDeviceCredential()
+        assertTrue(gate.isUnlocked())
+        assertTrue(gate.canCommitFinancialChanges())
+        admission.verified = false
+        assertFalse(gate.isUnlocked())
+        assertFalse(gate.canCommitFinancialChanges())
+        admission.verified = true
+        gate.lock()
+        assertFalse(gate.isUnlocked())
+    }
+
     @Test fun oldCredentialChallengeCannotAuthorizeNewSessionResults() {
         val gate = VaultSessionGate()
         gate.grantDeviceCredential()

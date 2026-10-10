@@ -10,6 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import `in`.growurdhan.app.presentation.CustodyHoldingIntent
 import `in`.growurdhan.app.presentation.CustodyHoldingUiState
 import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
+import `in`.growurdhan.domain.vault.ManualAssetOnboarding
 
 /** Protected CAS enrolment: only registrar names, not PAN or passwords. */
 @Composable
@@ -49,9 +52,10 @@ fun CustodyHoldingScreen(
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "Add the registrar account and exact ISIN/folio for a family member. " +
-                "A new holding starts with zero units and unknown purchase cost. " +
-                "Only a separately reviewed CAS can record opening units.",
+            "Track financial accounts and assets for each family member. " +
+                "CAMS/KFIN mutual funds require exact ISIN/folio for CAS matching. " +
+                "Manual NPS, PPF, EPF, gold and other assets are not statement imports. " +
+                "New holdings start at zero units with no invented acquisition cost.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         when (state) {
@@ -126,9 +130,9 @@ fun CustodyHoldingScreen(
                             Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Text("1. Add registrar account", style = MaterialTheme.typography.titleMedium)
+                            Text("1. Add financial account nickname", style = MaterialTheme.typography.titleMedium)
                             Text("Use a nickname; do not enter your PAN, password, or full account number.")
-                            CustodyHoldingOnboarding.registrarTypes.forEach { option ->
+                            CustodyHoldingOnboarding.accountTypes.forEach { option ->
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     RadioButton(
                                         selected = registrar == option,
@@ -158,8 +162,11 @@ fun CustodyHoldingScreen(
                         }
                     }
 
-                    var selectedAccount by remember(selectedOwner, accounts) {
-                        mutableStateOf(accounts.firstOrNull()?.id)
+                    val casAccounts = accounts.filter {
+                        it.accountType in CustodyHoldingOnboarding.registrarTypes
+                    }
+                    var selectedAccount by remember(selectedOwner, casAccounts) {
+                        mutableStateOf(casAccounts.firstOrNull()?.id)
                     }
                     var fundName by remember(selectedOwner, accounts) { mutableStateOf("") }
                     var isin by remember(selectedOwner, accounts) { mutableStateOf("") }
@@ -170,11 +177,12 @@ fun CustodyHoldingScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Text("2. Enrol a mutual fund", style = MaterialTheme.typography.titleMedium)
-                            if (accounts.isEmpty()) {
-                                Text("Save a CAMS or KFINTECH registrar account first.")
+                            if (casAccounts.isEmpty()) {
+                                Text("Save a CAMS or KFINTECH registrar account first. " +
+                                    "NSDL/CDSL/NPS accounts are not verified CAS fund mappings.")
                             } else {
                                 Text("Choose its registrar account")
-                                accounts.forEach { account ->
+                                casAccounts.forEach { account ->
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         RadioButton(
                                             selected = selectedAccount == account.id,
@@ -230,6 +238,59 @@ fun CustodyHoldingScreen(
                         }
                     }
 
+                    var manualName by remember(selectedOwner) { mutableStateOf("") }
+                    var manualCategory by remember(selectedOwner) { mutableStateOf("NPS") }
+                    var categoryExpanded by remember { mutableStateOf(false) }
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(
+                            Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Text("3. Add manually tracked asset", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "For NPS, PPF, EPF, deposits, gold, shares or property. " +
+                                    "This is not a verified statement import. The new asset " +
+                                    "has zero recorded quantity and price until an explicit transaction.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            OutlinedButton(
+                                onClick = { categoryExpanded = true },
+                                modifier = Modifier.fillMaxWidth().semantics {
+                                    contentDescription = "Manual asset category selector"
+                                },
+                            ) { Text(manualCategory.replace('_', ' ')) }
+                            DropdownMenu(
+                                expanded = categoryExpanded,
+                                onDismissRequest = { categoryExpanded = false },
+                            ) {
+                                ManualAssetOnboarding.supportedCategories.forEach { choice ->
+                                    DropdownMenuItem(
+                                        text = { Text(choice.replace('_', ' ')) },
+                                        onClick = { manualCategory = choice; categoryExpanded = false },
+                                    )
+                                }
+                            }
+                            OutlinedTextField(
+                                value = manualName,
+                                onValueChange = { if (it.length <= 200) manualName = it },
+                                label = { Text("Manual asset nickname") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth().semantics {
+                                    contentDescription = "Manual asset nickname input"
+                                },
+                            )
+                            Button(
+                                enabled = manualName.trim().isNotEmpty(),
+                                onClick = {
+                                    onIntent(CustodyHoldingIntent.StageAsset(
+                                        selectedOwner, manualName, manualCategory,
+                                    ))
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) { Text("Register manual asset securely") }
+                        }
+                    }
+
                     state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     Text("Enrolled holdings", style = MaterialTheme.typography.titleMedium)
                     val enrolled = book.casIdentities.filter { it.ownerId == selectedOwner }
@@ -246,6 +307,33 @@ fun CustodyHoldingScreen(
                                     Text("Registrar: ${mapping.accountType}")
                                 }
                             }
+                        }
+                    }
+                    Text("Manually tracked assets", style = MaterialTheme.typography.titleMedium)
+                    val manualAssets = book.holdings.filter {
+                        it.ownerId == selectedOwner && it.accountId == null
+                    }
+                    if (manualAssets.isEmpty()) {
+                        Text("No manually tracked assets for this family member.")
+                    } else {
+                        manualAssets.take(100).forEach { asset ->
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(
+                                    Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Text(asset.name, style = MaterialTheme.typography.titleSmall)
+                                    Text(asset.assetCategory.replace('_', ' '))
+                                    Text(
+                                        "Recorded quantities and values need separately " +
+                                            "reviewed events. This is not an issuer statement.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                            }
+                        }
+                        if (manualAssets.size > 100) {
+                            Text("Showing 100 of ${manualAssets.size} registered manual assets.")
                         }
                     }
                     Button(

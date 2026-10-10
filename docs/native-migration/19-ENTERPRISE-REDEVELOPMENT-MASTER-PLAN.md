@@ -98,3 +98,17 @@ Google Play verification, family vault migration and app licence restore
 are still not implemented end to end. Real Android/ARM64 device validation,
 legal acceptance and independent mobile AppSec signoff cannot be manufactured
 by source changes or synthetic tests.
+
+## Development evidence addendum: independent offline scope (October 2026)
+
+Milestone 23 delivers parts of E2 and E4 that need no Google Cloud or
+Play Billing: local Keystore-bound app-password authorization in addition
+to Android device credentials, change-password UX, manual zero-unit
+account/asset tracking, original locked-backup read-only inspection,
+and a user-directed emergency dossier CSV.
+
+**Status:** source implemented, synthetic tests added, full compile/device
+and owner acceptance pending. It does NOT close the requirements for full
+email/PAN/security-question login parity, lossless migration, verified
+NPS/NSDL/CDSL statement imports, or independent AppSec/device signoff.
+See `23-OFFLINE-COMMERCIAL-READINESS.md`.

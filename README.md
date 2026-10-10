@@ -68,3 +68,15 @@ owner-approved SHA-bound release evidence and independent signoff.
 
 See [Milestone 22](docs/native-migration/22-E2-E4-MANUAL-TRADE-SECURE-STAGING-RELEASE-GATE.md).
 The next step is the **separate deliberate GitHub build and regression run**.
+
+## Offline features independent of Google Cloud and Play Billing
+
+The next integrated native milestone adds GrowUrDhan-specific app password
+admission and password change, locally tracked NPS/PPF/EPF and other
+zero-unit assets, read-only inspection of original locked `.kosha`
+backups, and a consented plaintext emergency summary export. It does
+**not** implement Google OAuth, Play Billing, real NPS statement imports,
+or lossless legacy migration. See
+[Milestone 23](docs/native-migration/23-OFFLINE-COMMERCIAL-READINESS.md).
+
+This source is not yet Gradle/device verified and is not a public release.

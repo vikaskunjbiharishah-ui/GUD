@@ -26,6 +26,8 @@ interface VaultRepository {
         ownerId: OwnerId, accountType: String, label: String,
     ): CustodyAccount
     suspend fun createHolding(holding: Holding)
+    /** User-approved, zero-unit asset without implied purchase or CAS identity. */
+    suspend fun registerManualAsset(ownerId: OwnerId, name: String, category: String): Holding
     /** Atomically add a zero-unit holding and its exact CAS ISIN/folio identity. */
     suspend fun registerCasHolding(
         ownerId: OwnerId, accountId: String, displayName: String,

@@ -8,7 +8,7 @@ import unittest
 
 from security_preflight import (
     read, repository_binding_errors, vault_health_boundary_errors,
-    cipher_page_integrity_errors, ui_publication_guard_errors,
+    cipher_page_integrity_errors, ui_publication_guard_errors, app_password_gate_errors,
 )
 
 SOURCE = "android-native/data/src/main/kotlin/in/growurdhan/data/vault/SqlCipherVaultRepository.kt"
@@ -188,6 +188,28 @@ class RepositoryPolicyRoutingTests(unittest.TestCase):
         )
         self.assertTrue(any("commitManualTrade" in issue
                             for issue in repository_binding_errors(mutant)))
+
+    def test_local_password_gates_are_necessary_for_os_and_financial_access(self):
+        root = "android-native/app/src/main/java/in/growurdhan/app/presentation/"
+        gate = read(root + "VaultSessionGate.kt")
+        binding = read(root + "VaultAuthorizationModule.kt")
+        store = read(root + "LocalAppPasswordStore.kt")
+        activity = read("android-native/app/src/main/java/in/growurdhan/app/MainActivity.kt")
+        self.assertEqual([], app_password_gate_errors(gate, binding, store, activity))
+        without_password = gate.replace(
+            "localPassword.hasVerifiedPassword() && freshWithin(maxSessionAgeMillis)",
+            "freshWithin(maxSessionAgeMillis)", 1,
+        )
+        self.assertTrue(app_password_gate_errors(
+            without_password, binding, store, activity,
+        ))
+        without_binding = binding.replace(
+            "bindAppPassword(store: LocalAppPasswordStore): AppPasswordAuthorization",
+            "bindAppPassword(): AppPasswordAuthorization", 1,
+        )
+        self.assertTrue(app_password_gate_errors(
+            gate, without_binding, store, activity,
+        ))
 
     def test_missing_repository_method_is_rejected(self):
         mutant = self.production.replace(

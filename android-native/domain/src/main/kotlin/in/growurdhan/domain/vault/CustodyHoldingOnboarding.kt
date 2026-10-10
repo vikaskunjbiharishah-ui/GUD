@@ -16,6 +16,8 @@ import java.util.Locale
  */
 object CustodyHoldingOnboarding {
     val registrarTypes = listOf("CAMS", "KFINTECH")
+    /** Non-CAS accounts are nickname-only, not proof of NSDL/CDSL/PRAN identity. */
+    val accountTypes = registrarTypes + listOf("NSDL", "CDSL", "NPS", "BANK", "BROKER")
     private val isinPattern = Regex("^[A-Z]{2}[A-Z0-9]{9}[0-9]$")
     private val folioPattern = Regex("^[A-Za-z0-9][A-Za-z0-9/._-]{0,63}$")
     const val MAX_ACCOUNTS_PER_OWNER = 100
@@ -26,7 +28,7 @@ object CustodyHoldingOnboarding {
         existing: List<CustodyAccount>,
     ): CustodyAccount {
         val cleanedLabel = label.trim().replace(Regex("\\s+"), " ")
-        require(type in registrarTypes) { "Select a supported CAS registrar." }
+        require(type in accountTypes) { "Select a supported account type." }
         require(cleanedLabel.length in 1..64 && cleanedLabel.none { it.isISOControl() }) {
             "Use an account nickname with 1–64 characters."
         }
