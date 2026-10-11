@@ -55,6 +55,8 @@ def repository_binding_errors(binding: str) -> list[str]:
         "importSnapshot": "approvedWrite { delegate.importSnapshot(",
         "prepareStatementReview": "sessionBound.read {",
         "commitReviewedStatement": "approvedWrite { delegate.commitReviewedStatement(",
+        "familyAdministration": "sessionBound.read { delegate.familyAdministration() }",
+        "applyFamilyAdministration": "approvedWrite { delegate.applyFamilyAdministration(",
         "members": "sessionBound.read { delegate.members() }",
         "accounts": "sessionBound.read { delegate.accounts() }",
         "casIdentities": "sessionBound.read { delegate.casIdentities() }",

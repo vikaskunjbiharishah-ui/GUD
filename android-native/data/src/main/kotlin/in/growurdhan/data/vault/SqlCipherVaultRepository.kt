@@ -244,6 +244,14 @@ class SqlCipherVaultRepository(
         val account = readAccounts(db).singleOrNull {
             it.ownerId == ownerId && it.id == accountId
         } ?: throw IllegalArgumentException("Registrar account not found for family owner.")
+        db.rawQuery(
+            "SELECT closed_on FROM custody_profile WHERE account_id=? AND owner_id=?",
+            arrayOf(account.id, ownerId.raw),
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                require(cursor.isNull(0)) { "Cannot enrol new CAS holdings into a closed account." }
+            }
+        }
         val (holding, mapping) = CustodyHoldingOnboarding.holding(
             ownerId, account, displayName, isin, folio,
             HoldingId(UUID.randomUUID().toString()), readCasIdentities(db),
@@ -660,6 +668,13 @@ class SqlCipherVaultRepository(
         }
     }
 
+    override suspend fun familyAdministration(): FamilyAdministrationSnapshot =
+        inspect { db -> FamilyAdministrationSql.read(db) }
+
+    override suspend fun applyFamilyAdministration(change: FamilyAdminChange) {
+        mutate { db -> FamilyAdministrationSql.apply(db, change) }
+    }
+
     override suspend fun members(): List<FamilyMember> = inspect { db -> readMembers(db) }
 
     private fun readMembers(db: SQLiteDatabase): List<FamilyMember> {
@@ -974,6 +989,13 @@ class DefaultVaultRepository @Inject constructor(
     override suspend fun commitReviewedStatement(review: ReviewedStatement): SnapshotResult {
         return approvedWrite { delegate.commitReviewedStatement(review) }
     }
+    override suspend fun familyAdministration(): FamilyAdministrationSnapshot =
+        sessionBound.read { delegate.familyAdministration() }
+
+    override suspend fun applyFamilyAdministration(change: FamilyAdminChange) {
+        approvedWrite { delegate.applyFamilyAdministration(change) }
+    }
+
     override suspend fun members(): List<FamilyMember> = sessionBound.read { delegate.members() }
     override suspend fun accounts(): List<CustodyAccount> = sessionBound.read { delegate.accounts() }
     override suspend fun casIdentities(): List<CasHoldingIdentity> = sessionBound.read { delegate.casIdentities() }

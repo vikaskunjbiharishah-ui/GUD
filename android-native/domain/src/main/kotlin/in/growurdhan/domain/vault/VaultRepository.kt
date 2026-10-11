@@ -49,6 +49,10 @@ interface VaultRepository {
     ): ReviewedStatement
     /** Explicit caller action: re-validate review and commit observation/events atomically. */
     suspend fun commitReviewedStatement(review: ReviewedStatement): SnapshotResult
+    /** Encrypted owner/account/goal projection; no PAN plaintext leaves repository. */
+    suspend fun familyAdministration(): FamilyAdministrationSnapshot
+    /** Single atomic write protected by the device's newest credential approval. */
+    suspend fun applyFamilyAdministration(change: FamilyAdminChange)
     suspend fun members(): List<FamilyMember>
     suspend fun accounts(): List<CustodyAccount>
     suspend fun casIdentities(): List<CasHoldingIdentity>

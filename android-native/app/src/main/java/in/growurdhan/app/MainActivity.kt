@@ -28,6 +28,9 @@ import `in`.growurdhan.domain.finance.EmergencyDossierCsv
 import java.time.LocalDate
 import `in`.growurdhan.domain.vault.LegacyRestoreIdentity
 import `in`.growurdhan.domain.vault.VaultRepository
+import `in`.growurdhan.app.presentation.FamilyAdminIntent
+import `in`.growurdhan.app.presentation.FamilyAdminUiState
+import `in`.growurdhan.app.presentation.FamilyAdministrationViewModel
 import `in`.growurdhan.app.presentation.FamilyMemberIntent
 import `in`.growurdhan.app.presentation.FamilyMemberUiState
 import `in`.growurdhan.app.presentation.FamilyMemberViewModel
@@ -101,13 +104,14 @@ class MainActivity : ComponentActivity() {
     private val dashboardViewModel: HouseholdDashboardViewModel by viewModels()
     private val reviewViewModel: StatementReviewViewModel by viewModels()
     private val familyViewModel: FamilyMemberViewModel by viewModels()
+    private val familyAdminViewModel: FamilyAdministrationViewModel by viewModels()
     private val custodyViewModel: CustodyHoldingViewModel by viewModels()
     private val recoveryViewModel: PortableRecoveryViewModel by viewModels()
     private val manualTradeViewModel: ManualTradeViewModel by viewModels()
     private enum class CredentialAction {
         OPEN_VAULT, APPROVE_REVIEW, IMPORT_PDF, ADD_FAMILY_MEMBER, REGISTER_CUSTODY,
         PORTABLE_BACKUP, APPROVE_MANUAL_TRADE, ENROLL_APP_PASSWORD, INSPECT_LEGACY,
-        CHANGE_APP_PASSWORD, EXPORT_DOSSIER, RESTORE_LEGACY,
+        CHANGE_APP_PASSWORD, EXPORT_DOSSIER, RESTORE_LEGACY, MANAGE_FAMILY,
     }
     private var pendingCredential: CredentialAction? = null
     private var pdfPickerOpen: Boolean = false
@@ -188,6 +192,8 @@ class MainActivity : ComponentActivity() {
                 CredentialAction.IMPORT_PDF -> parseSelectedPdfAfterCredential()
                 CredentialAction.ADD_FAMILY_MEMBER ->
                     familyViewModel.onIntent(FamilyMemberIntent.SaveAfterCredential)
+                CredentialAction.MANAGE_FAMILY ->
+                    familyAdminViewModel.onIntent(FamilyAdminIntent.CommitAfterCredential)
                 CredentialAction.REGISTER_CUSTODY ->
                     custodyViewModel.onIntent(CustodyHoldingIntent.SaveAfterCredential)
                 CredentialAction.PORTABLE_BACKUP -> recoverAfterCredential()
@@ -497,6 +503,7 @@ class MainActivity : ComponentActivity() {
             }
             val reviewState by reviewViewModel.state.collectAsStateWithLifecycle()
             val familyState by familyViewModel.state.collectAsStateWithLifecycle()
+            val familyAdminState by familyAdminViewModel.state.collectAsStateWithLifecycle()
             val custodyState by custodyViewModel.state.collectAsStateWithLifecycle()
             val recoveryState by recoveryViewModel.state.collectAsStateWithLifecycle()
             val manualTradeState by manualTradeViewModel.state.collectAsStateWithLifecycle()
@@ -509,6 +516,12 @@ class MainActivity : ComponentActivity() {
             androidx.compose.runtime.LaunchedEffect(familyState) {
                 if (familyState is FamilyMemberUiState.Saved) {
                     // A successful encrypted write updates the vault's member count.
+                    vaultViewModel.onIntent(VaultIntent.Refresh)
+                    dashboardViewModel.refresh()
+                }
+            }
+            androidx.compose.runtime.LaunchedEffect(familyAdminState) {
+                if (familyAdminState is FamilyAdminUiState.Saved) {
                     vaultViewModel.onIntent(VaultIntent.Refresh)
                     dashboardViewModel.refresh()
                 }
@@ -554,6 +567,8 @@ class MainActivity : ComponentActivity() {
                     onReviewIntent = ::handleReviewIntent,
                     familyState = familyState,
                     onFamilyIntent = ::handleFamilyIntent,
+                    familyAdminState = familyAdminState,
+                    onFamilyAdminIntent = ::handleFamilyAdminIntent,
                     custodyState = custodyState,
                     onCustodyIntent = ::handleCustodyIntent,
                     recoveryState = recoveryState,
@@ -698,6 +713,25 @@ class MainActivity : ComponentActivity() {
             }
             FamilyMemberIntent.SaveAfterCredential -> Unit // OS callback only, never from UI
             else -> familyViewModel.onIntent(intent)
+        }
+    }
+
+    private fun handleFamilyAdminIntent(intent: FamilyAdminIntent) {
+        when (intent) {
+            is FamilyAdminIntent.Stage -> {
+                if (!sessionGate.isUnlocked() ||
+                    vaultViewModel.state.value !is VaultUiState.Ready
+                ) {
+                    lockSensitiveUi()
+                    return
+                }
+                familyAdminViewModel.onIntent(intent)
+                if (familyAdminViewModel.state.value is FamilyAdminUiState.AwaitingApproval) {
+                    requestCredential(CredentialAction.MANAGE_FAMILY)
+                }
+            }
+            FamilyAdminIntent.CommitAfterCredential -> Unit // ActivityResult only
+            else -> familyAdminViewModel.onIntent(intent)
         }
     }
 
@@ -997,6 +1031,7 @@ class MainActivity : ComponentActivity() {
             CredentialAction.IMPORT_PDF -> "Verify identity before reading CAS PDF"
             CredentialAction.APPROVE_REVIEW -> "Approve financial statement"
             CredentialAction.ADD_FAMILY_MEMBER -> "Add family member"
+            CredentialAction.MANAGE_FAMILY -> "Approve family, account or goal change"
             CredentialAction.REGISTER_CUSTODY -> "Register financial account or holding"
             CredentialAction.PORTABLE_BACKUP -> "Protect portable backup and recovery"
             CredentialAction.APPROVE_MANUAL_TRADE -> "Approve recorded buy or sell"
@@ -1015,6 +1050,8 @@ class MainActivity : ComponentActivity() {
                 "Confirm your device screen lock before committing these financial changes."
             CredentialAction.ADD_FAMILY_MEMBER ->
                 "Confirm your device screen lock before saving a family member."
+            CredentialAction.MANAGE_FAMILY ->
+                "Review your private family, account or goal change and confirm this device lock."
             CredentialAction.REGISTER_CUSTODY ->
                 "Confirm your screen lock before enrolling this account or CAS holding."
             CredentialAction.PORTABLE_BACKUP ->
@@ -1062,6 +1099,7 @@ class MainActivity : ComponentActivity() {
         sessionGate.lock()
         reviewViewModel.clearSensitiveState()
         familyViewModel.clearSensitiveState()
+        familyAdminViewModel.clearSensitiveState()
         custodyViewModel.clearSensitiveState()
         manualTradeViewModel.clearSensitiveState()
         recoveryViewModel.clearSensitiveState()
@@ -1096,6 +1134,7 @@ class MainActivity : ComponentActivity() {
                 sessionGate.lock()
                 reviewViewModel.clearSensitiveState()
                 familyViewModel.clearSensitiveState()
+        familyAdminViewModel.clearSensitiveState()
                 custodyViewModel.clearSensitiveState()
                 manualTradeViewModel.clearSensitiveState()
                 vaultViewModel.onIntent(VaultIntent.Close)
@@ -1104,6 +1143,7 @@ class MainActivity : ComponentActivity() {
                 sessionGate.lock()
                 reviewViewModel.clearSensitiveState()
                 familyViewModel.clearSensitiveState()
+        familyAdminViewModel.clearSensitiveState()
                 custodyViewModel.clearSensitiveState()
                 manualTradeViewModel.clearSensitiveState()
                 vaultViewModel.onIntent(VaultIntent.Close)
@@ -1114,6 +1154,7 @@ class MainActivity : ComponentActivity() {
                 sessionGate.lock()
                 reviewViewModel.clearSensitiveState()
                 familyViewModel.clearSensitiveState()
+        familyAdminViewModel.clearSensitiveState()
                 custodyViewModel.clearSensitiveState()
                 manualTradeViewModel.clearSensitiveState()
                 vaultViewModel.onIntent(VaultIntent.Close)
@@ -1124,6 +1165,7 @@ class MainActivity : ComponentActivity() {
                 sessionGate.lock()
                 reviewViewModel.clearSensitiveState()
                 familyViewModel.clearSensitiveState()
+        familyAdminViewModel.clearSensitiveState()
                 custodyViewModel.clearSensitiveState()
                 manualTradeViewModel.clearSensitiveState()
                 vaultViewModel.onIntent(VaultIntent.Close)

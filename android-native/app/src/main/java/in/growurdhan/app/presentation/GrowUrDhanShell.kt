@@ -42,6 +42,7 @@ import `in`.growurdhan.app.presentation.screens.PortableRecoveryIntent
 import `in`.growurdhan.app.presentation.screens.PortableRecoveryScreen
 import `in`.growurdhan.app.presentation.screens.CustodyHoldingScreen
 import `in`.growurdhan.app.presentation.screens.FamilyMemberScreen
+import `in`.growurdhan.app.presentation.screens.FamilyAdministrationScreen
 import `in`.growurdhan.app.presentation.screens.HomeScreen
 import `in`.growurdhan.app.presentation.screens.PortfolioScreen
 import `in`.growurdhan.app.presentation.screens.ManualTradeScreen
@@ -73,6 +74,7 @@ private enum class MainDestination(
 private const val VAULT_ROUTE = "vault"
 private const val PRIVACY_ROUTE = "privacy"
 private const val FAMILY_ROUTE = "family"
+private const val FAMILY_ADMIN_ROUTE = "family-admin"
 /** Secondary secure registrar/holding setup route, not an extra bottom tab. */
 private const val CUSTODY_ROUTE = "custody"
 private const val RECOVERY_ROUTE = "recovery"
@@ -94,6 +96,8 @@ fun GrowUrDhanShell(
     onReviewIntent: (StatementReviewIntent) -> Unit = {},
     familyState: FamilyMemberUiState = FamilyMemberUiState.Locked,
     onFamilyIntent: (FamilyMemberIntent) -> Unit = {},
+    familyAdminState: FamilyAdminUiState = FamilyAdminUiState.Locked,
+    onFamilyAdminIntent: (FamilyAdminIntent) -> Unit = {},
     custodyState: CustodyHoldingUiState = CustodyHoldingUiState.Locked,
     onCustodyIntent: (CustodyHoldingIntent) -> Unit = {},
     recoveryState: PortableRecoveryUiState = PortableRecoveryUiState.Empty,
@@ -187,6 +191,7 @@ fun GrowUrDhanShell(
                             onOpenStatements = { navigate(MainDestination.REVIEW.route) },
                             onOpenPortfolio = { navigate(MainDestination.PORTFOLIO.route) },
                             onOpenInsights = { navigate(MainDestination.INSIGHTS.route) },
+                            onManageFamily = { navigate(FAMILY_ADMIN_ROUTE) },
                         )
                     }
                     composable(MainDestination.PORTFOLIO.route) {
@@ -242,6 +247,25 @@ fun GrowUrDhanShell(
                             onSetUpHoldings = {
                                 onFamilyIntent(FamilyMemberIntent.Cancel)
                                 navigate(CUSTODY_ROUTE)
+                            },
+                            onManageFamily = {
+                                onFamilyIntent(FamilyMemberIntent.Cancel)
+                                navigate(FAMILY_ADMIN_ROUTE)
+                            },
+                        )
+                    }
+                    composable(FAMILY_ADMIN_ROUTE) {
+                        LaunchedEffect(Unit) { onFamilyAdminIntent(FamilyAdminIntent.Refresh) }
+                        FamilyAdministrationScreen(
+                            state = familyAdminState,
+                            onIntent = onFamilyAdminIntent,
+                            onAddMember = {
+                                onFamilyAdminIntent(FamilyAdminIntent.Cancel)
+                                navigate(FAMILY_ROUTE)
+                            },
+                            onBack = {
+                                onFamilyAdminIntent(FamilyAdminIntent.Cancel)
+                                navigate(VAULT_ROUTE)
                             },
                         )
                     }

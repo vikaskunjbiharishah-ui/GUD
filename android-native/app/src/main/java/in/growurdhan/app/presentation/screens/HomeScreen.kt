@@ -1,5 +1,6 @@
 package `in`.growurdhan.app.presentation.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +26,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import `in`.growurdhan.app.presentation.HouseholdDashboardUiState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,6 +48,7 @@ fun HomeScreen(
     onOpenStatements: () -> Unit = {},
     onOpenPortfolio: () -> Unit = {},
     onOpenInsights: () -> Unit = {},
+    onManageFamily: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -89,6 +96,39 @@ fun HomeScreen(
                             Text(if (dashboardState is HouseholdDashboardUiState.Unavailable)
                                 "Retry overview" else "Refresh totals")
                         }
+                    }
+                }
+            }
+        }
+
+        if (dashboardState is HouseholdDashboardUiState.Ready) {
+            val dashboard = dashboardState.dashboard
+            var ownerLens by remember(dashboard.byMember) {
+                mutableStateOf(dashboard.byMember.firstOrNull()?.ownerId)
+            }
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Family ownership lens", style = MaterialTheme.typography.titleMedium)
+                    Text("Household totals above include everyone. Select a member for their " +
+                        "own recorded assets, liabilities and holdings.",
+                        style = MaterialTheme.typography.bodySmall)
+                    Row(Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        dashboard.byMember.forEach { m ->
+                            FilterChip(ownerLens == m.ownerId,
+                                onClick = { ownerLens = m.ownerId },
+                                label = { Text(m.displayName ?: "Family member") })
+                        }
+                    }
+                    val selected = dashboard.byMember.firstOrNull { it.ownerId == ownerLens }
+                    if (selected != null) {
+                        Text("Recorded assets: " + selected.assets.rupees().toPlainString() + " INR")
+                        Text("Recorded liabilities: " + selected.liabilities.rupees().toPlainString() + " INR")
+                        Text("Recorded net worth: " + selected.netWorth.rupees().toPlainString() + " INR")
+                        Text("Holdings: " + selected.holdings)
+                    }
+                    OutlinedButton(onClick = onManageFamily) {
+                        Text("Manage family, ownership, accounts and goals")
                     }
                 }
             }

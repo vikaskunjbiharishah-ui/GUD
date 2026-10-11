@@ -59,6 +59,18 @@ class RepositoryPolicyRoutingTests(unittest.TestCase):
             "restoreOriginalLegacyBackup",
         )
 
+    def test_family_and_goal_mutations_require_recent_device_approval(self):
+        self.assert_rejected(
+            "approvedWrite { delegate.applyFamilyAdministration(change) }",
+            "delegate.applyFamilyAdministration(change)",
+            "applyFamilyAdministration",
+        )
+        self.assert_rejected(
+            "sessionBound.read { delegate.familyAdministration() }",
+            "delegate.familyAdministration()",
+            "familyAdministration",
+        )
+
     def test_explicit_close_must_share_open_cleanup_mutex(self):
         self.assert_rejected(
             "override suspend fun close() = sessionBound.close()",

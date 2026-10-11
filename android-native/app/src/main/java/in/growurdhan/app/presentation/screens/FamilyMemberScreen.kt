@@ -39,6 +39,7 @@ fun FamilyMemberScreen(
     onContinueToStatements: () -> Unit,
     onSetUpHoldings: () -> Unit = {},
     onReturnToVault: () -> Unit,
+    onManageFamily: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -171,6 +172,9 @@ fun FamilyMemberScreen(
                     }
                 }
                 if (state.members.isNotEmpty()) {
+                    OutlinedButton(onClick = onManageFamily) {
+                        Text("Manage family profiles, accounts, nominees and goals")
+                    }
                     Text(
                         "Existing family members (${state.members.size})",
                         style = MaterialTheme.typography.titleMedium,
