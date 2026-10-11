@@ -72,6 +72,47 @@ class LocalAppPasswordInstrumentedTest {
         }
     }
 
+    @Test fun recoveryCodeRequiresVerifiedEnrolmentAndIsSingleUse() {
+        val original="Synthetic!Pass123".toCharArray()
+        val next="Replacement!Secure456".toCharArray()
+        try {
+            assertThrows(IllegalStateException::class.java) {
+                store.issueRecoveryCodeAfterDeviceApproval()
+            }
+            assertTrue(store.setup(original))
+            val recovery=store.issueRecoveryCodeAfterDeviceApproval().toCharArray()
+            assertEquals(43,recovery.size)
+            assertTrue(store.hasRecoveryCode())
+            store.lock()
+            val restarted=LocalAppPasswordStore(context,scope)
+            assertFalse(restarted.verify("Wrong!Password123".toCharArray()))
+            assertFalse(restarted.recoverAfterDeviceApproval(
+                "wrong-recovery-code-recovery-code-recovery-code".toCharArray(),next))
+            assertFalse(restarted.hasVerifiedPassword())
+            assertTrue(restarted.recoverAfterDeviceApproval(recovery,next))
+            assertFalse(restarted.hasRecoveryCode())
+            assertFalse(restarted.hasVerifiedPassword())
+            assertFalse(restarted.verify(original))
+            assertTrue(restarted.verify(next))
+            assertFalse(restarted.recoverAfterDeviceApproval(recovery,original))
+            recovery.fill('\u0000')
+        } finally { original.fill('\u0000');next.fill('\u0000') }
+    }
+
+    @Test fun missingKeystoreDoesNotPermitRecoveryCodeToRecreateVerifier() {
+        store.setup("Synthetic!Pass123".toCharArray())
+        val recovery=store.issueRecoveryCodeAfterDeviceApproval().toCharArray()
+        store.lock()
+        KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+            .deleteEntry("in.growurdhan.app.local_password.test.$scope")
+        val restarted=LocalAppPasswordStore(context,scope)
+        assertFalse(restarted.recoverAfterDeviceApproval(
+            recovery,"Replacement!Secure456".toCharArray()))
+        assertFalse(restarted.hasVerifiedPassword())
+        assertEquals(LocalLoginStatus.STORAGE_UNAVAILABLE,restarted.status.value)
+        recovery.fill('\u0000')
+    }
+
     @Test fun corruptedVerifierCannotAutoResetOrUnlockNativeVault() {
         store.setup("Synthetic!Pass123".toCharArray())
         store.lock()

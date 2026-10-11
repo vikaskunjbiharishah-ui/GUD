@@ -59,6 +59,9 @@ import `in`.growurdhan.app.presentation.ManualTradeUiState
 import `in`.growurdhan.app.presentation.LocalAppPasswordStore
 import `in`.growurdhan.app.presentation.LocalLoginStatus
 import `in`.growurdhan.app.presentation.screens.LocalLoginScreen
+import `in`.growurdhan.app.presentation.screens.RecoveryEnrollmentScreen
+import `in`.growurdhan.app.presentation.screens.OneTimeRecoveryCodeScreen
+import `in`.growurdhan.app.presentation.screens.ForgottenPasswordRecoveryScreen
 import `in`.growurdhan.app.presentation.screens.LegacyBackupIntent
 import `in`.growurdhan.app.presentation.screens.LegacyBackupUiState
 import `in`.growurdhan.app.presentation.screens.EmergencyExportUiState
@@ -84,6 +87,10 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var repository: VaultRepository
     @Inject lateinit var appPassword: LocalAppPasswordStore
     private var localLoginError by mutableStateOf<String?>(null)
+    private var showForgotRecovery by mutableStateOf(false)
+    private var displayedRecoveryCode by mutableStateOf<String?>(null)
+    private var pendingRecoveryCodeInput: CharArray? = null
+    private var pendingRecoveredPassword: CharArray? = null
     private var pendingEnrollmentPassword: CharArray? = null
     private var pendingPreviousPassword: CharArray? = null
     private var pendingReplacementPassword: CharArray? = null
@@ -112,6 +119,7 @@ class MainActivity : ComponentActivity() {
         OPEN_VAULT, APPROVE_REVIEW, IMPORT_PDF, ADD_FAMILY_MEMBER, REGISTER_CUSTODY,
         PORTABLE_BACKUP, APPROVE_MANUAL_TRADE, ENROLL_APP_PASSWORD, INSPECT_LEGACY,
         CHANGE_APP_PASSWORD, EXPORT_DOSSIER, RESTORE_LEGACY, MANAGE_FAMILY,
+        ISSUE_RECOVERY_CODE, RECOVER_APP_PASSWORD,
     }
     private var pendingCredential: CredentialAction? = null
     private var pdfPickerOpen: Boolean = false
@@ -159,6 +167,11 @@ class MainActivity : ComponentActivity() {
                             if (generation != loginOperationGeneration) {
                                 appPassword.lock()
                             } else {
+                                if (completed) {
+                                    displayedRecoveryCode = withContext(Dispatchers.Default) {
+                                        appPassword.issueRecoveryCodeAfterDeviceApproval()
+                                    }
+                                }
                                 localLoginError = if (completed) null else
                                     "Local password storage is unavailable; records have been preserved."
                             }
@@ -168,6 +181,40 @@ class MainActivity : ComponentActivity() {
                                 "App password could not be created. No financial records were changed."
                         } finally {
                             pending.fill('\u0000')
+                        }
+                    }
+                }
+            } else if (action == CredentialAction.RECOVER_APP_PASSWORD) {
+                val recovery = pendingRecoveryCodeInput
+                val next = pendingRecoveredPassword
+                pendingRecoveryCodeInput = null
+                pendingRecoveredPassword = null
+                if (recovery == null || next == null ||
+                    appPassword.status.value != LocalLoginStatus.LOCKED
+                ) {
+                    recovery?.fill('\u0000')
+                    next?.fill('\u0000')
+                    lockSensitiveUi()
+                } else {
+                    val generation = ++loginOperationGeneration
+                    lifecycleScope.launch {
+                        try {
+                            val ok = withContext(Dispatchers.Default) {
+                                appPassword.recoverAfterDeviceApproval(recovery, next)
+                            }
+                            if (generation != loginOperationGeneration) {
+                                appPassword.lock()
+                            } else {
+                                showForgotRecovery = false
+                                localLoginError = if (ok)
+                                    "Password recovered. Sign in using the new password."
+                                else "Recovery could not be verified. Check the code and device lock."
+                            }
+                        } catch (_: Exception) {
+                            localLoginError = "Recovery evidence unavailable. No records were changed."
+                        } finally {
+                            recovery.fill('\u0000')
+                            next.fill('\u0000')
                         }
                     }
                 }
@@ -182,6 +229,10 @@ class MainActivity : ComponentActivity() {
             }
             when (action) {
                 CredentialAction.ENROLL_APP_PASSWORD -> Unit // handled above
+                CredentialAction.RECOVER_APP_PASSWORD -> Unit // handled above
+                CredentialAction.ISSUE_RECOVERY_CODE -> {
+                    displayedRecoveryCode = appPassword.issueRecoveryCodeAfterDeviceApproval()
+                }
                 CredentialAction.INSPECT_LEGACY -> inspectLegacyAfterCredential()
                 CredentialAction.RESTORE_LEGACY -> restoreLegacyAfterCredential()
                 CredentialAction.CHANGE_APP_PASSWORD -> finishPasswordRotation()
@@ -546,10 +597,35 @@ class MainActivity : ComponentActivity() {
             }
             GrowUrDhanTheme(state.appearance) {
                 if (loginStatus != LocalLoginStatus.VERIFIED) {
-                    LocalLoginScreen(
-                        state = loginStatus,
-                        message = localLoginError,
-                        onSubmit = ::handleLocalLogin,
+                    if (showForgotRecovery && loginStatus == LocalLoginStatus.LOCKED) {
+                        ForgottenPasswordRecoveryScreen(
+                            message = localLoginError,
+                            onReset = ::stageForgottenRecovery,
+                            onBack = {
+                                showForgotRecovery = false
+                                localLoginError = null
+                            },
+                        )
+                    } else {
+                        LocalLoginScreen(
+                            state = loginStatus,
+                            message = localLoginError,
+                            onSubmit = ::handleLocalLogin,
+                            hasRecoveryCode = appPassword.hasRecoveryCode(),
+                            onForgotPassword = {
+                                showForgotRecovery = true
+                                localLoginError = null
+                            },
+                        )
+                    }
+                } else if (displayedRecoveryCode != null) {
+                    OneTimeRecoveryCodeScreen(
+                        code = displayedRecoveryCode ?: "",
+                        onAcknowledged = { displayedRecoveryCode = null },
+                    )
+                } else if (!appPassword.hasRecoveryCode()) {
+                    RecoveryEnrollmentScreen(
+                        onEnable = { requestCredential(CredentialAction.ISSUE_RECOVERY_CODE) },
                     )
                 } else GrowUrDhanShell(
                     state = state,
@@ -636,6 +712,22 @@ class MainActivity : ComponentActivity() {
         } finally {
             secret.fill('\u0000')
         }
+    }
+
+    /** Never executes the reset without a NEW OS credential result. */
+    private fun stageForgottenRecovery(code: String, next: String) {
+        if (appPassword.status.value != LocalLoginStatus.LOCKED ||
+            !appPassword.hasRecoveryCode() ||
+            LocalPasswordRules.issues(next.toCharArray()).isNotEmpty()
+        ) {
+            localLoginError = "A saved recovery code and a valid new password are required."
+            return
+        }
+        pendingRecoveryCodeInput?.fill('\u0000')
+        pendingRecoveredPassword?.fill('\u0000')
+        pendingRecoveryCodeInput = code.toCharArray()
+        pendingRecoveredPassword = next.toCharArray()
+        requestCredential(CredentialAction.RECOVER_APP_PASSWORD)
     }
 
     private fun handleVaultIntent(intent: VaultIntent) {
@@ -1011,6 +1103,7 @@ class MainActivity : ComponentActivity() {
     private fun requestCredential(action: CredentialAction) {
         if (pendingCredential != null) return
         if (action != CredentialAction.ENROLL_APP_PASSWORD &&
+            action != CredentialAction.RECOVER_APP_PASSWORD &&
             !appPassword.hasVerifiedPassword()
         ) {
             lockSensitiveUi()
@@ -1036,6 +1129,8 @@ class MainActivity : ComponentActivity() {
             CredentialAction.PORTABLE_BACKUP -> "Protect portable backup and recovery"
             CredentialAction.APPROVE_MANUAL_TRADE -> "Approve recorded buy or sell"
             CredentialAction.ENROLL_APP_PASSWORD -> "Protect GrowUrDhan login"
+            CredentialAction.RECOVER_APP_PASSWORD -> "Recover GrowUrDhan password"
+            CredentialAction.ISSUE_RECOVERY_CODE -> "Generate secure recovery code"
             CredentialAction.INSPECT_LEGACY -> "Inspect legacy encrypted backup"
             CredentialAction.RESTORE_LEGACY -> "Restore original GrowUrDhan family book"
             CredentialAction.CHANGE_APP_PASSWORD -> "Change GrowUrDhan app password"
@@ -1060,6 +1155,10 @@ class MainActivity : ComponentActivity() {
                 "Confirm the reviewed trade before adding an immutable ledger event."
             CredentialAction.ENROLL_APP_PASSWORD ->
                 "Confirm your Android screen lock before registering this device's local app password."
+            CredentialAction.RECOVER_APP_PASSWORD ->
+                "Confirm your Android device identity before using the one-time recovery code."
+            CredentialAction.ISSUE_RECOVERY_CODE ->
+                "Confirm your Android device identity to issue a new offline recovery code."
             CredentialAction.INSPECT_LEGACY ->
                 "Confirm device identity before reading the selected old GrowUrDhan backup."
             CredentialAction.RESTORE_LEGACY ->
@@ -1087,6 +1186,12 @@ class MainActivity : ComponentActivity() {
         ++loginOperationGeneration
         pendingEnrollmentPassword?.fill('\u0000')
         pendingEnrollmentPassword = null
+        pendingRecoveryCodeInput?.fill('\u0000')
+        pendingRecoveredPassword?.fill('\u0000')
+        pendingRecoveryCodeInput = null
+        pendingRecoveredPassword = null
+        showForgotRecovery = false
+        displayedRecoveryCode = null
         pendingPreviousPassword?.fill('\u0000')
         pendingReplacementPassword?.fill('\u0000')
         pendingPreviousPassword = null
@@ -1180,6 +1285,12 @@ class MainActivity : ComponentActivity() {
     }
     override fun onDestroy() {
         ++loginOperationGeneration
+        pendingRecoveryCodeInput?.fill('\u0000')
+        pendingRecoveredPassword?.fill('\u0000')
+        pendingRecoveryCodeInput = null
+        pendingRecoveredPassword = null
+        displayedRecoveryCode = null
+        showForgotRecovery = false
         pendingEnrollmentPassword?.fill('\u0000')
         pendingEnrollmentPassword = null
         pendingPreviousPassword?.fill('\u0000')

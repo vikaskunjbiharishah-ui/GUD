@@ -221,6 +221,96 @@ class LocalAppPasswordStore private constructor(
         }
     }
 
+    /**
+     * M25: issue a 256-bit recovery code *only after the app password has been
+     * verified*. Called by MainActivity only after an Android OS credential.
+     * The code is shown ONCE. No plaintext code/PAN/security answers on disk.
+     * Existing native vault/database wrapping keys are never changed.
+     */
+    @Synchronized fun issueRecoveryCodeAfterDeviceApproval(): String {
+        check(hasVerifiedPassword()) { "Verify current app password first." }
+        val random = ByteArray(32).also(SecureRandom()::nextBytes)
+        val code = Base64.encodeToString(random,
+            Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+        try {
+            val tag = hmac(random, allowCreate = false)
+            try {
+                check(prefs.edit().putString("recovery_tag", encode(tag))
+                    .putInt("recovery_failures", 0)
+                    .putLong("recovery_blocked_until", 0L).commit()) {
+                    "Cannot persist recovery verifier."
+                }
+            } finally { tag.fill(0) }
+            return code
+        } finally { random.fill(0) }
+    }
+
+    @Synchronized fun hasRecoveryCode(): Boolean =
+        initialStatus() == LocalLoginStatus.LOCKED &&
+            !prefs.getString("recovery_tag", null).isNullOrEmpty()
+
+    /**
+     * Only MainActivity's successful fresh Android device credential callback
+     * may invoke this method. It does NOT open the financial vault or mint a
+     * device-session approval. Recovery is impossible when Keystore verifier,
+     * recovery code or local login records have been lost/corrupted.
+     */
+    @Synchronized fun recoverAfterDeviceApproval(code: CharArray, next: CharArray): Boolean {
+        authorized = false
+        if (initialStatus() != LocalLoginStatus.LOCKED ||
+            LocalPasswordRules.issues(next).isNotEmpty() ||
+            code.size !in 40..64 ||
+            System.currentTimeMillis() < prefs.getLong("recovery_blocked_until", 0L)
+        ) {
+            mutableStatus.value = initialStatus()
+            return false
+        }
+        val stored = prefs.getString("recovery_tag", null) ?: return false
+        val actual = try {
+            Base64.decode(code.concatToString(), Base64.URL_SAFE or Base64.NO_WRAP)
+        } catch (_: Exception) { return false }
+        try {
+            if (actual.size != 32) return false
+            val expected = decode(stored)
+            if (expected.size != 32) return false
+            val tag = try { hmac(actual, allowCreate = false) } catch (_: Exception) {
+                mutableStatus.value = LocalLoginStatus.STORAGE_UNAVAILABLE
+                return false
+            }
+            val accepted = try { MessageDigest.isEqual(expected, tag) } finally {
+                expected.fill(0)
+                tag.fill(0)
+            }
+            if (!accepted) {
+                val failures = (prefs.getInt("recovery_failures", 0) + 1).coerceAtMost(20)
+                val seconds = if (failures < 3) 0L
+                    else (60L shl (failures - 3).coerceAtMost(5)).coerceAtMost(1800L)
+                prefs.edit().putInt("recovery_failures", failures)
+                    .putLong("recovery_blocked_until",
+                        if (seconds > 0) System.currentTimeMillis() + seconds * 1000L else 0L)
+                    .commit()
+                mutableStatus.value = LocalLoginStatus.LOCKED
+                return false
+            }
+            val salt = ByteArray(16).also(SecureRandom()::nextBytes)
+            val derived = derive(next, salt)
+            val replacement = try { hmac(derived, allowCreate = false) }
+                finally { derived.fill(0) }
+            val written = try {
+                prefs.edit().putString("salt", encode(salt))
+                    .putString("tag", encode(replacement))
+                    .remove("recovery_tag") // single-use code cannot be replayed
+                    .putLong("changed_at", System.currentTimeMillis())
+                    .putInt("failed_attempts", 0).putLong("blocked_until", 0L)
+                    .putInt("recovery_failures", 0).putLong("recovery_blocked_until", 0L)
+                    .commit()
+            } finally { replacement.fill(0); salt.fill(0) }
+            mutableStatus.value = if (written) LocalLoginStatus.LOCKED
+                else LocalLoginStatus.STORAGE_UNAVAILABLE
+            return written
+        } finally { actual.fill(0) }
+    }
+
     @Synchronized fun lock() {
         authorized = false
         mutableStatus.value = initialStatus()

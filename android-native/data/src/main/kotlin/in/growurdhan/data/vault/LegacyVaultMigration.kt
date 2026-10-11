@@ -146,63 +146,141 @@ object LegacyVaultMigration {
     private fun maskPan(pan: String): String = pan.take(5) + "****" + pan.takeLast(1)
 
     /**
-     * 8-byte marker + BE iterations + salt16 + nonce12 + AES-GCM ciphertext.
-     * Authenticate before parsing, and discard every cleartext byte on exit.
+     * Original exports have two mutually incompatible authenticated envelopes:
+     *   GUDVLT01: 600k-round PBKDF2(email/password), nonce and binary GCM tag
+     *   KOSHA1: JSON of saltB64 / ivB64 / cipherB64, 600k-round PBKDF2(password)
+     * Both MUST carry the original account's 210k PBKDF verifier AND identity
+     * challenge. Plaintext JSON export is deliberately not restorable.
      */
-    fun convertAuthenticated(data: ByteArray, identity: LegacyRestoreIdentity): ByteArray {
+    private fun decryptOriginal(data: ByteArray, email: String, password: CharArray): ByteArray {
         require(data.size in HEADER_SIZE + 16..MAX_INPUT_BYTES) { "Unsupported archive length." }
-        require(data.copyOfRange(0, 8).contentEquals(magic)) { "Not a locked legacy backup." }
-        val buffer = ByteBuffer.wrap(data).order(ByteOrder.BIG_ENDIAN)
-        buffer.position(8)
-        require(buffer.int == ITERATIONS) { "Unsupported KDF work factor." }
-        val salt = ByteArray(16).also(buffer::get)
-        val nonce = ByteArray(12).also(buffer::get)
-        val email = identity.email.trim().lowercase(Locale.ROOT)
-        require(email.length in 5..254 && Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").matches(email))
-        require(identity.password.size in 8..1024)
-        val material = ("GrowUrDhan\n" + email + "\n" + identity.password.concatToString())
-            .toCharArray()
-        val spec = PBEKeySpec(material, salt, ITERATIONS, 256)
-        material.fill('\u0000')
-        val derived = try {
-            SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
-        } finally {
-            spec.clearPassword()
-            salt.fill(0)
+        require(password.size in 8..1024) { "Original backup password is required." }
+        val isBinary = data.copyOfRange(0, 8).contentEquals(magic)
+        val salt: ByteArray
+        val nonce: ByteArray
+        val ciphertext: ByteArray
+        val secret: CharArray
+        val rounds: Int
+        if (isBinary) {
+            val buffer = ByteBuffer.wrap(data).order(ByteOrder.BIG_ENDIAN)
+            buffer.position(8)
+            require(buffer.int == ITERATIONS) { "Unsupported KDF work factor." }
+            salt = ByteArray(16).also(buffer::get)
+            nonce = ByteArray(12).also(buffer::get)
+            ciphertext = data.copyOfRange(HEADER_SIZE, data.size)
+            val normalized = email.trim().lowercase(Locale.ROOT)
+            require(normalized.length in 5..254 &&
+                Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").matches(normalized))
+            secret = ("GrowUrDhan\n" + normalized + "\n" + password.concatToString()).toCharArray()
+            rounds = ITERATIONS
+        } else {
+            require(data[0] == '{'.code.toByte()) {
+                "Not a supported encrypted original backup."
+            }
+            val wrapper = JSONObject(data.toString(Charsets.UTF_8))
+            require(wrapper.optString("magic") == "KOSHA1") {
+                "Plaintext or unrecognized backup is not permitted."
+            }
+            require(wrapper.keys().asSequence().all { it in setOf(
+                "magic", "saltB64", "ivB64", "cipherB64", "iterations",
+            ) }) { "Unexpected KOSHA1 envelope fields." }
+            val sourceRounds = wrapper.optInt("iterations", ITERATIONS)
+            require(sourceRounds == ITERATIONS || sourceRounds == 210_000) {
+                "Unsupported legacy KDF work factor."
+            }
+            rounds = sourceRounds
+            salt = Base64.decode(wrapper.getString("saltB64"), Base64.DEFAULT)
+            nonce = Base64.decode(wrapper.getString("ivB64"), Base64.DEFAULT)
+            ciphertext = Base64.decode(wrapper.getString("cipherB64"), Base64.DEFAULT)
+            require(ciphertext.size in 16..MAX_INPUT_BYTES)
+            secret = password.copyOf()
         }
-        val decrypted = try {
+        require(salt.size == 16 && nonce.size == 12) {
+            "Invalid legacy KDF salt or GCM nonce."
+        }
+        val spec = PBEKeySpec(secret, salt, rounds, 256)
+        secret.fill('\u0000')
+        val derived = try {
+            SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                .generateSecret(spec).encoded
+        } finally { spec.clearPassword(); salt.fill(0) }
+        return try {
             Cipher.getInstance("AES/GCM/NoPadding").run {
                 init(Cipher.DECRYPT_MODE, SecretKeySpec(derived, "AES"),
                     GCMParameterSpec(128, nonce))
-                doFinal(data, HEADER_SIZE, data.size - HEADER_SIZE)
-            }
+                doFinal(ciphertext)
+            }.also { require(it.size <= MAX_INPUT_BYTES) }
         } finally {
             derived.fill(0)
             nonce.fill(0)
+            ciphertext.fill(0)
         }
+    }
+
+    /** Inspect legacy KOSHA1 ciphertext without committing anything.
+     *  Original account, full PAN and names are never exposed by the preview. */
+    fun inspectLegacyJson(data: ByteArray, email: String, password: CharArray): LegacyBackupPreview {
+        val decrypted = decryptOriginal(data, email, password)
         try {
-            require(decrypted.size <= MAX_INPUT_BYTES)
-            val root = JSONObject(decrypted.toString(Charsets.UTF_8))
-            require(root.optString("kind") == "GUDVAULT" && root.optInt("version") == 2) {
-                "Unsupported legacy backup version."
+            val root = normalizedBackup(
+                JSONObject(decrypted.toString(Charsets.UTF_8)), historical = true)
+            require(root.getJSONObject("account").getString("email")
+                .trim().lowercase(Locale.ROOT) == email.trim().lowercase(Locale.ROOT))
+            fun count(key: String) = root.getJSONArray(key).length().also {
+                require(it <= 100_000)
             }
+            val holdings = root.getJSONArray("holdings")
+            val history = !root.isNull("casLatest")
+            val extended = (0 until holdings.length()).any {
+                holdings.getJSONObject(it).has("details")
+            }
+            val fingerprint = MessageDigest.getInstance("SHA-256").digest(data)
+                .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+            return LegacyBackupPreview(count("familyMembers"), count("holdings"),
+                count("ledgerEvents"), count("accounts"), count("goals"),
+                history, extended, fingerprint, losslessImportAvailable = true)
+        } finally { decrypted.fill(0) }
+    }
+
+    private fun normalizedBackup(root: JSONObject, historical: Boolean): JSONObject {
+        if (historical) {
+            require(!root.has("kind") || root.optString("kind") == "GUDVAULT")
+            require(!root.has("version") || root.optInt("version") in 1..2)
+            root.put("kind", "GUDVAULT").put("version", 2)
+            for (name in listOf("familyMembers", "holdings", "ledgerEvents", "accounts", "goals")) {
+                if (!root.has(name)) root.put(name, JSONArray())
+            }
+            if (!root.has("casLatest")) root.put("casLatest", JSONObject.NULL)
+        }
+        require(root.optString("kind") == "GUDVAULT" && root.optInt("version") == 2)
+        return root
+    }
+
+    fun convertAuthenticated(data: ByteArray, identity: LegacyRestoreIdentity): ByteArray {
+        val historical = data.isNotEmpty() && data[0] == '{'.code.toByte()
+        val decrypted = decryptOriginal(data, identity.email, identity.password)
+        try {
+            val source = JSONObject(decrypted.toString(Charsets.UTF_8))
+            val originalVersion = source.optInt("version", if (historical) 1 else 2)
+            val root = normalizedBackup(source, historical)
             verifyIdentity(root, identity)
             val sourceHash = MessageDigest.getInstance("SHA-256").digest(data)
                 .joinToString("") { "%02x".format(it.toInt() and 0xff) }
-            val converted = convert(root, sourceHash)
+            val converted = convert(root, sourceHash,
+                if (historical) "KOSHA1" else "GUDVLT01", originalVersion)
             return converted.toString().toByteArray(Charsets.UTF_8).also {
                 require(it.size <= VaultBackupCodec.MAX_PLAINTEXT) {
                     "Restorable original archive is too large."
                 }
             }
-        } finally {
-            decrypted.fill(0)
-        }
+        } finally { decrypted.fill(0) }
     }
 
     /** Exact source object JSON is also retained in extra_json; mapped fields are
      * indexed for native use. This is a structural, fail-closed conversion. */
-    private fun convert(source: JSONObject, sha256: String): JSONObject {
+    private fun convert(
+        source: JSONObject, sha256: String, sourceFormat: String, sourceVersion: Int,
+    ): JSONObject {
         val dest = VaultBackupTables.emptyLegacyConversion()
         fun put(table: String, fields: Map<String, Any?>) =
             VaultBackupTables.appendConvertedLegacyRow(dest, table, fields)
@@ -430,6 +508,10 @@ object LegacyVaultMigration {
         ))
         val cas = if (!source.has("casLatest") || source.isNull("casLatest")) "null"
             else source.get("casLatest").toString()
+        put("vault_meta", mapOf("key" to "original_source_format",
+            "value" to sourceFormat))
+        put("vault_meta", mapOf("key" to "original_source_version",
+            "value" to sourceVersion.toString()))
         put("vault_meta", mapOf("key" to "original_backup_sha256", "value" to sha256))
         put("vault_meta", mapOf("key" to "original_exported_at",
             "value" to (source.optionalString("exportedAt") ?: "")))

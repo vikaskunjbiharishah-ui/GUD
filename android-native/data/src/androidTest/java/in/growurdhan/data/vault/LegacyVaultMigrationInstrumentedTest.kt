@@ -306,6 +306,122 @@ class LegacyVaultMigrationInstrumentedTest {
             }
         }
 
+    private fun historicalKosha1Fixture(
+        absentOptionalArrays: Boolean = false,
+    ): ByteArray {
+        val binary = lockedFixture()
+        val header = ByteBuffer.wrap(binary).order(ByteOrder.BIG_ENDIAN)
+        header.position(12)
+        val salt = ByteArray(16).also(header::get)
+        val nonce = ByteArray(12).also(header::get)
+        val material = ("GrowUrDhan\n" + email + "\n" + password).toCharArray()
+        val spec = PBEKeySpec(material, salt, 600_000, 256)
+        val key = try {
+            SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
+        } finally {
+            material.fill('\u0000'); spec.clearPassword()
+        }
+        val clear = try {
+            Cipher.getInstance("AES/GCM/NoPadding").run {
+                init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"),
+                    GCMParameterSpec(128, nonce))
+                doFinal(binary, 40, binary.size - 40)
+            }
+        } finally { key.fill(0); binary.fill(0); salt.fill(0); nonce.fill(0) }
+        val root = JSONObject(clear.toString(Charsets.UTF_8))
+        clear.fill(0)
+        root.put("version", 1)
+        if (absentOptionalArrays) {
+            // The holding references a custody account; retain it.
+            // Truly optional goals/history can be absent in old snapshots.
+            root.remove("goals")
+            root.remove("casLatest")
+        }
+        val historicalPlain = root.toString().toByteArray(Charsets.UTF_8)
+        val kdfSalt = ByteArray(16).also(SecureRandom()::nextBytes)
+        val iv = ByteArray(12).also(SecureRandom()::nextBytes)
+        val legacy = PBEKeySpec(password.toCharArray(),kdfSalt,600_000,256)
+        val oldKey = try {
+            SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                .generateSecret(legacy).encoded
+        } finally { legacy.clearPassword() }
+        return try {
+            val encrypted = Cipher.getInstance("AES/GCM/NoPadding").run {
+                init(Cipher.ENCRYPT_MODE,SecretKeySpec(oldKey,"AES"),GCMParameterSpec(128,iv))
+                doFinal(historicalPlain)
+            }
+            JSONObject().put("magic","KOSHA1")
+                .put("saltB64",Base64.encodeToString(kdfSalt,Base64.NO_WRAP))
+                .put("ivB64",Base64.encodeToString(iv,Base64.NO_WRAP))
+                .put("cipherB64",Base64.encodeToString(encrypted,Base64.NO_WRAP))
+                .put("iterations",600_000)
+                .toString().toByteArray(Charsets.UTF_8)
+        } finally {
+            oldKey.fill(0); kdfSalt.fill(0); iv.fill(0); historicalPlain.fill(0)
+        }
+    }
+
+    @Test fun oldKosha1JsonRestoresWithOriginalIdentityAndNoSyntheticBuys() {
+        val envelope = historicalKosha1Fixture()
+        val preview = LegacyLockedBackupInspector.inspect(
+            envelope,email,password.toCharArray())
+        assertEquals(2,preview.eventCount)
+        assertEquals(1,preview.goalCount)
+        val proof = identity()
+        val converted = try {
+            LegacyVaultMigration.convertAuthenticated(envelope,proof)
+        } finally { proof.wipeSecrets() }
+        try {
+            withSql { db ->
+                db.beginTransaction()
+                try {
+                    VaultBackupTables.restoreIntoEmpty(db,converted)
+                    db.setTransactionSuccessful()
+                } finally { db.endTransaction() }
+                db.rawQuery("SELECT count(*) FROM ledger_event",null).use { c ->
+                    assertTrue(c.moveToFirst())
+                    assertEquals(2,c.getInt(0))
+                }
+                db.rawQuery("SELECT count(*) FROM family_goal",null).use { c ->
+                    assertTrue(c.moveToFirst())
+                    assertEquals(1,c.getInt(0))
+                }
+                assertEquals(0,db.rawQuery("PRAGMA foreign_key_check",null).use { it.count })
+            }
+        } finally { envelope.fill(0); converted.fill(0) }
+    }
+
+    @Test fun historicalKosha1MissingOptionalArraysIsNormalizedWithoutInventingRows() {
+        val envelope = historicalKosha1Fixture(absentOptionalArrays = true)
+        val proof = identity()
+        val bytes = try { LegacyVaultMigration.convertAuthenticated(envelope,proof) }
+            finally { proof.wipeSecrets() }
+        try {
+            val converted = JSONObject(bytes.toString(Charsets.UTF_8))
+            assertEquals(0,converted.getJSONArray("family_goal").length())
+            assertEquals(1,converted.getJSONArray("custody_account").length())
+            assertEquals(2,converted.getJSONArray("ledger_event").length())
+            val originalFormat = converted.getJSONArray("vault_meta")
+            assertTrue(originalFormat.length() >= 3)
+
+        } finally { bytes.fill(0); envelope.fill(0) }
+    }
+
+    @Test fun historicalJsonBackupRejectsWrongPasswordOrAnswers() {
+        val envelope = historicalKosha1Fixture()
+        val wrongPassword = identity(passwordValue = "Incorrect!Password123")
+        assertThrows(Exception::class.java) {
+            LegacyVaultMigration.convertAuthenticated(envelope,wrongPassword)
+        }
+        wrongPassword.wipeSecrets()
+        val wrongAnswer = identity(secondAnswer = "wrong answer")
+        assertThrows(Exception::class.java) {
+            LegacyVaultMigration.convertAuthenticated(envelope,wrongAnswer)
+        }
+        wrongAnswer.wipeSecrets()
+        envelope.fill(0)
+    }
+
     @Test fun unknownLegacyRootCollectionRejectsRatherThanSilentlyDroppingIt() {
         val data = lockedFixture(addUnsupported = true)
         val p = identity()

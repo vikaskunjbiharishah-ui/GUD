@@ -40,6 +40,8 @@ fun FamilyAdministrationScreen(
     onIntent: (FamilyAdminIntent) -> Unit,
     onAddMember: () -> Unit,
     onBack: () -> Unit,
+    selectedFamilyOwner: OwnerId? = null,
+    onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
@@ -71,17 +73,15 @@ fun FamilyAdministrationScreen(
             is FamilyAdminUiState.Ready -> {
                 val book = state.data
                 var section by remember { mutableStateOf("Family") }
-                var selectedOwner by remember(book.family) {
-                    mutableStateOf(book.family.firstOrNull { it.active }?.id)
-                }
+                val selectedOwner = selectedFamilyOwner
                 Text("Owner scope", style = MaterialTheme.typography.titleSmall)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selectedOwner == null, onClick = { selectedOwner = null },
+                    FilterChip(selectedOwner == null, onClick = { onSelectFamilyOwner(null) },
                         label = { Text("All family") })
                     book.family.forEach { member ->
                         FilterChip(selectedOwner == member.id,
-                            onClick = { selectedOwner = member.id },
+                            onClick = { onSelectFamilyOwner(member.id) },
                             label = { Text(member.name + if (!member.active) " (inactive)" else "") })
                     }
                 }
@@ -191,7 +191,7 @@ fun FamilyAdministrationScreen(
                             Row(Modifier.horizontalScroll(rememberScrollState())) {
                                 family.forEach { member ->
                                     FilterChip(selected == member.id,
-                                        onClick = { owner = member.id; selectedOwner = member.id },
+                                        onClick = { owner = member.id; onSelectFamilyOwner(member.id) },
                                         label = { Text(member.name) })
                                 }
                             }

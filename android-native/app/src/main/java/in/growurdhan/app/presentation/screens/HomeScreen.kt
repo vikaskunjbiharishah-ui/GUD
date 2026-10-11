@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import `in`.growurdhan.app.presentation.HouseholdDashboardUiState
+import `in`.growurdhan.core.model.OwnerId
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +50,8 @@ fun HomeScreen(
     onOpenPortfolio: () -> Unit = {},
     onOpenInsights: () -> Unit = {},
     onManageFamily: () -> Unit = {},
+    selectedFamilyOwner: OwnerId? = null,
+    onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -103,9 +106,8 @@ fun HomeScreen(
 
         if (dashboardState is HouseholdDashboardUiState.Ready) {
             val dashboard = dashboardState.dashboard
-            var ownerLens by remember(dashboard.byMember) {
-                mutableStateOf(dashboard.byMember.firstOrNull()?.ownerId)
-            }
+            val ownerLens = selectedFamilyOwner ?:
+                dashboard.byMember.firstOrNull()?.ownerId
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Family ownership lens", style = MaterialTheme.typography.titleMedium)
@@ -116,7 +118,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         dashboard.byMember.forEach { m ->
                             FilterChip(ownerLens == m.ownerId,
-                                onClick = { ownerLens = m.ownerId },
+                                onClick = { onSelectFamilyOwner(m.ownerId) },
                                 label = { Text(m.displayName ?: "Family member") })
                         }
                     }

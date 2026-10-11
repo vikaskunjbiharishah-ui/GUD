@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.app.presentation.CustodyHoldingIntent
 import `in`.growurdhan.app.presentation.CustodyHoldingUiState
 import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
@@ -41,6 +42,8 @@ fun CustodyHoldingScreen(
     onIntent: (CustodyHoldingIntent) -> Unit,
     onBackToVault: () -> Unit,
     onContinueToStatements: () -> Unit,
+    selectedFamilyOwner: OwnerId? = null,
+    onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -108,15 +111,18 @@ fun CustodyHoldingScreen(
                     Text("Add a family member before creating registrar accounts.")
                     OutlinedButton(onClick = onBackToVault) { Text("Go to Vault") }
                 } else {
-                    var selectedOwner by remember(book.members) {
+                    var localOwner by remember(book.members) {
                         mutableStateOf(book.members.first().id)
                     }
+                    val selectedOwner = selectedFamilyOwner?.takeIf { id ->
+                        book.members.any { it.id == id }
+                    } ?: localOwner
                     Text("Family owner", style = MaterialTheme.typography.titleMedium)
                     book.members.forEach { member ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(
                                 selected = selectedOwner == member.id,
-                                onClick = { selectedOwner = member.id },
+                                onClick = { localOwner = member.id; onSelectFamilyOwner(member.id) },
                             )
                             Text(member.displayName)
                         }

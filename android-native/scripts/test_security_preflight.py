@@ -144,6 +144,22 @@ class RepositoryPolicyRoutingTests(unittest.TestCase):
         ignored_errors = schema.replace("if (pageErrors != 0)", "if (false)", 1)
         self.assertTrue(cipher_page_integrity_errors(ignored_errors))
 
+    def test_recovery_requires_pre_enrolled_single_use_keystore_proof(self):
+        from security_preflight import app_password_gate_errors
+        root = "android-native/app/src/main/java/in/growurdhan/app/"
+        activity = read(root + "MainActivity.kt")
+        session = read(root + "presentation/VaultSessionGate.kt")
+        store = read(root + "presentation/LocalAppPasswordStore.kt")
+        binding = read(root + "presentation/VaultAuthorizationModule.kt")
+        self.assertEqual([], app_password_gate_errors(session, binding, store, activity))
+        unsafe = store.replace('.remove("recovery_tag")', '.remove("other_key")')
+        issues = app_password_gate_errors(session, binding, unsafe, activity)
+        self.assertTrue(any("recovery_tag" in issue for issue in issues))
+        unsafe = store.replace("hmac(actual, allowCreate = false)",
+            "hmac(actual, allowCreate = true)")
+        issues = app_password_gate_errors(session, binding, unsafe, activity)
+        self.assertTrue(any("hmac(actual" in issue for issue in issues))
+
     def test_async_financial_views_reject_old_device_credential_results(self):
         root = "android-native/app/src/main/java/in/growurdhan/app/presentation/"
         names = (

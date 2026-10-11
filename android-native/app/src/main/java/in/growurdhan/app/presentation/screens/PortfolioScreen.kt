@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.app.presentation.HouseholdDashboardUiState
+import `in`.growurdhan.core.model.OwnerId
 
 /** No new vault read: all filters operate on the authorized Home snapshot. */
 @Composable
@@ -35,6 +36,8 @@ fun PortfolioScreen(
     onRefresh: () -> Unit,
     onManageHoldings: () -> Unit,
     onRecordTrade: () -> Unit = {},
+    selectedFamilyOwner: OwnerId? = null,
+    onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -56,7 +59,9 @@ fun PortfolioScreen(
                 // Keep both selections ephemeral. When the vault locks, the Ready
                 // subtree leaves composition and the filters disappear with it.
                 var category by remember(dashboard) { mutableStateOf<String?>(null) }
-                var owner by remember(dashboard) { mutableStateOf<String?>(null) }
+                val owner = dashboard.byMember.firstOrNull {
+                    it.ownerId == selectedFamilyOwner
+                }?.displayName
                 val holdings = dashboard.recordedHoldings
                 val owners = holdings.mapNotNull { it.ownerName }.distinct().sorted()
                 val categories = holdings.map { it.category }.distinct().sorted()
@@ -117,13 +122,17 @@ fun PortfolioScreen(
                         ) {
                             FilterChip(
                                 selected = owner == null,
-                                onClick = { owner = null },
+                                onClick = { onSelectFamilyOwner(null) },
                                 label = { Text("All members") },
                             )
                             owners.forEach { name ->
                                 FilterChip(
                                     selected = owner == name,
-                                    onClick = { owner = name },
+                                    onClick = {
+                                        onSelectFamilyOwner(dashboard.byMember.firstOrNull {
+                                            it.displayName == name
+                                        }?.ownerId)
+                                    },
                                     label = { Text(name) },
                                     modifier = Modifier.semantics {
                                         contentDescription = "Filter member $name"

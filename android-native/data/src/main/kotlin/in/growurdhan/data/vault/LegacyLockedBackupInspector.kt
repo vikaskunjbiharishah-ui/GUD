@@ -41,6 +41,9 @@ object LegacyLockedBackupInspector {
     private const val ITERATIONS = 600_000
 
     fun inspect(data: ByteArray, email: String, password: CharArray): LegacyBackupPreview {
+        if (data.isNotEmpty() && data[0] == '{'.code.toByte()) {
+            return LegacyVaultMigration.inspectLegacyJson(data, email, password)
+        }
         require(data.size in HEADER_BYTES + TAG_BYTES..MAX_INPUT_BYTES) {
             "Unsupported legacy backup size."
         }

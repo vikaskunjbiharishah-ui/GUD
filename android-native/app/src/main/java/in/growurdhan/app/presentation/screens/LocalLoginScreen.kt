@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -33,6 +34,8 @@ import `in`.growurdhan.domain.vault.LocalPasswordRules
 fun LocalLoginScreen(
     state: LocalLoginStatus,
     message: String?,
+    hasRecoveryCode: Boolean = false,
+    onForgotPassword: () -> Unit = {},
     onSubmit: (password: String, repeated: String?) -> Unit,
 ) {
     var password by remember(state) { mutableStateOf("") }
@@ -108,9 +111,15 @@ fun LocalLoginScreen(
                     onSubmit(entered, confirmation)
                 },
             ) { Text(if (enrolling) "Protect app with device credential" else "Verify app password") }
+            if (!enrolling && hasRecoveryCode) {
+                OutlinedButton(onClick = onForgotPassword) {
+                    Text("Forgot password? Use saved recovery code")
+                }
+            }
             Text(
                 "The app password does not decrypt SQLCipher or replace the backup " +
-                    "passphrase. There is no insecure password-reset shortcut. " +
+                    "passphrase. Only a previously issued recovery code together " +
+                    "with your Android screen lock can reset this local password. " +
                     "Keep a separately verified encrypted backup in a safe place.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

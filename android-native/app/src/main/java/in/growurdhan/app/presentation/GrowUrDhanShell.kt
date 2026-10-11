@@ -1,5 +1,9 @@
 package `in`.growurdhan.app.presentation
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +17,7 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,6 +33,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -38,6 +45,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.app.presentation.screens.PortableRecoveryIntent
 import `in`.growurdhan.app.presentation.screens.PortableRecoveryScreen
 import `in`.growurdhan.app.presentation.screens.CustodyHoldingScreen
@@ -115,6 +123,14 @@ fun GrowUrDhanShell(
     val currentBackStackEntry by controller.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route ?: MainDestination.HOME.route
     val snackbars = remember { SnackbarHostState() }
+    // One presentation selection shared across Home, Holdings, Accounts, Goals
+    // and CAS documents. Never persisted in preferences or SavedStateHandle.
+    var selectedOwner by remember { mutableStateOf<OwnerId?>(null) }
+    val visibleMembers = (dashboardState as? HouseholdDashboardUiState.Ready)
+        ?.dashboard?.byMember.orEmpty()
+    LaunchedEffect(dashboardState) {
+        if (dashboardState !is HouseholdDashboardUiState.Ready) selectedOwner = null
+    }
 
     LaunchedEffect(state.errorMessage) {
         val message = state.errorMessage
@@ -155,7 +171,25 @@ fun GrowUrDhanShell(
                 modifier = Modifier.weight(1f),
                 containerColor = MaterialTheme.colorScheme.background,
                 topBar = {
-                    CenterAlignedTopAppBar(title = { Text("GrowUrDhan") })
+                    Column {
+                        CenterAlignedTopAppBar(title = { Text("GrowUrDhan") })
+                        if (visibleMembers.size > 1) {
+                            Row(
+                                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                                    .padding(horizontal = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                            ) {
+                                FilterChip(selectedOwner == null,
+                                    onClick = { selectedOwner = null },
+                                    label = { Text("All family") })
+                                visibleMembers.forEach { member ->
+                                    FilterChip(selectedOwner == member.ownerId,
+                                        onClick = { selectedOwner = member.ownerId },
+                                        label = { Text(member.displayName ?: "Member") })
+                                }
+                            }
+                        }
+                    }
                 },
                 snackbarHost = { SnackbarHost(snackbars) },
                 bottomBar = {
@@ -192,6 +226,8 @@ fun GrowUrDhanShell(
                             onOpenPortfolio = { navigate(MainDestination.PORTFOLIO.route) },
                             onOpenInsights = { navigate(MainDestination.INSIGHTS.route) },
                             onManageFamily = { navigate(FAMILY_ADMIN_ROUTE) },
+                            selectedFamilyOwner = selectedOwner,
+                            onSelectFamilyOwner = { selectedOwner = it },
                         )
                     }
                     composable(MainDestination.PORTFOLIO.route) {
@@ -201,6 +237,8 @@ fun GrowUrDhanShell(
                             onRefresh = onDashboardRefresh,
                             onManageHoldings = { navigate(CUSTODY_ROUTE) },
                             onRecordTrade = { navigate(MANUAL_TRADE_ROUTE) },
+                            selectedFamilyOwner = selectedOwner,
+                            onSelectFamilyOwner = { selectedOwner = it },
                         )
                     }
                     composable(MainDestination.INSIGHTS.route) {
@@ -226,6 +264,8 @@ fun GrowUrDhanShell(
                             onIntent = onReviewIntent,
                             onAddFamilyMember = { navigate(FAMILY_ROUTE) },
                             onSetUpHoldings = { navigate(CUSTODY_ROUTE) },
+                            selectedFamilyOwner = selectedOwner,
+                            onSelectFamilyOwner = { selectedOwner = it },
                         )
                     }
                     composable(FAMILY_ROUTE) {
@@ -267,6 +307,8 @@ fun GrowUrDhanShell(
                                 onFamilyAdminIntent(FamilyAdminIntent.Cancel)
                                 navigate(VAULT_ROUTE)
                             },
+                            selectedFamilyOwner = selectedOwner,
+                            onSelectFamilyOwner = { selectedOwner = it },
                         )
                     }
                     composable(CUSTODY_ROUTE) {
@@ -285,6 +327,8 @@ fun GrowUrDhanShell(
                                 onReviewIntent(StatementReviewIntent.LoadOwners)
                                 navigate(MainDestination.REVIEW.route)
                             },
+                            selectedFamilyOwner = selectedOwner,
+                            onSelectFamilyOwner = { selectedOwner = it },
                         )
                     }
                     composable(MANUAL_TRADE_ROUTE) {

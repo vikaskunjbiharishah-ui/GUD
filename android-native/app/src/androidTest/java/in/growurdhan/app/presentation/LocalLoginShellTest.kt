@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import `in`.growurdhan.app.presentation.screens.LocalLoginScreen
+import `in`.growurdhan.app.presentation.screens.ForgottenPasswordRecoveryScreen
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -30,6 +31,33 @@ class LocalLoginShellTest {
         compose.runOnIdle {
             assertEquals("Synthetic!Pass123" to "Synthetic!Pass123", entered)
         }
+    }
+
+    @Test fun forgotPasswordIsOfferedOnlyWhenOneTimeRecoveryCodeExists() {
+        var requested = false
+        compose.setContent {
+            LocalLoginScreen(
+                state = LocalLoginStatus.LOCKED, message = null,
+                onSubmit = { _, _ -> }, hasRecoveryCode = true,
+                onForgotPassword = { requested = true },
+            )
+        }
+        compose.onNodeWithText("Forgot password? Use saved recovery code").performClick()
+        compose.runOnIdle { assertEquals(true, requested) }
+    }
+
+    @Test fun recoveryScreenNeverOffersVaultAccessBeforeOsApproval() {
+        var requested = false
+        compose.setContent {
+            ForgottenPasswordRecoveryScreen(
+                message = null,
+                onReset = { _, _ -> requested = true },
+                onBack = {},
+            )
+        }
+        compose.onNodeWithText("Recover app password").assertIsDisplayed()
+        compose.onNodeWithText("Portfolio").assertDoesNotExist()
+        compose.runOnIdle { assertEquals(false, requested) }
     }
 
     @Test fun lockedLoginHidesAllFinancialNavigationAndHoldings() {

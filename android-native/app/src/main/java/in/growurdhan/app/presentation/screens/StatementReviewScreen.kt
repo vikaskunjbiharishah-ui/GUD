@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.app.presentation.StatementReviewIntent
 import `in`.growurdhan.app.presentation.StatementReviewUiState
 import `in`.growurdhan.core.model.SnapshotResult
@@ -46,6 +47,8 @@ fun StatementReviewScreen(
     onIntent: (StatementReviewIntent) -> Unit,
     onAddFamilyMember: () -> Unit = {},
     onSetUpHoldings: () -> Unit = {},
+    selectedFamilyOwner: OwnerId? = null,
+    onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -128,7 +131,11 @@ fun StatementReviewScreen(
             }
             is StatementReviewUiState.SelectOwner -> {
                 var selected by remember(state.members) {
-                    mutableStateOf<`in`.growurdhan.core.model.OwnerId?>(null)
+                    mutableStateOf<`in`.growurdhan.core.model.OwnerId?>(
+                        selectedFamilyOwner?.takeIf { wanted ->
+                            state.members.any { it.id == wanted }
+                        }
+                    )
                 }
                 Text(
                     "Only family members with enrolled registrar/ISIN/folio mappings appear. " +
@@ -152,7 +159,7 @@ fun StatementReviewScreen(
                     ) {
                         RadioButton(
                             selected = selected == member.id,
-                            onClick = { selected = member.id },
+                            onClick = { selected = member.id; onSelectFamilyOwner(member.id) },
                         )
                         Text(member.displayName)
                     }

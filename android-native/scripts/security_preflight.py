@@ -167,6 +167,28 @@ def app_password_gate_errors(
     ):
         if expected not in activity:
             problems.append("Activity no longer enforces the local login boundary: " + expected)
+    # M25 password recovery is not device-only: require a pre-enrolled random
+    # code, original Keystore HMAC key, rate limiting and code invalidation.
+    for expected in (
+        "fun issueRecoveryCodeAfterDeviceApproval()",
+        "check(hasVerifiedPassword())",
+        'hmac(random, allowCreate = false)',
+        "fun recoverAfterDeviceApproval(code: CharArray, next: CharArray)",
+        "hmac(actual, allowCreate = false)",
+        '"recovery_blocked_until"',
+        '.remove("recovery_tag")',
+    ):
+        if expected not in store:
+            problems.append("Recovery path lost fail-closed verifier policy: " + expected)
+    for expected in (
+        "CredentialAction.RECOVER_APP_PASSWORD",
+        "requestCredential(CredentialAction.RECOVER_APP_PASSWORD)",
+        "appPassword.recoverAfterDeviceApproval(recovery, next)",
+        "CredentialAction.ISSUE_RECOVERY_CODE",
+        "appPassword.issueRecoveryCodeAfterDeviceApproval()",
+    ):
+        if expected not in activity:
+            problems.append("Recovery flow lost device-challenge binding: " + expected)
     return problems
 
 
