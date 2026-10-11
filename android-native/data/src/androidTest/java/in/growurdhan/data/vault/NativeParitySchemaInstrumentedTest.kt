@@ -74,6 +74,28 @@ class NativeParitySchemaInstrumentedTest {
         }
     }
 
+    @Test fun existingV4HufOwnerTypeIsReconciledWithoutLedgerMutation() = withDatabase { db ->
+        VaultSchema.initializeOrValidate(db)
+        seedMemberAndHolding(db)
+        db.execSQL("INSERT INTO family_member(id,display_name,relationship,is_primary) " +
+            "VALUES('huf-legacy','Synthetic HUF','HUF',0)")
+        db.execSQL("INSERT INTO family_profile(owner_id,entity_type) " +
+            "VALUES('huf-legacy','INDIVIDUAL')")
+        db.execSQL("INSERT INTO family_member(id,display_name,relationship,is_primary) " +
+            "VALUES('huf-without-profile','Unprofiled HUF','HUF',0)")
+        repeat(2) { FamilyAdministrationSql.alignHufEntities(db) }
+        db.rawQuery("SELECT COUNT(*) FROM family_profile WHERE entity_type='HUF'",null).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(2,c.getInt(0))
+        }
+        db.rawQuery("SELECT kind,quantity_delta_scaled FROM ledger_event WHERE id='e1'",null).use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("BUY",c.getString(0))
+            assertEquals(100000000L,c.getLong(1))
+        }
+        assertEquals(0,db.rawQuery("PRAGMA foreign_key_check",null).use { it.count })
+    }
+
     @Test fun v4LogicalBackupRoundTripsUnknownCostAndRichRecords() = withDatabase { source ->
         VaultSchema.initializeOrValidate(source)
         seedMemberAndHolding(source)

@@ -50,6 +50,7 @@ fun HomeScreen(
     onOpenPortfolio: () -> Unit = {},
     onOpenInsights: () -> Unit = {},
     onManageFamily: () -> Unit = {},
+    onOpenAccounts: () -> Unit = {},
     selectedFamilyOwner: OwnerId? = null,
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
@@ -264,6 +265,10 @@ fun HomeScreen(
             OutlinedButton(onClick = onOpenInsights, modifier = Modifier.weight(1f)) {
                 Text("Insights")
             }
+        }
+
+        OutlinedButton(onClick = onOpenAccounts, modifier = Modifier.fillMaxWidth()) {
+            Text("Accounts, custodians and nominees")
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

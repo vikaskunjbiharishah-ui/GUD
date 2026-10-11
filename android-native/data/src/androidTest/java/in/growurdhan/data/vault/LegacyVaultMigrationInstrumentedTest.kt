@@ -407,6 +407,43 @@ class LegacyVaultMigrationInstrumentedTest {
         } finally { bytes.fill(0); envelope.fill(0) }
     }
 
+    @Test fun originalKosha1WhitespaceAndDefaultKdfRemainCompatibleAndPreviewIsNotApproval() {
+        val synthetic = historicalKosha1Fixture()
+        val padded = "\r\n \t".toByteArray(Charsets.UTF_8) + synthetic
+        val json = JSONObject(synthetic.toString(Charsets.UTF_8))
+        // Original JS unpackBackup uses blob.iterations || 600_000.
+        val defaulted = JSONObject(json.toString()).put("iterations", 0)
+            .toString().toByteArray(Charsets.UTF_8)
+        try {
+            for (encrypted in listOf(padded, defaulted)) {
+                val preview = LegacyLockedBackupInspector.inspect(
+                    encrypted,email,password.toCharArray(),
+                )
+                assertEquals(1,preview.familyMemberCount)
+                assertFalse("An authenticated wrapper is not yet row-level approval",
+                    preview.losslessImportAvailable)
+                val owner=identity()
+                val restored=try {
+                    LegacyVaultMigration.convertAuthenticated(encrypted,owner)
+                } finally { owner.wipeSecrets() }
+                try {
+                    assertEquals(1,JSONObject(restored.toString(Charsets.UTF_8))
+                        .getJSONArray("family_member").length())
+                } finally { restored.fill(0) }
+            }
+            assertThrows(Exception::class.java) {
+                LegacyLockedBackupInspector.inspect(
+                    """  {"kind":"GUDVAULT","familyMembers":[]}"""
+                        .toByteArray(Charsets.UTF_8),email,password.toCharArray(),
+                )
+            }
+        } finally {
+            synthetic.fill(0)
+            padded.fill(0)
+            defaulted.fill(0)
+        }
+    }
+
     @Test fun historicalJsonBackupRejectsWrongPasswordOrAnswers() {
         val envelope = historicalKosha1Fixture()
         val wrongPassword = identity(passwordValue = "Incorrect!Password123")

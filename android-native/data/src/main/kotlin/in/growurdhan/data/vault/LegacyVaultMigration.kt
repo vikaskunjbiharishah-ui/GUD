@@ -29,6 +29,13 @@ object LegacyVaultMigration {
     private const val HEADER_SIZE = 40
     private const val ITERATIONS = 600_000
     private const val ACCOUNT_ITERATIONS = 210_000
+    /** Original JS JSON.parse tolerates a whitespace prefix on locked KOSHA1. */
+    internal fun isHistoricalJsonEnvelope(data: ByteArray): Boolean =
+        data.take(64).dropWhile {
+            it == 32.toByte() || it == 9.toByte() ||
+                it == 10.toByte() || it == 13.toByte()
+        }.firstOrNull() == '{'.code.toByte()
+
     private val idPattern = Regex("^[a-zA-Z0-9._:\\-]{1,128}$")
     private val datePattern = Regex("^\\d{4}-\\d{2}-\\d{2}$")
     private val categories = setOf(
@@ -174,7 +181,7 @@ object LegacyVaultMigration {
             secret = ("GrowUrDhan\n" + normalized + "\n" + password.concatToString()).toCharArray()
             rounds = ITERATIONS
         } else {
-            require(data[0] == '{'.code.toByte()) {
+            require(isHistoricalJsonEnvelope(data)) {
                 "Not a supported encrypted original backup."
             }
             val wrapper = JSONObject(data.toString(Charsets.UTF_8))
@@ -184,7 +191,8 @@ object LegacyVaultMigration {
             require(wrapper.keys().asSequence().all { it in setOf(
                 "magic", "saltB64", "ivB64", "cipherB64", "iterations",
             ) }) { "Unexpected KOSHA1 envelope fields." }
-            val sourceRounds = wrapper.optInt("iterations", ITERATIONS)
+            val requestedRounds = wrapper.optInt("iterations", ITERATIONS)
+            val sourceRounds = if (requestedRounds == 0) ITERATIONS else requestedRounds
             require(sourceRounds == ITERATIONS || sourceRounds == 210_000) {
                 "Unsupported legacy KDF work factor."
             }
@@ -236,9 +244,12 @@ object LegacyVaultMigration {
             }
             val fingerprint = MessageDigest.getInstance("SHA-256").digest(data)
                 .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+            // The archive wrapper has been authenticated, but full account
+            // proof, row-level mapping and referential validation happen at
+            // restore. Preview cannot legitimately guarantee lossless import.
             return LegacyBackupPreview(count("familyMembers"), count("holdings"),
                 count("ledgerEvents"), count("accounts"), count("goals"),
-                history, extended, fingerprint, losslessImportAvailable = true)
+                history, extended, fingerprint, losslessImportAvailable = false)
         } finally { decrypted.fill(0) }
     }
 
@@ -257,7 +268,7 @@ object LegacyVaultMigration {
     }
 
     fun convertAuthenticated(data: ByteArray, identity: LegacyRestoreIdentity): ByteArray {
-        val historical = data.isNotEmpty() && data[0] == '{'.code.toByte()
+        val historical = isHistoricalJsonEnvelope(data)
         val decrypted = decryptOriginal(data, identity.email, identity.password)
         try {
             val source = JSONObject(decrypted.toString(Charsets.UTF_8))

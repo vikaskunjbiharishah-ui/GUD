@@ -42,6 +42,23 @@ import org.junit.runner.RunWith
 class NativeShellTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun accountsDestinationIsReachableWithoutChangingOwnershipOrRecordingTrades() {
+        var opened = false
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                HomeScreen(
+                    dashboardState = HouseholdDashboardUiState.Locked,
+                    onOpenSettings = {},
+                    onOpenPrivacy = {},
+                    onOpenAccounts = { opened = true },
+                )
+            }
+        }
+        compose.onNodeWithText("Accounts, custodians and nominees")
+            .performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(true, opened) }
+    }
+
     @Test fun unlockedDashboardShowsRecordedFamilyAndDebtBreakdown() {
         val owner = OwnerId("synthetic-owner")
         val dashboard = HouseholdDashboard(

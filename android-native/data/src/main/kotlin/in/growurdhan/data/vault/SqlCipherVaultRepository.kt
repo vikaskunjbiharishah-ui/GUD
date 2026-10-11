@@ -106,6 +106,7 @@ class SqlCipherVaultRepository(
                 System.loadLibrary("sqlcipher")
                 connection = SQLiteDatabase.openOrCreateDatabase(databaseFile, key, null, null, null)
                 VaultSchema.initializeOrValidate(connection)
+                FamilyAdministrationSql.alignHufEntities(connection)
                 if (!readyFile.exists()) {
                     // Ready marker is persisted only AFTER SQL and integrity checking succeed.
                     val atomic = AtomicFile(readyFile)
@@ -142,6 +143,11 @@ class SqlCipherVaultRepository(
                VALUES (?,?,?,?)""",
             arrayOf(member.id.raw, member.displayName, member.relationship, if (member.isPrimary) 1 else 0),
         )
+        db.execSQL(
+            "INSERT INTO family_profile(owner_id,entity_type,created_at) VALUES(?,?,?)",
+            arrayOf(member.id.raw, if (member.relationship == "HUF") "HUF" else "INDIVIDUAL",
+                java.time.Instant.now().toString()),
+        )
     }
 
     /**
@@ -168,6 +174,11 @@ class SqlCipherVaultRepository(
                     member.id.raw, member.displayName, member.relationship,
                     if (member.isPrimary) 1 else 0,
                 ),
+            )
+            db.execSQL(
+                "INSERT INTO family_profile(owner_id,entity_type,created_at) VALUES(?,?,?)",
+                arrayOf(member.id.raw, if (member.relationship == "HUF") "HUF" else "INDIVIDUAL",
+                    java.time.Instant.now().toString()),
             )
             member
         }

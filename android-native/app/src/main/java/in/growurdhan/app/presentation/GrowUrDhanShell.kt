@@ -83,6 +83,7 @@ private const val VAULT_ROUTE = "vault"
 private const val PRIVACY_ROUTE = "privacy"
 private const val FAMILY_ROUTE = "family"
 private const val FAMILY_ADMIN_ROUTE = "family-admin"
+private const val ACCOUNTS_ROUTE = "accounts"
 /** Secondary secure registrar/holding setup route, not an extra bottom tab. */
 private const val CUSTODY_ROUTE = "custody"
 private const val RECOVERY_ROUTE = "recovery"
@@ -226,6 +227,7 @@ fun GrowUrDhanShell(
                             onOpenPortfolio = { navigate(MainDestination.PORTFOLIO.route) },
                             onOpenInsights = { navigate(MainDestination.INSIGHTS.route) },
                             onManageFamily = { navigate(FAMILY_ADMIN_ROUTE) },
+                            onOpenAccounts = { navigate(ACCOUNTS_ROUTE) },
                             selectedFamilyOwner = selectedOwner,
                             onSelectFamilyOwner = { selectedOwner = it },
                         )
@@ -309,6 +311,24 @@ fun GrowUrDhanShell(
                             },
                             selectedFamilyOwner = selectedOwner,
                             onSelectFamilyOwner = { selectedOwner = it },
+                        )
+                    }
+                    composable(ACCOUNTS_ROUTE) {
+                        LaunchedEffect(Unit) { onFamilyAdminIntent(FamilyAdminIntent.Refresh) }
+                        FamilyAdministrationScreen(
+                            state = familyAdminState,
+                            onIntent = onFamilyAdminIntent,
+                            onAddMember = {
+                                onFamilyAdminIntent(FamilyAdminIntent.Cancel)
+                                navigate(FAMILY_ROUTE)
+                            },
+                            onBack = {
+                                onFamilyAdminIntent(FamilyAdminIntent.Cancel)
+                                navigate(MainDestination.HOME.route)
+                            },
+                            selectedFamilyOwner = selectedOwner,
+                            onSelectFamilyOwner = { selectedOwner = it },
+                            initialSection = "Accounts",
                         )
                     }
                     composable(CUSTODY_ROUTE) {

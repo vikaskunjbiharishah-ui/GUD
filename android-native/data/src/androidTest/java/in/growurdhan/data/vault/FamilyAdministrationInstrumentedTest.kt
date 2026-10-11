@@ -227,6 +227,72 @@ class FamilyAdministrationInstrumentedTest {
             assertEquals(0,vault.health().foreignKeyViolations)
         }
 
+    @Test fun accountTypesAreValidatedAndExistingCustodyTypeCannotBeRewritten() =
+        testVault { vault ->
+            val self=OwnerId("self")
+            vault.createMember(FamilyMember(self,"Synthetic Self","Self",true))
+            val invented=FamilyAdminChange.Account(
+                null,self,"DEMAT","Unrecognized Type","Synthetic Custodian",
+                null,null,null,null,null,
+            )
+            assertThrows(IllegalArgumentException::class.java) {
+                runBlocking { vault.applyFamilyAdministration(invented) }
+            }
+            assertTrue(vault.familyAdministration().accounts.isEmpty())
+            val account=vault.registerCustodyAccount(self,"NSDL","Self Demat")
+            assertThrows(IllegalArgumentException::class.java) {
+                runBlocking { vault.applyFamilyAdministration(FamilyAdminChange.Account(
+                    account.id,self,"CDSL","Reclassified Demat","Synthetic Custodian",
+                    null,null,null,null,null,
+                )) }
+            }
+            assertEquals("NSDL",vault.familyAdministration().accounts.single().type)
+            assertEquals("Self Demat",vault.familyAdministration().accounts.single().nickname)
+            assertEquals(0,vault.health().foreignKeyViolations)
+        }
+
+    @Test fun nativeHufEntityClassificationSurvivesEncryptedBackupAndMemberEdit() =
+        testVault { vault ->
+            val self=OwnerId("self")
+            val huf=OwnerId("huf")
+            vault.createMember(FamilyMember(self,"Synthetic Self","Self",true))
+            vault.createMember(FamilyMember(huf,"Synthetic HUF","HUF",false))
+            val pass="synthetic-m26-huf-entity-secret".toCharArray()
+            val backup=try { vault.exportEncryptedBackup(pass) }
+                finally { pass.fill('\u0000') }
+            try {
+                val secret="synthetic-m26-huf-entity-secret".toCharArray()
+                val plaintext=try { VaultBackupCodec.decrypt(backup,secret) }
+                    finally { secret.fill('\u0000') }
+                try {
+                    val rows=org.json.JSONObject(plaintext.toString(Charsets.UTF_8))
+                        .getJSONArray("family_profile")
+                    val entity=(0 until rows.length()).map { rows.getJSONObject(it) }
+                        .single { it.getString("owner_id")=="huf" }
+                    assertEquals("HUF",entity.getString("entity_type"))
+                } finally { plaintext.fill(0) }
+            } finally { backup.fill(0) }
+            vault.applyFamilyAdministration(FamilyAdminChange.Member(
+                huf,"Synthetic Joint Account","Joint",null,null,null,null,null,
+            ))
+            val pass2="synthetic-m26-huf-entity-secret".toCharArray()
+            val newBackup=try { vault.exportEncryptedBackup(pass2) }
+                finally { pass2.fill('\u0000') }
+            try {
+                val pwd="synthetic-m26-huf-entity-secret".toCharArray()
+                val data=try { VaultBackupCodec.decrypt(newBackup,pwd) }
+                    finally { pwd.fill('\u0000') }
+                try {
+                    val rows=org.json.JSONObject(data.toString(Charsets.UTF_8))
+                        .getJSONArray("family_profile")
+                    assertEquals("INDIVIDUAL",(0 until rows.length())
+                        .map { rows.getJSONObject(it) }
+                        .single { it.getString("owner_id")=="huf" }
+                        .getString("entity_type"))
+                } finally { data.fill(0) }
+            } finally { newBackup.fill(0) }
+        }
+
     @Test fun minorChildRequiresOwnedGuardianAndPrimaryRelationshipRemainsImmutable() =
         testVault { db ->
             val self=OwnerId("self")

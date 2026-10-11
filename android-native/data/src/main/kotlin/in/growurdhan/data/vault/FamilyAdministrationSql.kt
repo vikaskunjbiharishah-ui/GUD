@@ -1,6 +1,7 @@
 package `in`.growurdhan.data.vault
 
 import `in`.growurdhan.core.model.*
+import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
 import java.time.LocalDate
 import java.time.Instant
 import android.util.Base64
@@ -44,6 +45,26 @@ internal object FamilyAdministrationSql {
 
     private fun masked(value: String?): String? = value?.takeIf { it.isNotBlank() }?.let {
         if (it.length <= 4) "****" else "****" + it.takeLast(4)
+    }
+
+    /** Reconcile HUF classifications left absent by earlier native onboarding. */
+    fun alignHufEntities(db: SQLiteDatabase) {
+        db.beginTransaction()
+        try {
+            db.execSQL(
+                "INSERT OR IGNORE INTO family_profile(owner_id,entity_type,created_at) " +
+                    "SELECT id,'HUF',? FROM family_member WHERE relationship='HUF'",
+                arrayOf(Instant.now().toString()),
+            )
+            db.execSQL(
+                "UPDATE family_profile SET entity_type='HUF' " +
+                    "WHERE entity_type!='HUF' AND owner_id IN " +
+                    "(SELECT id FROM family_member WHERE relationship='HUF')",
+            )
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
     }
 
     fun read(db: SQLiteDatabase): FamilyAdministrationSnapshot {
@@ -260,8 +281,13 @@ internal object FamilyAdministrationSql {
         require(!(c.clearPan && pan != null))
         db.execSQL("UPDATE family_member SET display_name=?,relationship=? WHERE id=?",
             arrayOf(name, c.relation, c.ownerId.raw))
-        db.execSQL("INSERT OR IGNORE INTO family_profile(owner_id,created_at) VALUES(?,?)",
-            arrayOf(c.ownerId.raw, Instant.now().toString()))
+        db.execSQL("INSERT OR IGNORE INTO family_profile(owner_id,entity_type,created_at) VALUES(?,?,?)",
+            arrayOf(c.ownerId.raw, if (c.relation == "HUF") "HUF" else "INDIVIDUAL",
+                Instant.now().toString()))
+        // Keep the native entity class synchronized with the recorded relationship.
+        // A HUF must not be silently treated as an individual in the backup.
+        db.execSQL("UPDATE family_profile SET entity_type=? WHERE owner_id=?",
+            arrayOf(if (c.relation == "HUF") "HUF" else "INDIVIDUAL",c.ownerId.raw))
         db.execSQL(
             """UPDATE family_profile SET date_of_birth=?,guardian_id=?,color=?,notes=?,
               pan_for_statements=CASE WHEN ?=1 THEN NULL
@@ -312,6 +338,22 @@ internal object FamilyAdministrationSql {
         val existing = count(db,"SELECT count(*) FROM custody_account WHERE id=? AND owner_id=?",
             id,c.ownerId.raw) == 1L
         require(c.id == null || existing) { "Cannot reassign accounts across family owners." }
+        if (existing) {
+            val savedType = db.rawQuery(
+                "SELECT account_type FROM custody_account WHERE id=? AND owner_id=?",
+                arrayOf(id,c.ownerId.raw),
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                cursor.getString(0)
+            }
+            require(type == savedType) {
+                "An existing account type cannot change; custody and CAS identity must remain stable."
+            }
+        } else {
+            require(type in CustodyHoldingOnboarding.accountTypes) {
+                "Select a supported account type."
+            }
+        }
         if (existing) {
             require(count(db,"SELECT count(*) FROM custody_profile WHERE account_id=? AND closed_on IS NOT NULL",
                 id) == 0L) { "Closed account cannot be edited." }

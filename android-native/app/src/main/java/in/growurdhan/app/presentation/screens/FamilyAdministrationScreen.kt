@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import `in`.growurdhan.app.presentation.FamilyAdminIntent
 import `in`.growurdhan.app.presentation.FamilyAdminUiState
 import `in`.growurdhan.core.model.*
+import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
 import java.math.BigDecimal
 
 /**
@@ -42,6 +43,7 @@ fun FamilyAdministrationScreen(
     onBack: () -> Unit,
     selectedFamilyOwner: OwnerId? = null,
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
+    initialSection: String = "Family",
 ) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
@@ -72,7 +74,7 @@ fun FamilyAdministrationScreen(
             }
             is FamilyAdminUiState.Ready -> {
                 val book = state.data
-                var section by remember { mutableStateOf("Family") }
+                var section by remember(initialSection) { mutableStateOf(initialSection) }
                 val selectedOwner = selectedFamilyOwner
                 Text("Owner scope", style = MaterialTheme.typography.titleSmall)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -294,7 +296,15 @@ fun FamilyAdministrationScreen(
                             }
                             if (listed.isEmpty()) Text("No accounts yet. Add a custodian, registrar or bank account.")
                             var editAccount by remember { mutableStateOf<String?>(null) }
-                            listed.forEach { acc ->
+                            // Group account books under their custodian/issuer. The user
+                            // owner filter is applied BEFORE grouping, never by display name.
+                            val grouped = listed.groupBy {
+                                it.institution?.trim()?.takeIf { name -> name.isNotEmpty() } ?: it.type
+                            }.toSortedMap(String.CASE_INSENSITIVE_ORDER)
+                            grouped.forEach { (issuer, groupAccounts) ->
+                                Text("Custodian / issuer: $issuer",
+                                    style = MaterialTheme.typography.titleMedium)
+                                groupAccounts.forEach { acc ->
                                 Card(Modifier.fillMaxWidth()) {
                                     Column(Modifier.padding(14.dp),
                                         verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -306,6 +316,16 @@ fun FamilyAdministrationScreen(
                                         acc.clientMasked?.let { Text("Client: $it") }
                                         acc.boMasked?.let { Text("BO: $it") }
                                         acc.nominee?.let { Text("Nominee: $it") }
+                                        val linked = book.holdings.filter {
+                                            it.accountId == acc.id && it.ownerId == acc.ownerId
+                                        }
+                                        Text("Associated holdings: ${linked.size}")
+                                        linked.take(5).forEach { holding ->
+                                            Text("• ${holding.name}", style = MaterialTheme.typography.bodySmall)
+                                        }
+                                        if (linked.size > 5) Text(
+                                            "And ${linked.size - 5} other linked holdings",
+                                            style = MaterialTheme.typography.bodySmall)
                                         if (acc.closedOn == null) {
                                             OutlinedButton(onClick = { editAccount = acc.id }) {
                                                 Text("Edit account and nomination")
@@ -320,9 +340,10 @@ fun FamilyAdministrationScreen(
                                     }
                                 }
                             }
+                            }
                             val current = book.accounts.find { it.id == editAccount }
                             var nickname by remember(editAccount,selected) { mutableStateOf(current?.nickname ?: "") }
-                            var type by remember(editAccount,selected) { mutableStateOf(current?.type ?: "DEMAT") }
+                            var type by remember(editAccount,selected) { mutableStateOf(current?.type ?: "BANK") }
                             var institution by remember(editAccount,selected) { mutableStateOf(current?.institution ?: "") }
                             var nominee by remember(editAccount,selected) { mutableStateOf(current?.nominee ?: "") }
                             var dp by remember(editAccount,selected) { mutableStateOf("") }
@@ -333,9 +354,18 @@ fun FamilyAdministrationScreen(
                             var clearIds by remember(editAccount) { mutableStateOf(false) }
                             Text(if (current == null) "Register a new account" else "Edit: ${current.nickname}",
                                 style = MaterialTheme.typography.titleMedium)
-                            OutlinedTextField(type,{ if(it.length <= 40) type=it },
-                                label = { Text("Account type (DEMAT, BANK, CAMS, KFIN…)") },
-                                modifier = Modifier.fillMaxWidth())
+                            Text("Account type", style = MaterialTheme.typography.titleSmall)
+                            if (current != null) {
+                                Text("$type (fixed after account creation)")
+                            } else {
+                                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    CustodyHoldingOnboarding.accountTypes.forEach { option ->
+                                        FilterChip(type == option, onClick = { type = option },
+                                            label = { Text(option) })
+                                    }
+                                }
+                            }
                             OutlinedTextField(nickname,{ if(it.length <= 100) nickname=it },
                                 label = { Text("Account nickname (not full number)") },
                                 modifier = Modifier.fillMaxWidth())
