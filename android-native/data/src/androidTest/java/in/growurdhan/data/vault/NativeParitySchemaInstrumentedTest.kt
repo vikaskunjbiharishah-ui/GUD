@@ -1,5 +1,7 @@
 package `in`.growurdhan.data.vault
 
+import `in`.growurdhan.core.model.FamilyAdminChange
+import `in`.growurdhan.core.model.OwnerId
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
@@ -73,6 +75,30 @@ class NativeParitySchemaInstrumentedTest {
             db.execSQL("INSERT INTO family_profile(owner_id) VALUES('stranger')")
         }
     }
+
+    @Test fun editingImportedNonHufMemberCannotEraseOriginalLegalEntityClass() =
+        withDatabase { db ->
+            VaultSchema.initializeOrValidate(db)
+            db.execSQL("INSERT INTO family_member(id,display_name,relationship,is_primary) " +
+                "VALUES('trust','Synthetic Trust','Joint',0)")
+            db.execSQL("INSERT INTO family_profile(owner_id,entity_type) " +
+                "VALUES('trust','PRIVATE_TRUST')")
+            db.beginTransaction()
+            try {
+                FamilyAdministrationSql.apply(db, FamilyAdminChange.Member(
+                    OwnerId("trust"),"Renamed Synthetic Trust","Joint",null,null,
+                    null,"Testing source identity preservation",null,
+                ))
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
+            }
+            db.rawQuery("SELECT entity_type FROM family_profile WHERE owner_id='trust'",null).use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals("PRIVATE_TRUST",c.getString(0))
+            }
+            assertEquals(0,db.rawQuery("PRAGMA foreign_key_check",null).use { it.count })
+        }
 
     @Test fun existingV4HufOwnerTypeIsReconciledWithoutLedgerMutation() = withDatabase { db ->
         VaultSchema.initializeOrValidate(db)

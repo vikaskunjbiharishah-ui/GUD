@@ -254,10 +254,13 @@ internal object FamilyAdministrationSql {
 
     private fun updateMember(db: SQLiteDatabase, c: FamilyAdminChange.Member) {
         ownerExists(db, c.ownerId, active = false)
-        val original = db.rawQuery("SELECT is_primary FROM family_member WHERE id=?",
-            arrayOf(c.ownerId.raw)).use { cursor -> check(cursor.moveToFirst()); cursor.getInt(0) == 1 }
+        val original = db.rawQuery("SELECT is_primary,relationship FROM family_member WHERE id=?",
+            arrayOf(c.ownerId.raw)).use { cursor ->
+            check(cursor.moveToFirst())
+            (cursor.getInt(0) == 1) to cursor.getString(1)
+        }
         require(c.relation in relationships)
-        require(if (original) c.relation == "Self" else c.relation != "Self") {
+        require(if (original.first) c.relation == "Self" else c.relation != "Self") {
             "Only the original primary owner can be Self."
         }
         val name = required(c.name, 100)
@@ -281,13 +284,21 @@ internal object FamilyAdministrationSql {
         require(!(c.clearPan && pan != null))
         db.execSQL("UPDATE family_member SET display_name=?,relationship=? WHERE id=?",
             arrayOf(name, c.relation, c.ownerId.raw))
+        // Preserve imported legal entity types (PRIVATE_TRUST, PARTNERSHIP_FIRM,
+        // PROPRIETORSHIP) when merely editing a name, guardian or note.
+        // Only an explicit transition into or out of a HUF changes entity_type.
+        val changedEntityType = when {
+            c.relation == "HUF" -> "HUF"
+            original.second == "HUF" -> "INDIVIDUAL"
+            else -> null
+        }
         db.execSQL("INSERT OR IGNORE INTO family_profile(owner_id,entity_type,created_at) VALUES(?,?,?)",
-            arrayOf(c.ownerId.raw, if (c.relation == "HUF") "HUF" else "INDIVIDUAL",
+            arrayOf(c.ownerId.raw, changedEntityType ?: "INDIVIDUAL",
                 Instant.now().toString()))
-        // Keep the native entity class synchronized with the recorded relationship.
-        // A HUF must not be silently treated as an individual in the backup.
-        db.execSQL("UPDATE family_profile SET entity_type=? WHERE owner_id=?",
-            arrayOf(if (c.relation == "HUF") "HUF" else "INDIVIDUAL",c.ownerId.raw))
+        if (changedEntityType != null) {
+            db.execSQL("UPDATE family_profile SET entity_type=? WHERE owner_id=?",
+                arrayOf(changedEntityType,c.ownerId.raw))
+        }
         db.execSQL(
             """UPDATE family_profile SET date_of_birth=?,guardian_id=?,color=?,notes=?,
               pan_for_statements=CASE WHEN ?=1 THEN NULL
