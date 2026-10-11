@@ -99,6 +99,19 @@ class LocalAppPasswordInstrumentedTest {
         } finally { original.fill('\u0000');next.fill('\u0000') }
     }
 
+    @Test fun overduePasswordIsMarkedForMandatoryRotation() {
+        assertTrue(store.setup("Synthetic!Pass123".toCharArray()))
+        val past = System.currentTimeMillis() - 181L * 24 * 60 * 60 * 1000
+        context.getSharedPreferences("gud_local_password_test_$scope",0)
+            .edit().putLong("changed_at",past).commit()
+        assertTrue(store.passwordNeedsRotation())
+        val next = "Updated!Secure456".toCharArray()
+        val old = "Synthetic!Pass123".toCharArray()
+        assertTrue(store.rotatePassword(old,next))
+        assertFalse(store.passwordNeedsRotation())
+        assertFalse(store.hasVerifiedPassword())
+    }
+
     @Test fun missingKeystoreDoesNotPermitRecoveryCodeToRecreateVerifier() {
         store.setup("Synthetic!Pass123".toCharArray())
         val recovery=store.issueRecoveryCodeAfterDeviceApproval().toCharArray()

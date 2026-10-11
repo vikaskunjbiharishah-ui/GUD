@@ -62,6 +62,7 @@ import `in`.growurdhan.app.presentation.screens.LocalLoginScreen
 import `in`.growurdhan.app.presentation.screens.RecoveryEnrollmentScreen
 import `in`.growurdhan.app.presentation.screens.OneTimeRecoveryCodeScreen
 import `in`.growurdhan.app.presentation.screens.ForgottenPasswordRecoveryScreen
+import `in`.growurdhan.app.presentation.screens.ChangeLocalPasswordScreen
 import `in`.growurdhan.app.presentation.screens.LegacyBackupIntent
 import `in`.growurdhan.app.presentation.screens.LegacyBackupUiState
 import `in`.growurdhan.app.presentation.screens.EmergencyExportUiState
@@ -626,6 +627,13 @@ class MainActivity : ComponentActivity() {
                 } else if (!appPassword.hasRecoveryCode()) {
                     RecoveryEnrollmentScreen(
                         onEnable = { requestCredential(CredentialAction.ISSUE_RECOVERY_CODE) },
+                    )
+                } else if (appPassword.passwordNeedsRotation()) {
+                    // Match the legacy 180-day mandatory password rotation policy.
+                    // Rotation still requires the PREVIOUS password + a NEW OS challenge.
+                    ChangeLocalPasswordScreen(
+                        onChange = ::handleChangeLocalPassword,
+                        onBack = { lockSensitiveUi() },
                     )
                 } else GrowUrDhanShell(
                     state = state,
