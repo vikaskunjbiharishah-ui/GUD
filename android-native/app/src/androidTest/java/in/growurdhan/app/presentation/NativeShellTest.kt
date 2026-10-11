@@ -14,6 +14,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import `in`.growurdhan.app.presentation.theme.GrowUrDhanTheme
@@ -65,7 +67,11 @@ class NativeShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Synthetic Member").performScrollTo().assertIsDisplayed()
+        // M26 displays the owner in both the selection chip and the family
+        // breakdown. Assert the breakdown entry, not an ambiguous text match.
+        compose.onNodeWithText("Family breakdown").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Synthetic Member").onLast()
+            .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(
             "Assets: 25.0000 INR; liabilities: 7.5000 INR; net worth: 17.5000 INR; holdings: 2",
         ).performScrollTo().assertIsDisplayed()

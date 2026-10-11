@@ -43,13 +43,13 @@ class FamilyAdministrationInstrumentedTest {
             huf, "Synthetic HUF", "HUF", null, null, "#F1F5F9", null, null,
         ))
         val a = db.registerCustodyAccount(self,"CAMS","Self Folio")
-        val b = db.registerCustodyAccount(huf,"DEMAT","HUF Demat")
+        val b = db.registerCustodyAccount(huf,"NSDL","HUF Demat")
         db.applyFamilyAdministration(FamilyAdminChange.Account(
             a.id,self,"CAMS","Self Folio","Synthetic Registrar","DPSYNTH001",
             "CLI0001","BO0001","Nominee Self","2026-01-01",
         ))
         db.applyFamilyAdministration(FamilyAdminChange.Account(
-            b.id,huf,"DEMAT","HUF Demat","Synthetic DP","DPSYNTH002",
+            b.id,huf,"NSDL","HUF Demat","Synthetic DP","DPSYNTH002",
             "CLI0002","BO0002","Nominee HUF",null,
         ))
         val holdingA = Holding(HoldingId("h-self"), self, a.id, "Self equity",
@@ -80,9 +80,10 @@ class FamilyAdministrationInstrumentedTest {
         assertEquals(2,state.accounts.size)
         assertEquals("****0001",state.accounts.single { it.id == a.id }.clientMasked)
         assertEquals("Nominee HUF",state.accounts.single { it.id == b.id }.nominee)
+        assertEquals("NSDL", state.accounts.single { it.id == b.id }.type)
         // Leaving optional fields blank during edit must preserve stored identifiers.
         db.applyFamilyAdministration(FamilyAdminChange.Account(
-            b.id,huf,"DEMAT","HUF Demat Updated",null,null,null,null,null,null,
+            b.id,huf,"NSDL","HUF Demat Updated",null,null,null,null,null,null,
         ))
         assertEquals("****0002",db.familyAdministration().accounts.single { it.id==b.id }.clientMasked)
         assertEquals("Nominee HUF",db.familyAdministration().accounts.single { it.id==b.id }.nominee)
