@@ -172,7 +172,10 @@ internal object FamilyAdministrationSql {
     private fun hashAnswer(input: CharArray): String {
         val normalized = input.concatToString().trim().lowercase(java.util.Locale.ROOT)
             .replace(Regex("\\s+")," ").toCharArray()
-        require(normalized.size in 3..256) { "A nonblank security answer is required." }
+        if (normalized.size !in 3..256) {
+            normalized.fill('\u0000')
+            throw IllegalArgumentException("A nonblank security answer is required.")
+        }
         val salt = ByteArray(16).also(SecureRandom()::nextBytes)
         val spec = PBEKeySpec(normalized, salt, 210_000, 256)
         return try {
