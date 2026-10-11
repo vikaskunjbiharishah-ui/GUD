@@ -64,6 +64,7 @@ def repository_binding_errors(binding: str) -> list[str]:
         "health": "sessionBound.read { delegate.health() }",
         "exportEncryptedBackup": "sessionBound.readRecentlyApprovedBytes { delegate.exportEncryptedBackup(",
         "restoreEncryptedBackup": "approvedWrite { delegate.restoreEncryptedBackup(",
+        "restoreOriginalLegacyBackup": "approvedWrite { delegate.restoreOriginalLegacyBackup(",
     }
     unclassified = sorted(set(sections) - set(expected))
     for method in unclassified:

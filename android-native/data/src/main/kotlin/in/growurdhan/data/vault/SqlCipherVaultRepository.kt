@@ -29,6 +29,7 @@ import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
 import `in`.growurdhan.domain.vault.ManualAssetOnboarding
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import `in`.growurdhan.domain.vault.LegacyRestoreIdentity
 import `in`.growurdhan.domain.vault.VaultRepository
 import `in`.growurdhan.domain.vault.VaultAuthorization
 import `in`.growurdhan.domain.vault.AuthorizedVaultAccess
@@ -807,6 +808,29 @@ class SqlCipherVaultRepository(
         }
     }
 
+    /** No unauthenticated import, no modification to an existing book and no
+     *  partial row commit. Archive decryption and recovery challenge occur
+     *  before the write; imported plaintext is wiped on every code path. */
+    override suspend fun restoreOriginalLegacyBackup(
+        identity: LegacyRestoreIdentity, archive: ByteArray,
+    ) {
+        val conversion = try {
+            LegacyVaultMigration.convertAuthenticated(archive, identity)
+        } finally {
+            identity.wipeSecrets()
+        }
+        try {
+            mutate { db ->
+                VaultBackupTables.restoreIntoEmpty(db, conversion)
+                db.rawQuery("PRAGMA foreign_key_check", null).use { cursor ->
+                    check(cursor.count == 0) { "Original family references do not reconcile." }
+                }
+            }
+        } finally {
+            conversion.fill(0)
+        }
+    }
+
     override suspend fun health(): VaultHealth = inspect { db ->
         val integrity = db.rawQuery("PRAGMA cipher_integrity_check", null).use { cursor ->
             if (cursor.moveToFirst()) cursor.getString(0) else "ok"
@@ -961,5 +985,14 @@ class DefaultVaultRepository @Inject constructor(
         sessionBound.readRecentlyApprovedBytes { delegate.exportEncryptedBackup(passphrase) }
     override suspend fun restoreEncryptedBackup(passphrase: CharArray, ciphertext: ByteArray) {
         approvedWrite { delegate.restoreEncryptedBackup(passphrase, ciphertext) }
+    }
+    override suspend fun restoreOriginalLegacyBackup(
+        identity: LegacyRestoreIdentity, archive: ByteArray,
+    ) {
+        try {
+            approvedWrite { delegate.restoreOriginalLegacyBackup(identity, archive) }
+        } finally {
+            identity.wipeSecrets() // even when device admission was denied
+        }
     }
 }

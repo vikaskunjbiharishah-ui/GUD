@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile native SQL and test v1/v2->v3, fresh installs and rollback offline.
+"""Compile native SQL and test v1/v2/v3->v4, fresh installs and rollback offline.
 
 The SQL statements are extracted from VaultSchema.kt itself (no duplicated
 schema). This preflight tests ordinary SQLite constraints and atomic migration.
@@ -21,10 +21,20 @@ EXPECTED_V2_TABLES = {
     "family_member", "custody_account", "holding", "ledger_event",
     "snapshot_import", "statement_position", "vault_meta",
 }
-EXPECTED_TABLES = EXPECTED_V2_TABLES | {"holding_cas_identity"}
+EXPECTED_V3_TABLES = EXPECTED_V2_TABLES | {"holding_cas_identity"}
+PARITY_TABLES = {
+    "family_profile", "custody_profile", "instrument_profile", "holding_profile",
+    "ledger_profile", "family_goal", "holding_goal", "import_batch_profile",
+    "source_document_profile", "statement_snapshot_profile", "statement_position_profile",
+    "price_observation_profile", "tax_rule_profile", "liability_profile",
+    "legacy_account_identity", "legacy_field_extension", "setting_profile",
+    "listed_security_profile", "egress_log_profile", "gmail_seen_profile",
+}
+EXPECTED_TABLES = EXPECTED_V3_TABLES | PARITY_TABLES
 V1_STATEMENT_COUNT = 14
 MIGRATION_STATEMENT_COUNT = 6
 V3_MIGRATION_STATEMENT_COUNT = 4
+V4_MIGRATION_STATEMENT_COUNT = 26
 RICH_COLUMNS = {
     "financial_kind", "unit_price_scaled", "charges_scaled", "supersedes_event_id",
 }
@@ -183,7 +193,7 @@ def check_v3(db: sqlite3.Connection) -> None:
             "SELECT name FROM sqlite_master WHERE type = 'table'"
         ) if not name.startswith("sqlite_")
     }
-    if tables != EXPECTED_TABLES:
+    if tables != EXPECTED_V3_TABLES:
         raise AssertionError(f"Unexpected v3 vault tables: {tables}")
     if db.execute("PRAGMA user_version").fetchone() != (3,):
         raise AssertionError("Native vault schema version is not 3")
@@ -225,6 +235,124 @@ def check_v3(db: sqlite3.Connection) -> None:
         raise AssertionError("SQLite v3 integrity check failed")
 
 
+def check_v4(db: sqlite3.Connection) -> None:
+    tables = {
+        name for (name,) in db.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        if not name.startswith("sqlite_")
+    }
+    if tables != EXPECTED_TABLES:
+        raise AssertionError(f"Unexpected v4 vault tables: {tables ^ EXPECTED_TABLES}")
+    if db.execute("PRAGMA user_version").fetchone() != (4,):
+        raise AssertionError("Expected schema version 4")
+    if db.execute("PRAGMA foreign_keys").fetchone() != (1,):
+        raise AssertionError("Foreign keys were disabled")
+    for table in EXPECTED_TABLES:
+        cols = db.execute(f'PRAGMA table_info("{table}")').fetchall()
+        if not cols:
+            raise AssertionError(f"Empty or missing table: {table}")
+        if any(col[2].upper() == "REAL" for col in cols):
+            raise AssertionError(f"Floating-point financial storage in {table}")
+    trigger_names = {row[0] for row in db.execute(
+        "SELECT name FROM sqlite_master WHERE type='trigger'"
+    )}
+    if not {
+        "deny_ledger_update", "deny_ledger_delete", "validate_rich_ledger_insert",
+        "cas_holding_account_match", "deny_cas_mapping_update",
+        "deny_cas_mapping_delete", "validate_ledger_profile_owner",
+        "deny_ledger_profile_update", "deny_ledger_profile_delete",
+        "validate_holding_goal_owner", "deny_tax_rule_profile_update",
+        "deny_tax_rule_profile_delete",
+    }.issubset(trigger_names):
+        raise AssertionError("Lost immutable ledger or owner triggers")
+    # Original event rows must survive upgrades bit-for-bit.
+    row = db.execute("SELECT kind,quantity_delta_scaled,amount_scaled,source_fingerprint "
+                     "FROM ledger_event WHERE id='original'").fetchone()
+    if row != ("BUY", 100000000, 10000, None):
+        raise AssertionError("Original financial record mutated")
+    db.execute(
+        "INSERT INTO family_profile(owner_id,entity_type,pan_masked,date_of_birth,extra_json) "
+        "VALUES('self','INDIVIDUAL','*****1234*','1990-01-01','{}')"
+    )
+    assert_rejected(db, "INSERT INTO family_profile(owner_id) VALUES('unknown')")
+    db.execute(
+        "INSERT INTO custody_profile(account_id,owner_id,custodian,dp_id,nominee) "
+        "VALUES('account','self','Synthetic Registrar','TESTDP','Synthetic Nominee')"
+    )
+    assert_rejected(
+        db, "INSERT INTO custody_profile(account_id,owner_id) VALUES('account','spouse')"
+    )
+    db.execute(
+        "INSERT INTO instrument_profile(id,name,category,sub_category,isin) "
+        "VALUES('ins','Synthetic Mutual Fund','MUTUAL_FUND','Open ended','INF000000001')"
+    )
+    db.execute(
+        "INSERT INTO holding_profile(holding_id,owner_id,instrument_id,details_json,"
+        "average_cost_per_unit_scaled,cost_unknown,tags_json) "
+        """VALUES('holding','self','ins','{"mfPlan":"DIRECT","mfOption":"GROWTH"}',"""
+        "NULL,1,'[\"Retirement\"]')"
+    )
+    saved = db.execute(
+        "SELECT details_json,average_cost_per_unit_scaled,cost_unknown,tags_json "
+        "FROM holding_profile WHERE holding_id='holding'"
+    ).fetchone()
+    if saved != ('{"mfPlan":"DIRECT","mfOption":"GROWTH"}', None, 1, '["Retirement"]'):
+        raise AssertionError("Legacy asset-specific metadata or unknown cost lost")
+    assert_rejected(db, "INSERT INTO holding_profile(holding_id,owner_id) "
+                        "VALUES('holding','spouse')")
+    db.execute(
+        "INSERT INTO family_goal(id,owner_id,name,target_scaled,created_at) "
+        "VALUES('goal','self','Retirement',50000000,'2026-10-10')"
+    )
+    db.execute("INSERT INTO holding_goal(goal_id,holding_id,owner_id) "
+               "VALUES('goal','holding','self')")
+    assert_rejected(db, "INSERT INTO holding_goal(goal_id,holding_id,owner_id) "
+                        "VALUES('goal','other','spouse')")
+    db.execute("INSERT INTO ledger_profile(event_id,owner_id,holding_id,source_ref) "
+               "VALUES('original','self','holding','synthetic')")
+    assert_rejected(db, "UPDATE ledger_profile SET source_ref='forged'")
+    assert_rejected(db, "DELETE FROM ledger_profile")
+    assert_rejected(db, "INSERT INTO ledger_profile(event_id,owner_id,holding_id) "
+                        "VALUES('bonus','spouse','other')")
+    db.execute(
+        "INSERT INTO statement_snapshot_profile(snapshot_id,owner_id,issuer,invested_scaled) "
+        "VALUES('snapshot','self','CAMS',NULL)"
+    )
+    db.execute(
+        "INSERT INTO statement_position_profile(snapshot_id,owner_id,holding_id,"
+        "invested_scaled) VALUES('snapshot','self','holding',NULL)"
+    )
+    if db.execute("SELECT invested_scaled FROM statement_position_profile").fetchone() != (None,):
+        raise AssertionError("Unknown statement purchase cost became zero")
+    db.execute(
+        "INSERT INTO legacy_field_extension(record_type,record_id,owner_id,"
+        "field_name,field_type,field_json,source_schema) "
+        "VALUES('holding','holding','self','oldUnknownField','object',"
+        "'{\"foo\":123}',9)"
+    )
+    db.execute(
+        "INSERT INTO listed_security_profile(isin,name,category,price_date,source,updated_at) "
+        "VALUES('INF000000002','Listed synthetic fund','MUTUAL_FUND',"
+        "'2026-10-09','AMFI','2026-10-10')"
+    )
+    db.execute(
+        "INSERT INTO tax_rule_profile(id,rules_json) VALUES('AY2026','{}')"
+    )
+    assert_rejected(db, "UPDATE tax_rule_profile SET rules_json='{}'")
+    assert_rejected(db, "DELETE FROM tax_rule_profile WHERE id='AY2026'")
+    db.execute(
+        "INSERT INTO gmail_seen_profile(message_id,attachment_id,owner_id,seen_at) "
+        "VALUES('synthetic-message','synthetic-attachment','self','2026-10-10')"
+    )
+    db.execute(
+        "INSERT INTO egress_log_profile(id,occurred_at,destination,purpose,outcome) "
+        "VALUES('egress','2026-10-10','example.invalid','synthetic','denied')"
+    )
+    if db.execute("PRAGMA integrity_check").fetchone() != ("ok",):
+        raise AssertionError("v4 SQLite integrity failed")
+    if db.execute("PRAGMA foreign_key_check").fetchall():
+        raise AssertionError("v4 owner references invalid")
+
+
 def main() -> None:
     source = SCHEMA_FILE.read_text(encoding="utf-8")
     v1 = statements_from_kotlin(source, "ddl", V1_STATEMENT_COUNT)
@@ -232,7 +360,11 @@ def main() -> None:
     identity_upgrade = statements_from_kotlin(
         source, "migrationToV3", V3_MIGRATION_STATEMENT_COUNT
     )
-    if any(not s.startswith(("CREATE ", "ALTER TABLE ")) for s in v1 + upgrade + identity_upgrade):
+    parity_upgrade = statements_from_kotlin(
+        source, "migrationToV4", V4_MIGRATION_STATEMENT_COUNT
+    )
+    if any(not s.startswith(("CREATE ", "ALTER TABLE "))
+           for s in v1 + upgrade + identity_upgrade + parity_upgrade):
         raise AssertionError("Unexpected statement in schema migration.")
     # Old v1 data is not rewritten and the v2 operation is crash-atomic.
     with sqlite3.connect(":memory:") as db:
@@ -268,6 +400,22 @@ def main() -> None:
         db.execute("PRAGMA user_version = 3")
         db.commit()
         check_v3(db)
+        db.commit()
+        # v3->v4 partial CREATE TABLE operations must be rollback-safe.
+        db.execute("BEGIN")
+        run_statements(db, parity_upgrade[:2], "interrupted v4 migration")
+        db.rollback()
+        if "family_profile" in {
+            name for (name,) in db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }:
+            raise AssertionError("Partial v4 migration survived rollback")
+        db.execute("BEGIN")
+        run_statements(db, parity_upgrade, "v3->v4 migration")
+        db.execute("PRAGMA user_version = 4")
+        db.commit()
+        check_v4(db)
 
     # Fresh installs follow the production current==0 path: v1 DDL + v2 + v3.
     with sqlite3.connect(":memory:") as db:
@@ -276,25 +424,29 @@ def main() -> None:
         run_statements(db, v1, "fresh vault DDL")
         run_statements(db, upgrade, "fresh vault v2")
         run_statements(db, identity_upgrade, "fresh vault v3")
-        db.execute("PRAGMA user_version = 3")
+        run_statements(db, parity_upgrade, "fresh vault v4")
+        db.execute("PRAGMA user_version = 4")
         db.commit()
         prepare_tables = {name for (name,) in db.execute(
             "SELECT name FROM sqlite_master WHERE type='table'"
         ) if not name.startswith("sqlite_")}
         if prepare_tables != EXPECTED_TABLES:
-            raise AssertionError("Fresh v2 vault missing tables.")
+            raise AssertionError("Fresh v4 vault missing tables.")
         if not RICH_COLUMNS.issubset({
             row[1] for row in db.execute("PRAGMA table_info('ledger_event')")
         }):
-            raise AssertionError("Fresh v3 vault missing rich ledger fields.")
+            raise AssertionError("Fresh v4 vault missing rich ledger fields.")
         if "holding_cas_identity" not in prepare_tables:
             raise AssertionError("Fresh vault missing CAS mapping.")
         if db.execute("PRAGMA foreign_key_check").fetchall():
             raise AssertionError("Fresh vault has broken foreign keys.")
+        if db.execute("PRAGMA integrity_check").fetchone() != ("ok",):
+            raise AssertionError("Fresh v4 vault failed integrity check")
 
     print(
         f"PASS: {len(v1)} v1 DDL + {len(upgrade)} v2 + "
-        f"{len(identity_upgrade)} v3 migrations; v1/v2 upgrade, rollback, "
+        f"{len(identity_upgrade)} v3 + {len(parity_upgrade)} v4 migrations; "
+        "v1/v2/v3 upgrade, rollback, "
         "CAS identity ownership, immutable ledger and backup-compatible columns."
     )
 

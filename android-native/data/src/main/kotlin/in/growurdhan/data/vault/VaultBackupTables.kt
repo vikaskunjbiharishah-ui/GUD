@@ -32,16 +32,97 @@ internal object VaultBackupTables {
             "snapshot_id", "owner_id", "holding_id", "quantity_scaled", "value_scaled",
         ),
         "vault_meta" to listOf("key", "value"),
+        "family_profile" to listOf("owner_id", "entity_type", "pan_masked", "pan_for_statements", "date_of_birth", "date_of_majority", "guardian_id", "color", "notes", "is_active", "created_at", "cas_id", "pran", "gmail_sync", "cas_id_source", "pran_source", "cas_sync_after", "pran_sync_after", "extra_json"),
+        "custody_profile" to listOf("account_id", "owner_id", "custodian", "identifier_full", "dp_id", "client_id", "bo_id", "base_currency", "nominee", "opened_on", "closed_on", "created_at", "extra_json"),
+        "instrument_profile" to listOf("id", "name", "category", "sub_category", "symbol_or_folio", "isin", "currency", "exposure_node", "l2_node", "wrapper", "allocation_split_json", "fmv_31jan2018_scaled", "amc", "rta", "amfi_code", "advisor", "scheme_type", "ucc", "exchange", "dp_name", "is_user_created", "created_at", "extra_json"),
+        "holding_profile" to listOf("holding_id", "owner_id", "instrument_id", "symbol_or_folio", "isin", "sub_category", "average_cost_per_unit_scaled", "cost_unknown", "benchmark_price_scaled", "issue_price_scaled", "coupon_rate_bps", "next_coupon_date", "maturity_date", "interest_rate_bps", "institution_name", "account_number_masked", "monthly_emi_scaled", "emi_status", "remaining_emi_count", "acquired_on", "details_json", "last_price_updated", "is_price_stale", "price_source", "needs_review", "review_reasons_json", "fmv_31jan2018_scaled", "exposure_node", "l2_node", "wrapper", "allocation_split_json", "notes", "location", "tag", "tags_json", "extra_json"),
+        "ledger_profile" to listOf("event_id", "owner_id", "holding_id", "holding_name", "account_id", "import_batch_id", "source_ref", "notes", "legacy_created_at", "extra_json"),
+        "family_goal" to listOf("id", "owner_id", "name", "target_scaled", "target_date", "priority", "created_at", "extra_json"),
+        "holding_goal" to listOf("goal_id", "holding_id", "owner_id"),
+        "import_batch_profile" to listOf("id", "owner_id", "filename", "kind", "statement_date", "period_from", "period_to", "investor_name", "investor_pan_masked", "investor_email", "cas_id", "statement_type", "rows_new", "rows_conflict", "rows_duplicate", "committed_at", "source_sha256", "extra_json"),
+        "source_document_profile" to listOf("id", "batch_id", "owner_id", "issuer", "filename", "document_kind", "mime_type", "source_sha256", "byte_length", "page_count", "received_at", "extra_json"),
+        "statement_snapshot_profile" to listOf("snapshot_id", "owner_id", "issuer", "period_from", "period_to", "import_batch_id", "investor_name", "invested_scaled", "extra_json"),
+        "statement_position_profile" to listOf("snapshot_id", "owner_id", "holding_id", "invested_scaled", "source_line_id", "statement_date", "unit_price_scaled", "isin", "folio", "current_value_scaled", "amc", "scheme_type", "source_section", "extra_json"),
+        "price_observation_profile" to listOf("id", "instrument_id", "holding_id", "owner_id", "as_of", "price_scaled", "basis", "currency", "source", "recorded_at", "extra_json"),
+        "tax_rule_profile" to listOf("id", "effective_from", "fiscal_year", "assessment_year", "rules_json", "source", "published_at", "installed_at"),
+        "liability_profile" to listOf("holding_id", "owner_id", "lender", "liability_type", "name", "principal_scaled", "outstanding_scaled", "monthly_emi_scaled", "rate_type", "interest_rate_bps", "remaining_emi_count", "start_date", "end_date", "created_at", "linked_holding_id", "details_json"),
+        "legacy_account_identity" to listOf("id", "email", "first_name", "last_name", "pan_masked", "pan_for_statements", "date_of_birth", "password_salt", "password_hash", "password_iterations", "password_changed_at", "security_q1_id", "security_q1_hash", "security_q2_id", "security_q2_hash", "created_at", "extra_json"),
+        "legacy_field_extension" to listOf("record_type", "record_id", "owner_id", "field_name", "field_type", "field_json", "source_schema"),
+        "listed_security_profile" to listOf("isin", "name", "symbol", "nse_symbol", "bse_symbol", "amfi_code", "category", "close_scaled", "price_date", "source", "updated_at"),
+        "egress_log_profile" to listOf("id", "occurred_at", "destination", "purpose", "request_bytes", "response_bytes", "outcome", "allow_listed"),
+        "gmail_seen_profile" to listOf("message_id", "attachment_id", "filename", "owner_id", "seen_at"),
+        "setting_profile" to listOf("key", "value_json"),
+    )
+    private val parityTables = setOf(
+        "family_profile",
+        "custody_profile",
+        "instrument_profile",
+        "holding_profile",
+        "ledger_profile",
+        "family_goal",
+        "holding_goal",
+        "import_batch_profile",
+        "source_document_profile",
+        "statement_snapshot_profile",
+        "statement_position_profile",
+        "price_observation_profile",
+        "tax_rule_profile",
+        "liability_profile",
+        "legacy_account_identity",
+        "legacy_field_extension",
+        "listed_security_profile",
+        "egress_log_profile",
+        "gmail_seen_profile",
+        "setting_profile",
     )
     private val integers = setOf(
         "is_primary", "quantity_scaled", "price_scaled", "quantity_delta_scaled",
         "amount_scaled", "is_complete", "value_scaled", "unit_price_scaled", "charges_scaled",
+        "is_active", "is_user_created", "cost_unknown", "is_price_stale",
+        "needs_review", "remaining_emi_count", "source_schema",
+        "rows_new", "rows_duplicate", "password_iterations", "target_scaled",
+        "average_cost_per_unit_scaled", "benchmark_price_scaled",
+        "issue_price_scaled", "coupon_rate_bps", "interest_rate_bps",
+        "monthly_emi_scaled", "fmv_31jan2018_scaled", "invested_scaled",
+        "price_scaled", "principal_scaled", "outstanding_scaled",
+        "unit_price_scaled", "current_value_scaled", "close_scaled",
+        "request_bytes", "response_bytes", "allow_listed",
+        "page_count", "byte_length", "rows_conflict", "gmail_sync",
     )
     private const val MAX_ROWS_PER_TABLE = 100_000
     private val legacyLedgerColumns = columns.getValue("ledger_event").take(8)
 
+    /** M25: use the same strict native v4 backup-column contract for validated
+     *  legacy migration. Only the approved whitelist can be emitted, and all
+     *  original record objects are separately preserved as encrypted JSON. */
+    fun emptyLegacyConversion(): JSONObject = JSONObject()
+        .put("format", 4).put("databaseVersion", VaultSchema.VERSION).also { payload ->
+            for (table in columns.keys) payload.put(table, JSONArray())
+        }
+
+    fun appendConvertedLegacyRow(payload: JSONObject, table: String, fields: Map<String, Any?>) {
+        val allowed = columns[table] ?: error("Unsupported legacy destination.")
+        require(fields.keys.all { it in allowed }) { "Invalid native conversion field." }
+        val row = JSONArray()
+        for (name in allowed) {
+            val value = fields[name]
+            row.put(when (value) {
+                null -> JSONObject.NULL
+                is String -> {
+                    require(value.length <= 1_048_576) { "Converted field too large." }
+                    if (name in integers) value.toLong().toString() else value
+                }
+                is Int, is Long -> value.toString()
+                else -> throw IllegalArgumentException("Unsupported field type.")
+            })
+        }
+        val rows = payload.getJSONArray(table)
+        require(rows.length() < MAX_ROWS_PER_TABLE) { "Too many converted records." }
+        rows.put(row)
+    }
+
     fun export(db: SQLiteDatabase): ByteArray {
-        val payload = JSONObject().put("format", 3).put("databaseVersion", VaultSchema.VERSION)
+        val payload = JSONObject().put("format", 4).put("databaseVersion", VaultSchema.VERSION)
         for ((table, names) in columns) {
             val rows = JSONArray()
             // Ledger corrections are insert-time validated against earlier events.
@@ -77,10 +158,11 @@ internal object VaultBackupTables {
         val payload = JSONObject(plain.toString(Charsets.UTF_8))
         val format = payload.getInt("format")
         val databaseVersion = payload.getInt("databaseVersion")
-        // Portable v1/v2 backups remain restorable into the v3 encrypted schema.
-        // Only format 3 carries registered CAS identity mapping rows.
+        // Restore v1/v2/v3 backups into v4 without inventing missing fields.
+        // New parity extension tables are present only in format 4 exports.
         require(
-            (format == 3 && databaseVersion == VaultSchema.VERSION) ||
+            (format == 4 && databaseVersion == VaultSchema.VERSION) ||
+                (format == 3 && databaseVersion == 3) ||
                 (format == 2 && databaseVersion == 2) ||
                 (format == 1 && databaseVersion == 1)
         ) { "Unsupported native backup schema." }
@@ -93,6 +175,7 @@ internal object VaultBackupTables {
         for ((table, availableNames) in columns) {
             // Old backups predate ISIN/folio mapping. Do not fabricate identities.
             if (format < 3 && table == "holding_cas_identity") continue
+            if (format < 4 && table in parityTables) continue
             val names = if (format == 1 && table == "ledger_event") legacyLedgerColumns
                 else availableNames
             val rows = payload.getJSONArray(table)

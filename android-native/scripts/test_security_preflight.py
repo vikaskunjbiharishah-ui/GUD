@@ -52,6 +52,13 @@ class RepositoryPolicyRoutingTests(unittest.TestCase):
             "exportEncryptedBackup",
         )
 
+    def test_original_legacy_restore_cannot_bypass_recent_approval(self):
+        self.assert_rejected(
+            "approvedWrite { delegate.restoreOriginalLegacyBackup(identity, archive) }",
+            "delegate.restoreOriginalLegacyBackup(identity, archive)",
+            "restoreOriginalLegacyBackup",
+        )
+
     def test_explicit_close_must_share_open_cleanup_mutex(self):
         self.assert_rejected(
             "override suspend fun close() = sessionBound.close()",

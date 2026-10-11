@@ -1,0 +1,38 @@
+name: Remove merged M24 and M25 branches (one time)
+# Runs only on the merge commit that introduces this one-time maintenance file.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cleanup-m24-m25.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  delete_milestone_branches:
+    if: >-
+      github.repository == 'vikaskunjbiharishah-ui/GUD' &&
+      startsWith(github.event.head_commit.message, 'merge: include M24 and M25 in main')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete only verified, merged milestone refs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          while IFS=' ' read -r branch expected; do
+            actual="$(gh api "repos/$GH_REPO/git/ref/heads/$branch" --jq '.object.sha')"
+            if [[ "$actual" != "$expected" ]]; then
+              echo "::error::Branch $branch moved; refusing to delete."
+              exit 1
+            fi
+            # The main merge commit has the full M25 lineage as its second parent.
+            gh api -X DELETE "repos/$GH_REPO/git/refs/heads/$branch"
+            echo "Deleted verified merged branch: $branch"
+          done <<'BRANCHES'
+          milestone/m24-native-parity-contract 7723cc9de86309af4d86e30f94e4cda3dd52e603
+          milestone/m25-legacy-recovery ce63c2519f9157f30346b00747fd5903f29937b8
+          BRANCHES
