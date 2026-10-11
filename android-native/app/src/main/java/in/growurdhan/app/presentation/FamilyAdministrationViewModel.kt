@@ -43,6 +43,12 @@ class FamilyAdministrationViewModel @Inject constructor(
     val state: StateFlow<FamilyAdminUiState> = mutable
     private var generation = 0L
     private var work: Job? = null
+    private var inFlightIdentity: FamilyAdminChange.RegisterOwnerIdentity? = null
+
+    private fun wipeIdentity() {
+        inFlightIdentity?.wipeSecrets()
+        inFlightIdentity = null
+    }
 
     fun onIntent(intent: FamilyAdminIntent) {
         when (intent) {
@@ -55,6 +61,7 @@ class FamilyAdministrationViewModel @Inject constructor(
 
     private fun refresh() {
         work?.cancel()
+        wipeIdentity()
         val current = ++generation
         val revision = session.credentialEpoch()
         if (!session.isUnlocked()) { clearSensitiveState(); return }
@@ -78,9 +85,12 @@ class FamilyAdministrationViewModel @Inject constructor(
 
     private fun stage(change: FamilyAdminChange) {
         if (mutable.value !is FamilyAdminUiState.Ready || !session.isUnlocked()) {
+            (change as? FamilyAdminChange.RegisterOwnerIdentity)?.wipeSecrets()
             clearSensitiveState()
             return
         }
+        wipeIdentity()
+        inFlightIdentity = change as? FamilyAdminChange.RegisterOwnerIdentity
         // Domain and database validations are deliberately rerun INSIDE the
         // single encrypted transaction; the UI snapshot never grants authority.
         mutable.value = FamilyAdminUiState.AwaitingApproval(change, session.credentialEpoch())
@@ -108,6 +118,11 @@ class FamilyAdministrationViewModel @Inject constructor(
                 if (current == generation) mutable.value = FamilyAdminUiState.Error(
                     "Family update was not confirmed. Reopen this screen to verify your records."
                 )
+            } finally {
+                request.change.let {
+                    (it as? FamilyAdminChange.RegisterOwnerIdentity)?.wipeSecrets()
+                }
+                if (inFlightIdentity === request.change) inFlightIdentity = null
             }
         }
     }
@@ -116,6 +131,7 @@ class FamilyAdministrationViewModel @Inject constructor(
         ++generation
         work?.cancel()
         work = null
+        wipeIdentity()
         mutable.value = FamilyAdminUiState.Locked
     }
 

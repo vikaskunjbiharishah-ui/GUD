@@ -36,15 +36,40 @@ data class FamilyGoalProfile(
     val holdingIds: List<HoldingId>,
     val taggedExposure: MoneyScaled,
 )
+/** Safe public projection: neither plaintext PAN nor security-answer hashes leave SQLCipher. */
+data class NativeOwnerIdentityPublic(
+    val firstName: String, val lastName: String, val email: String,
+    val panMasked: String?, val dateOfBirth: String?,
+    val firstQuestionId: String?, val secondQuestionId: String?,
+)
+
 data class FamilyAdministrationSnapshot(
     val family: List<FamilyProfile>,
     val accounts: List<FinancialAccountProfile>,
     val goals: List<FamilyGoalProfile>,
     val holdings: List<Holding>,
+    val ownerIdentity: NativeOwnerIdentityPublic? = null,
 )
 
 /** Every command is staged before a NEW Android device credential approval. */
 sealed interface FamilyAdminChange {
+    /** No plaintext answers in toString(), saved-state, logs or decrypted files. */
+    class RegisterOwnerIdentity(
+        val firstName: String,
+        val lastName: String,
+        val email: String,
+        val pan: String,
+        val dateOfBirth: String,
+        val firstQuestionId: String,
+        val firstAnswer: CharArray,
+        val secondQuestionId: String,
+        val secondAnswer: CharArray,
+    ) : FamilyAdminChange {
+        fun wipeSecrets() {
+            firstAnswer.fill('\u0000')
+            secondAnswer.fill('\u0000')
+        }
+    }
     class Member(
         val ownerId: OwnerId, val name: String, val relation: String,
         val dob: String?, val guardianId: OwnerId?, val color: String?,

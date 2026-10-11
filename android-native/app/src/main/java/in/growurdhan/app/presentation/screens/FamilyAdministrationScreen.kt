@@ -97,6 +97,92 @@ fun FamilyAdministrationScreen(
                     "Family" -> {
                         Text("Family and ownership", style = MaterialTheme.typography.titleLarge)
                         OutlinedButton(onClick = onAddMember) { Text("Register another family member") }
+
+                        book.ownerIdentity?.let { identity ->
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                                    Text("Registered owner account",style = MaterialTheme.typography.titleMedium)
+                                    Text(identity.firstName + " " + identity.lastName)
+                                    Text("Email: " + identity.email)
+                                    identity.panMasked?.let { Text("PAN: " + it + " (masked)") }
+                                    identity.dateOfBirth?.let { Text("DOB: " + it) }
+                                    Text("Security questions: " + listOfNotNull(
+                                        identity.firstQuestionId,identity.secondQuestionId).joinToString(", "))
+                                    Text("Security answers and original plaintext PAN are never shown.",
+                                        style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                        if (book.ownerIdentity == null && book.family.any { it.primary }) {
+                            var first by remember { mutableStateOf("") }
+                            var last by remember { mutableStateOf("") }
+                            var email by remember { mutableStateOf("") }
+                            var pan by remember { mutableStateOf("") }
+                            var dob by remember { mutableStateOf("") }
+                            var q1 by remember { mutableStateOf("school") }
+                            var q2 by remember { mutableStateOf("city") }
+                            var answer1 by remember { mutableStateOf("") }
+                            var answer2 by remember { mutableStateOf("") }
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("Register primary owner identity",
+                                        style = MaterialTheme.typography.titleMedium)
+                                    Text("Encrypted account profile: your name, email, PAN, DOB " +
+                                        "and two independent security answers. This is NOT a " +
+                                        "password-reset bypass; keep your offline recovery code.")
+                                    OutlinedTextField(first,{ if(it.length <= 100) first=it },
+                                        label = { Text("First name") },modifier = Modifier.fillMaxWidth())
+                                    OutlinedTextField(last,{ if(it.length <= 100) last=it },
+                                        label = { Text("Last name") },modifier = Modifier.fillMaxWidth())
+                                    OutlinedTextField(email,{ if(it.length <= 254) email=it },
+                                        label = { Text("Owner account email") },modifier = Modifier.fillMaxWidth())
+                                    OutlinedTextField(pan,{ if(it.length <= 10) pan=it.uppercase() },
+                                        label = { Text("PAN") },modifier = Modifier.fillMaxWidth(),
+                                        visualTransformation = PasswordVisualTransformation())
+                                    OutlinedTextField(dob,{ if(it.length <= 10) dob=it },
+                                        label = { Text("Date of birth YYYY-MM-DD") },
+                                        modifier = Modifier.fillMaxWidth())
+                                    val options = listOf("maiden","school","pet","city","teacher","vehicle")
+                                    Text("First original security question",style = MaterialTheme.typography.titleSmall)
+                                    Row(Modifier.horizontalScroll(rememberScrollState())) {
+                                        options.forEach { id ->
+                                            FilterChip(q1 == id,onClick = { q1=id },label = { Text(id) })
+                                        }
+                                    }
+                                    OutlinedTextField(answer1,{ if(it.length <= 256) answer1=it },
+                                        label = { Text("First security answer") },
+                                        visualTransformation = PasswordVisualTransformation(),
+                                        modifier = Modifier.fillMaxWidth())
+                                    Text("Second original security question",style = MaterialTheme.typography.titleSmall)
+                                    Row(Modifier.horizontalScroll(rememberScrollState())) {
+                                        options.forEach { id ->
+                                            FilterChip(q2 == id,onClick = { q2=id },label = { Text(id) })
+                                        }
+                                    }
+                                    OutlinedTextField(answer2,{ if(it.length <= 256) answer2=it },
+                                        label = { Text("Second security answer") },
+                                        visualTransformation = PasswordVisualTransformation(),
+                                        modifier = Modifier.fillMaxWidth())
+                                    Button(
+                                        enabled = first.isNotBlank() && last.isNotBlank() &&
+                                            email.isNotBlank() && pan.length == 10 && dob.length == 10 &&
+                                            q1 != q2 && answer1.length >= 3 && answer2.length >= 3,
+                                        onClick = {
+                                            val cmd = FamilyAdminChange.RegisterOwnerIdentity(
+                                                first,last,email,pan,dob,q1,answer1.toCharArray(),
+                                                q2,answer2.toCharArray(),
+                                            )
+                                            first="";last="";email="";pan="";dob=""
+                                            answer1="";answer2=""
+                                            onIntent(FamilyAdminIntent.Stage(cmd))
+                                        },
+                                    ) { Text("Register account with new device approval") }
+                                }
+                            }
+                        }
+
                         val shown = book.family.filter { selectedOwner == null || it.id == selectedOwner }
                         if (shown.isEmpty()) Text("No family members in this scope.")
                         shown.forEach { person ->

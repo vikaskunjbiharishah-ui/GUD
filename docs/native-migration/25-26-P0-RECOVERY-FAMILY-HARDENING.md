@@ -12,6 +12,16 @@ Forgotten-password reset needs **both** the previously enrolled recovery code an
 
 **Recovery limitations:** This code cannot recover a missing Keystore, a destroyed database, a lost offline recovery code, or a previously enrolled user who forgot the password **before** provisioning a recovery code. For lost-device recovery, the owner must preserve a separately verified password-encrypted portable or historical vault backup and use a new installation. A historic `.kosha` password is not automatically equivalent to the native local app password.
 
+## M25 — Native owner account registration / identity fields
+
+After the primary Self family member exists, the authorized Family administration screen now offers **one-time native primary-owner profile registration**. It collects the original product's first/last name, email, 10-character PAN, DOB and two distinct questions from the original six question IDs. The original answer normalization and PBKDF2-SHA256 210,000-round independently salted verifiers are used; answers are never persisted in cleartext. The local Keystore-HMAC app-password verifier is **not exported or duplicated** as a weak password hash. Profile fields live exclusively inside the existing SQLCipher v4 `legacy_account_identity` backup-whitelisted record, with a `native_identity` marker and no exportable local-password verifier. Previously imported original accounts use the same backing table and cannot be silently overwritten by native signup. The visible record shows only a masked PAN and question IDs, never actual answers.
+
+Registration stages an ephemeral command, obtains a NEW Android device confirmation and writes via the existing transactionally authorized repository. Mutable answer arrays are wiped on completion, failure, cancel and lock. Native encrypted portable backups retain the identity, while screenshots/recents are blocked by the existing `FLAG_SECURE`.
+
+**Important security distinction:** An original security answer, PAN or date of birth by itself (or combined with Android device credential) is **not** granted permission to reset a local app password on an already-encrypted native vault. Such a bypass would weaken the new Keystore-bound password gate. Forgotten local passwords require the offline one-time recovery code **plus** OS device credential. Historic backup imports still require the two *original* security-answer proofs. Native login is still password-based, not email-username/password based; this is a source-parity difference requiring owner review before full M25 closure.
+
+The native app now also enforces the original **180-day password-renewal age** at the authenticated UI boundary, using the previous-password + fresh OS challenge rotation flow. No financial data key is rotated during this local-password update.
+
 ## M25 — Original locked archive formats
 
 The original `src/lib/backup.ts` accepts two encrypted formats:
@@ -37,10 +47,11 @@ No physical phone has been connected to this session, so **actual on-device appr
 
 1. New device: create native local password with Android lock, record and acknowledge recovery code. Force-stop/reopen, verify correct/wrong password; enter recovered code and new password; decline OS challenge then accept it; verify old password and one-time code both fail after success. Validate SQLCipher page integrity and all record counts unchanged.
 2. Existing app on a phone with login already enrolled: log in normally, provision recovery code after OS confirmation, then test recovery. Confirm no code generated when OS challenge fails or Keystore key is unavailable.
-3. Restore a **synthetic** authenticated `GUDVLT01` v2 and `KOSHA1` v1 backup into separate empty installations; compare owner IDs, HUF/guardian, custody, PAN mask, all 11 event kinds, supersessions, amounts, quantities, goal links/targets and CAS JSON before/after and after native portable backup roundtrip. Wrong identity, tampered ciphertext, duplicate file, occupied-vault imports must leave rows unchanged.
-4. With two owners (Self/HUF/Joint relation), switch family scope across Home/Portfolio/Accounts/Goals/Holdings/Statements. Verify filtering never changes underlying ledger, values or account owner; cross-owner account move and tags must fail. Test inactive member with dependants and history; retry after restart.
-5. Test low-memory activity recreation, orientation, Android app background, no screenshots/recents, screen-reader labels and small handset vs tablet form scroll; recovery-code screen must not expose a saved-state secret.
-6. Record device/API/Android security patch, test operator, sanitized fixture hashes, SQLCipher FK/integrity results and pass/fail in M34 release report.
+3. Register the native primary owner's name/email/PAN/DOB and two distinct original security questions. Confirm aborting device challenge commits nothing; export and inspect encrypted portable backup with non-plaintext answer verifiers, then restore it. A second registration and an existing restored source account must not be overwritten.
+4. Restore a **synthetic** authenticated `GUDVLT01` v2 and `KOSHA1` v1 backup into separate empty installations; compare owner IDs, HUF/guardian, custody, PAN mask, all 11 event kinds, supersessions, amounts, quantities, goal links/targets and CAS JSON before/after and after native portable backup roundtrip. Wrong identity, tampered ciphertext, duplicate file, occupied-vault imports must leave rows unchanged.
+5. With two owners (Self/HUF/Joint relation), switch family scope across Home/Portfolio/Accounts/Goals/Holdings/Statements. Verify filtering never changes underlying ledger, values or account owner; cross-owner account move and tags must fail. Test inactive member with dependants and history; retry after restart.
+6. Test low-memory activity recreation, orientation, Android app background, no screenshots/recents, screen-reader labels and small handset vs tablet form scroll; recovery-code screen must not expose a saved-state secret.
+7. Record device/API/Android security patch, test operator, sanitized fixture hashes, SQLCipher FK/integrity results and pass/fail in M34 release report.
 
 ## CI gate
 

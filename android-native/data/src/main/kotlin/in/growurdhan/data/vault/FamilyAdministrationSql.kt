@@ -3,6 +3,10 @@ package `in`.growurdhan.data.vault
 import `in`.growurdhan.core.model.*
 import java.time.LocalDate
 import java.time.Instant
+import android.util.Base64
+import java.security.SecureRandom
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 import java.util.UUID
 import net.zetetic.database.sqlcipher.SQLiteDatabase
 
@@ -124,11 +128,27 @@ internal object FamilyAdministrationSql {
                 ))
             }
         }
-        return FamilyAdministrationSnapshot(family, accounts, goals, holdings)
+        val identity = db.rawQuery(
+            "SELECT first_name,last_name,email,pan_masked,date_of_birth," +
+                "security_q1_id,security_q2_id FROM legacy_account_identity WHERE id=1",null,
+        ).use { c ->
+            if (!c.moveToFirst()) null else NativeOwnerIdentityPublic(
+                c.getString(0) ?: "",c.getString(1) ?: "",c.getString(2) ?: "",
+                if (c.isNull(3)) null else c.getString(3).let { pan ->
+                    if (pan.length == 10) pan.take(5) + "****" + pan.takeLast(1)
+                    else "**********"
+                },
+                if (c.isNull(4)) null else c.getString(4),
+                if (c.isNull(5)) null else c.getString(5),
+                if (c.isNull(6)) null else c.getString(6),
+            )
+        }
+        return FamilyAdministrationSnapshot(family, accounts, goals, holdings, identity)
     }
 
     fun apply(db: SQLiteDatabase, cmd: FamilyAdminChange) {
         when (cmd) {
+            is FamilyAdminChange.RegisterOwnerIdentity -> registerIdentity(db,cmd)
             is FamilyAdminChange.Member -> updateMember(db, cmd)
             is FamilyAdminChange.SetMemberActive -> setActive(db, cmd)
             is FamilyAdminChange.Account -> saveAccount(db, cmd)
@@ -141,6 +161,71 @@ internal object FamilyAdministrationSql {
             }
             is FamilyAdminChange.TagHolding -> tag(db, cmd)
         }
+    }
+
+    private val securityQuestionIds = setOf(
+        "maiden", "school", "pet", "city", "teacher", "vehicle",
+    )
+
+    /** Original auth answer semantics: trim/lowercase/collapse whitespace,
+     * PBKDF2-SHA256 210k, independent 16-byte salts. No cleartext answer disk. */
+    private fun hashAnswer(input: CharArray): String {
+        val normalized = input.concatToString().trim().lowercase(java.util.Locale.ROOT)
+            .replace(Regex("\\s+")," ").toCharArray()
+        require(normalized.size in 3..256) { "A nonblank security answer is required." }
+        val salt = ByteArray(16).also(SecureRandom()::nextBytes)
+        val spec = PBEKeySpec(normalized, salt, 210_000, 256)
+        return try {
+            val value = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                .generateSecret(spec).encoded
+            try {
+                Base64.encodeToString(salt,Base64.NO_WRAP) + ":" +
+                    Base64.encodeToString(value,Base64.NO_WRAP) + ":210000"
+            } finally { value.fill(0) }
+        } finally {
+            normalized.fill('\u0000')
+            spec.clearPassword()
+            salt.fill(0)
+        }
+    }
+
+    private fun registerIdentity(db: SQLiteDatabase, c: FamilyAdminChange.RegisterOwnerIdentity) {
+        require(count(db, "SELECT count(*) FROM family_member WHERE is_primary=1") == 1L) {
+            "Register the primary Self family member before account identity."
+        }
+        require(count(db,"SELECT count(*) FROM legacy_account_identity WHERE id=1") == 0L) {
+            "An existing account identity must never be silently overwritten."
+        }
+        val first = required(c.firstName,100)
+        val last = required(c.lastName,100)
+        val email = required(c.email,254).lowercase(java.util.Locale.ROOT)
+        require(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").matches(email)) {
+            "Email is not valid."
+        }
+        val pan = required(c.pan,10).uppercase(java.util.Locale.ROOT)
+        require(panPattern.matches(pan)) { "PAN is invalid." }
+        val dob = requireNotNull(date(c.dateOfBirth))
+        require(!LocalDate.parse(dob).isAfter(LocalDate.now()))
+        require(c.firstQuestionId != c.secondQuestionId &&
+            c.firstQuestionId in securityQuestionIds &&
+            c.secondQuestionId in securityQuestionIds) {
+            "Two distinct registered security questions are required."
+        }
+        val firstHash = hashAnswer(c.firstAnswer)
+        val secondHash = hashAnswer(c.secondAnswer)
+        db.execSQL(
+            """INSERT INTO legacy_account_identity(
+                id,email,first_name,last_name,pan_masked,pan_for_statements,
+                date_of_birth,security_q1_id,security_q1_hash,
+                security_q2_id,security_q2_hash,created_at,extra_json)
+               VALUES(1,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            arrayOf(email,first,last,pan.take(5)+"****"+pan.takeLast(1),pan,dob,
+                c.firstQuestionId,firstHash,c.secondQuestionId,secondHash,
+                Instant.now().toString(),"""{"native_identity":true}"""),
+        )
+        // The local app password verifier remains Keystore-HMAC bound, not
+        // an exportable legacy password hash. Native backups carry the identity
+        // only inside the separate authenticated portable ciphertext.
     }
 
     private fun updateMember(db: SQLiteDatabase, c: FamilyAdminChange.Member) {

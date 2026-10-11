@@ -164,6 +164,68 @@ class FamilyAdministrationInstrumentedTest {
         } finally { bytes.fill(0) }
     }
 
+    @Test fun sourceParityOwnerIdentityIsEncryptedAndExportedWithoutAnswerPlaintext() =
+        testVault { vault ->
+            val self = OwnerId("self")
+            vault.createMember(FamilyMember(self,"Synthetic Self","Self",true))
+            val request = FamilyAdminChange.RegisterOwnerIdentity(
+                "Synthetic","Owner","synthetic@example.test","ABCDE1234F",
+                "1990-01-01","school","synthetic answer1".toCharArray(),
+                "city","synthetic answer2".toCharArray(),
+            )
+            try {
+                vault.applyFamilyAdministration(request)
+            } finally { request.wipeSecrets() }
+            val view=vault.familyAdministration().ownerIdentity!!
+            assertEquals("Synthetic",view.firstName)
+            assertEquals("Owner",view.lastName)
+            assertEquals("synthetic@example.test",view.email)
+            assertEquals("ABCDE****F",view.panMasked)
+            assertEquals("1990-01-01",view.dateOfBirth)
+            val passphrase="synthetic-identity-portable".toCharArray()
+            val backup=try { vault.exportEncryptedBackup(passphrase) }
+                finally { passphrase.fill('\u0000') }
+            try {
+                val pw="synthetic-identity-portable".toCharArray()
+                val plain=try { VaultBackupCodec.decrypt(backup,pw) }
+                    finally { pw.fill('\u0000') }
+                try {
+                    val json=org.json.JSONObject(plain.toString(Charsets.UTF_8))
+                    val rows=json.getJSONArray("legacy_account_identity")
+                    assertEquals(1,rows.length())
+                    val visible=plain.toString(Charsets.UTF_8)
+                    assertFalse(visible.contains("synthetic answer1"))
+                    assertFalse(visible.contains("synthetic answer2"))
+                } finally { plain.fill(0) }
+            } finally { backup.fill(0) }
+            val replay = FamilyAdminChange.RegisterOwnerIdentity(
+                "Another","Owner","another@example.test","ABCDE1234F","1990-01-01",
+                "school","answer a".toCharArray(),"city","answer b".toCharArray(),
+            )
+            try {
+                assertThrows(Exception::class.java) {
+                    runBlocking { vault.applyFamilyAdministration(replay) }
+                }
+            } finally { replay.wipeSecrets() }
+        }
+
+    @Test fun securityQuestionEnrollmentRejectsDuplicateQuestionsAndBadPan() =
+        testVault { vault ->
+            vault.createMember(FamilyMember(OwnerId("self"),"Synthetic Self","Self",true))
+            val wrong = FamilyAdminChange.RegisterOwnerIdentity(
+                "First","Last","synthetic@example.test","INVALID",
+                "1990-01-01","school","answer first".toCharArray(),
+                "school","answer second".toCharArray(),
+            )
+            try {
+                assertThrows(Exception::class.java) {
+                    runBlocking { vault.applyFamilyAdministration(wrong) }
+                }
+            } finally { wrong.wipeSecrets() }
+            assertNull(vault.familyAdministration().ownerIdentity)
+            assertEquals(0,vault.health().foreignKeyViolations)
+        }
+
     @Test fun minorChildRequiresOwnedGuardianAndPrimaryRelationshipRemainsImmutable() =
         testVault { db ->
             val self=OwnerId("self")

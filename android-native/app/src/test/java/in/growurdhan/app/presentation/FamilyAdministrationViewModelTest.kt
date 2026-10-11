@@ -43,6 +43,26 @@ class FamilyAdministrationViewModelTest {
         coVerify(exactly = 0) { repo.applyFamilyAdministration(any()) }
     }
 
+    @Test fun cancelledIdentityOnboardingWipesPlaintextSecurityAnswers() = runTest {
+        val gate = VaultSessionGate(UnitTestPasswordAdmission)
+        gate.grantDeviceCredential()
+        val repo = mockk<VaultRepository>()
+        coEvery { repo.familyAdministration() } returns empty
+        val vm = FamilyAdministrationViewModel(repo,gate)
+        vm.onIntent(FamilyAdminIntent.Refresh)
+        advanceUntilIdle()
+        val request = FamilyAdminChange.RegisterOwnerIdentity(
+            "Synthetic","Owner","owner@example.test","ABCDE1234F","1990-01-01",
+            "school","first answer".toCharArray(),"city","second answer".toCharArray(),
+        )
+        vm.onIntent(FamilyAdminIntent.Stage(request))
+        assertTrue(vm.state.value is FamilyAdminUiState.AwaitingApproval)
+        vm.clearSensitiveState()
+        assertTrue(request.firstAnswer.all { it == '\u0000' })
+        assertTrue(request.secondAnswer.all { it == '\u0000' })
+        coVerify(exactly = 0) { repo.applyFamilyAdministration(any()) }
+    }
+
     @Test fun freshlyConfirmedWriteUsesRepositoryAndPublishesOnlyCurrentSession() = runTest {
         val gate = VaultSessionGate(UnitTestPasswordAdmission)
         gate.grantDeviceCredential()
