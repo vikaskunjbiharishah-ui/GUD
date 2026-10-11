@@ -352,7 +352,8 @@ internal object FamilyAdministrationSql {
     private fun saveGoal(db: SQLiteDatabase, c: FamilyAdminChange.Goal) {
         c.ownerId?.let { ownerExists(db,it) }
         val name = required(c.name,200)
-        require(c.target == null || c.target.raw >= 0)
+        val target = c.target
+        require(target == null || target.raw >= 0)
         val targetDate = date(c.targetDate)
         val id = c.id ?: UUID.randomUUID().toString()
         require(id.length <= 128)
@@ -360,9 +361,10 @@ internal object FamilyAdministrationSql {
         if (present) {
             require(c.id != null)
             // Prevent a goal becoming owned by someone other than its already-linked holdings.
-            if (c.ownerId != null) {
+            val ownerId = c.ownerId
+            if (ownerId != null) {
                 require(count(db,"SELECT count(*) FROM holding_goal WHERE goal_id=? AND owner_id!=?",
-                    id,c.ownerId.raw) == 0L) {
+                    id,ownerId.raw) == 0L) {
                     "Goal ownership conflicts with existing linked holdings."
                 }
             }
