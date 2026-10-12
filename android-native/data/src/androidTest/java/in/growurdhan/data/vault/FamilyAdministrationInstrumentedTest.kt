@@ -267,9 +267,9 @@ class FamilyAdministrationInstrumentedTest {
                 try {
                     val rows=org.json.JSONObject(plaintext.toString(Charsets.UTF_8))
                         .getJSONArray("family_profile")
-                    val entity=(0 until rows.length()).map { rows.getJSONObject(it) }
-                        .single { it.getString("owner_id")=="huf" }
-                    assertEquals("HUF",entity.getString("entity_type"))
+                    val entity=(0 until rows.length()).map { rows.getJSONArray(it) }
+                        .single { it.getString(0)=="huf" }
+                    assertEquals("HUF",entity.getString(1))
                 } finally { plaintext.fill(0) }
             } finally { backup.fill(0) }
             vault.applyFamilyAdministration(FamilyAdminChange.Member(
@@ -286,9 +286,9 @@ class FamilyAdministrationInstrumentedTest {
                     val rows=org.json.JSONObject(data.toString(Charsets.UTF_8))
                         .getJSONArray("family_profile")
                     assertEquals("INDIVIDUAL",(0 until rows.length())
-                        .map { rows.getJSONObject(it) }
-                        .single { it.getString("owner_id")=="huf" }
-                        .getString("entity_type"))
+                        .map { rows.getJSONArray(it) }
+                        .single { it.getString(0)=="huf" }
+                        .getString(1))
                 } finally { data.fill(0) }
             } finally { newBackup.fill(0) }
         }

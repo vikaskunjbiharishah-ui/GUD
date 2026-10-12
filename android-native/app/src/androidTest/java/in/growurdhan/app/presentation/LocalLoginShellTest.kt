@@ -21,9 +21,14 @@ class LocalLoginShellTest {
     @Test fun firstInstallRequiresTwoMatchingPasswordsBeforeDeviceApproval() {
         var entered: Pair<String, String?>? = null
         compose.setContent {
-            LocalLoginScreen(LocalLoginStatus.NEEDS_SETUP, null) { password, repeated ->
-                entered = password to repeated
-            }
+            LocalLoginScreen(
+                state = LocalLoginStatus.NEEDS_SETUP,
+                message = null,
+                onSubmitWithEmail = { _, password, repeated ->
+                    entered = password to repeated
+                },
+                onSubmit = { password, repeated -> entered = password to repeated },
+            )
         }
         compose.onNodeWithTag("LocalAccountEmail").performTextInput("synthetic@example.test")
         compose.onNodeWithTag("LocalAppPassword").performTextInput("Synthetic!Pass123")
