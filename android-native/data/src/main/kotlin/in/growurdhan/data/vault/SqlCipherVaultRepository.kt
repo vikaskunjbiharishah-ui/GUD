@@ -818,19 +818,34 @@ class SqlCipherVaultRepository(
     override suspend fun holdings(): List<Holding> = inspect { db -> readHoldings(db) }
 
     override suspend fun holdingProfiles(): List<HoldingProfileSnapshot> = inspect { db ->
-        db.rawQuery(
-            """SELECT h.id,h.owner_id,h.display_name,h.asset_category,
+        // Columns originate exclusively from a compiled static allowlist.
+        val richColumns = HoldingRichMetadataContract.editableColumns.sorted()
+        val sql = """SELECT h.id,h.owner_id,h.display_name,h.asset_category,
                 p.sub_category,p.details_json,p.notes,p.location,p.symbol_or_folio,p.isin,
                 p.acquired_on,p.last_price_updated,p.price_source,
-                p.average_cost_per_unit_scaled,p.cost_unknown,p.extra_json
-                FROM holding h LEFT JOIN holding_profile p
+                p.average_cost_per_unit_scaled,p.cost_unknown,p.extra_json,""" +
+            richColumns.joinToString(",") { "p." + it } +
+            """ FROM holding h LEFT JOIN holding_profile p
                 ON h.id=p.holding_id AND h.owner_id=p.owner_id
-                ORDER BY h.owner_id,h.id""", null,
-        ).use { cursor ->
+                ORDER BY h.owner_id,h.id"""
+        db.rawQuery(sql, null).use { cursor ->
             buildList {
                 fun string(index: Int): String? = if (cursor.isNull(index)) null else cursor.getString(index)
                 while (cursor.moveToNext()) {
                     val extras = JSONObject(string(15) ?: "{}")
+                    val financialFacts = JSONObject()
+                    richColumns.forEachIndexed { ordinal, key ->
+                        val index = 16 + ordinal
+                        if (!cursor.isNull(index)) {
+                            if (key in HoldingRichMetadataContract.moneyColumns ||
+                                key in HoldingRichMetadataContract.rateColumns ||
+                                key in HoldingRichMetadataContract.countColumns) {
+                                financialFacts.put(key, cursor.getLong(index))
+                            } else {
+                                financialFacts.put(key, cursor.getString(index))
+                            }
+                        }
+                    }
                     add(HoldingProfileSnapshot(
                         holdingId = HoldingId(cursor.getString(0)),
                         ownerId = OwnerId(cursor.getString(1)),
@@ -850,6 +865,7 @@ class SqlCipherVaultRepository(
                             else MoneyScaled(cursor.getLong(13)),
                         archived = extras.optBoolean("m27Archived", false),
                         closedOn = extras.optString("m27ClosedOn").ifBlank { null },
+                        richMetadataJson = financialFacts.toString(),
                     ))
                 }
             }
