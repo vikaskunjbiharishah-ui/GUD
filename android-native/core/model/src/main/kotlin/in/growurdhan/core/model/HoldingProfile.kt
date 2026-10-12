@@ -50,5 +50,4 @@ data class HoldingProfileEdit(
     /** ISO date marking a safely closed zero-position holding. */
     val closedOn: String? = null,
     /** Original Holding-level financial metadata columns, typed via allowlist. */
-    val richMetadataJson: String = "{}",
-)
+
