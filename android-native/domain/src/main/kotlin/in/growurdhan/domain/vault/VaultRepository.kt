@@ -58,6 +58,10 @@ interface VaultRepository {
     suspend fun casIdentities(): List<CasHoldingIdentity>
     suspend fun holdings(): List<Holding>
     suspend fun events(): List<LedgerEvent>
+    /** Encrypted extended holding details; never infer an acquisition lot. */
+    suspend fun holdingProfiles(): List<HoldingProfileSnapshot>
+    /** OS-approved atomic owner-preserving profile and custom-price edit. */
+    suspend fun updateHoldingProfile(edit: HoldingProfileEdit)
     /** Consistent members/holdings/ledger captured under ONE SQL read transaction. */
     suspend fun readBook(): VaultBook
     suspend fun health(): VaultHealth
