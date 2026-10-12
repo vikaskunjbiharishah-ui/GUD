@@ -47,6 +47,39 @@ class NativeCustodyHoldingInstrumentedTest {
         return vault.registerCustodyAccount(actualOwner, "CAMS", "Synthetic registrar")
     }
 
+    @Test fun allOriginalHoldingDetailKeysPersistWithTheirHistoricalValueTypes(): Unit = runBlocking {
+        val registered = seed()
+        val holding = vault.registerDetailedAsset(
+            registered.ownerId, "Synthetic multi-field fixture",
+            "SPECIALISED", "AIF",
+        )
+        val fields = JSONObject()
+        for (key in ReactV9HoldingDetailsContract.fields) {
+            val value: Any = when (key) {
+                "tdsApplicable" -> true
+                "areaSqFt", "ownershipPercent", "originalTenorMonths", "incomeDay" -> 1
+                "annualContributionMinor", "faceValueMinor", "commitmentMinor",
+                "capitalCalledMinor", "monthlyIncomeMinor" -> "10000"
+                else -> "synthetic"
+            }
+            fields.put(key, value)
+        }
+        vault.updateHoldingProfile(HoldingProfileEdit(
+            holding.id, registered.ownerId, holding.name,
+            "AIF", fields.toString(),
+        ))
+        vault.close()
+        vault.openOrCreate()
+        val restored = JSONObject(vault.holdingProfiles().single().detailsJson)
+        assertEquals(ReactV9HoldingDetailsContract.fields.size, restored.length())
+        for (key in ReactV9HoldingDetailsContract.fields) {
+            assertTrue("Missing original v9 key " + key, restored.has(key))
+            assertEquals(fields.get(key), restored.get(key))
+        }
+        assertNull(vault.holdingProfiles().single().verifiedCostPerUnit)
+        assertTrue(vault.events().isEmpty())
+    }
+
     @Test fun canonicalSubtypeAndHoldingProfileEditsAreEncryptedAndReversible(): Unit = runBlocking {
         val account = seed()
         val asset = vault.registerDetailedAsset(
