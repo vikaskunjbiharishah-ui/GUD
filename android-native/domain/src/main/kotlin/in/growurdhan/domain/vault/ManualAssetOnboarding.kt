@@ -17,20 +17,24 @@ object ManualAssetOnboarding {
         "EQUITY", "MUTUAL_FUND", "GOLD_SGB", "FIXED_INCOME",
         "REAL_ESTATE", "SPECIALISED", "CASH_BANK", "LIABILITY",
     )
+    /** Exact source labels: GUD-Android-Gmail src/types.ts ASSET_SUBCATEGORIES. */
     val subCategories: Map<String, List<String>> = mapOf(
-        "EQUITY" to listOf("LISTED_SHARE", "UNLISTED_SHARE", "REIT", "INVIT", "ETF"),
-        "MUTUAL_FUND" to listOf("EQUITY_FUND", "DEBT_FUND", "HYBRID_FUND",
-            "INDEX_FUND", "ETF", "LIQUID_FUND", "OTHER_FUND"),
-        "GOLD_SGB" to listOf("PHYSICAL_GOLD", "SGB", "GOLD_ETF", "DIGITAL_GOLD"),
-        "FIXED_INCOME" to listOf("PPF", "SSY", "EPF", "FD", "RD", "NSC",
-            "SCSS", "BOND", "DEBENTURE", "OTHER_DEPOSIT"),
-        "REAL_ESTATE" to listOf("RESIDENTIAL_PROPERTY", "COMMERCIAL_PROPERTY",
-            "LAND", "RENTAL_PROPERTY"),
-        "SPECIALISED" to listOf("NPS_TIER_I", "NPS_TIER_II", "AIF_I", "AIF_II",
-            "AIF_III", "PMS", "ULIP", "REIT", "INVIT", "OTHER_ALTERNATIVE"),
-        "CASH_BANK" to listOf("SAVINGS", "CURRENT", "CASH", "WALLET", "OTHER_BANK"),
-        "LIABILITY" to listOf("HOME_LOAN", "PERSONAL_LOAN", "CAR_LOAN",
-            "EDUCATION_LOAN", "MORTGAGE", "CREDIT_CARD", "OTHER_LOAN"),
+        "EQUITY" to listOf("Large cap", "Mid cap", "Small cap",
+            "Multi & flexi cap", "Sector & thematic", "Other"),
+        "MUTUAL_FUND" to listOf("Equity fund", "Debt fund", "Hybrid fund",
+            "Index / ETF", "ELSS (tax saving)", "Other"),
+        "GOLD_SGB" to listOf("Sovereign Gold Bond", "Physical gold (24K)",
+            "Digital gold", "Other"),
+        "FIXED_INCOME" to listOf("PPF", "EPF", "NPS", "Sukanya Samriddhi (SSY)",
+            "Bank FD", "SCSS", "NSC", "KVP", "POMIS", "Post Office RD",
+            "RBI Floating Rate Bond", "Bond / GOI", "Other"),
+        "REAL_ESTATE" to listOf("Residential", "Commercial", "Land",
+            "REIT", "InvIT", "Other"),
+        "SPECIALISED" to listOf("PMS", "AIF", "Unlisted equity", "ESOP", "Other"),
+        "CASH_BANK" to listOf("Savings account", "Current account",
+            "Liquid / overnight", "Other"),
+        "LIABILITY" to listOf("Home loan", "Car loan", "Education loan",
+            "Personal loan", "Other"),
     )
     fun requireCanonicalSubCategory(category: String, subCategory: String) {
         require(category in canonicalCategories &&
