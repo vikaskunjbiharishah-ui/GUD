@@ -136,9 +136,9 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                 }
             } else ""
             val label = when {
-                key in HoldingRichMetadataContract.moneyColumns -> "$" + "{key} (INR)"
-                key in HoldingRichMetadataContract.rateColumns -> "$" + "{key} (percent p.a.)"
-                key in HoldingRichMetadataContract.jsonColumns -> "$" + "{key} (JSON array)"
+                key in HoldingRichMetadataContract.moneyColumns -> key + " (INR)"
+                key in HoldingRichMetadataContract.rateColumns -> key + " (percent p.a.)"
+                key in HoldingRichMetadataContract.jsonColumns -> key + " (JSON array)"
                 else -> key
             }
             OutlinedTextField(
