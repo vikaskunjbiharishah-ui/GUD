@@ -344,6 +344,39 @@ class SqlCipherVaultRepository(
                 "Encrypted book changed after review; start a fresh trade."
             }
             insertLedgerRow(db, mapFinancialEvent(current.event))
+            // A user-reviewed valuation observation changes the holding's
+            // displayed quote atomically with its immutable source event.
+            val replacesValuation = current.event.kind == FinancialEventKind.CORRECTION &&
+                readEvents(db).any { it.id == current.event.supersedesEventId &&
+                    it.kind == LedgerKind.VALUATION_UPDATE }
+            if (current.event.kind == FinancialEventKind.VALUATION_UPDATE ||
+                replacesValuation) {
+                val price = current.event.unitPrice?.raw
+                    ?: throw IllegalArgumentException("Valuation requires a quoted unit price.")
+                val lastKnownDate = db.rawQuery(
+                    """SELECT MAX(event_date) FROM ledger_event WHERE holding_id=?
+                        AND financial_kind='VALUATION_UPDATE' AND id<>?""",
+                    arrayOf(current.event.holdingId.raw, current.event.supersedesEventId ?: ""),
+                ).use { cursor ->
+                    if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getString(0) else null
+                }
+                require(lastKnownDate == null || current.event.date.toString() >= lastKnownDate) {
+                    "A backdated valuation cannot replace a newer recorded price."
+                }
+                db.execSQL("UPDATE holding SET price_scaled=? WHERE id=? AND owner_id=?",
+                    arrayOf(price, current.event.holdingId.raw, current.event.ownerId.raw))
+                db.execSQL(
+                    """INSERT OR IGNORE INTO holding_profile
+                        (holding_id,owner_id,cost_unknown) VALUES(?,?,1)""",
+                    arrayOf(current.event.holdingId.raw, current.event.ownerId.raw),
+                )
+                db.execSQL(
+                    """UPDATE holding_profile SET last_price_updated=?,price_source=?,
+                        is_price_stale=0 WHERE holding_id=? AND owner_id=?""",
+                    arrayOf(current.event.date.toString(), "USER_REVIEWED_LEDGER",
+                        current.event.holdingId.raw, current.event.ownerId.raw),
+                )
+            }
         }
     }
 
