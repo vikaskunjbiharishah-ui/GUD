@@ -121,13 +121,35 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
         val parsedCost = runCatching {
             cost.takeIf { it.isNotBlank() }?.let { MoneyScaled.fromRupees(BigDecimal(it)) }
         }.getOrNull()
-        val valid = name.trim().isNotBlank() &&
+        val supportedMoney = Regex("[0-9]{1,12}(\\.[0-9]{1,4})?")
+        val detailInputsValid = edits.all { (key, value) -> when {
+            value.isBlank() -> true
+            key == "tdsApplicable" -> value.equals("true", true) || value.equals("false", true)
+            key == "incomeDay" -> value.toIntOrNull() in 1..28
+            key == "originalTenorMonths" -> (value.toIntOrNull() ?: -1) >= 0
+            key in setOf("areaSqFt", "ownershipPercent") ->
+                value.toDoubleOrNull()?.let { it.isFinite() && it >= 0 &&
+                    (key != "ownershipPercent" || it <= 100) } ?: false
+            else -> true
+        } }
+        val valid = name.trim().isNotBlank() && detailInputsValid &&
+            (price.isBlank() || supportedMoney.matches(price)) &&
+            (cost.isBlank() || supportedMoney.matches(cost)) &&
             (price.isBlank() || parsedPrice != null && parsedPrice.raw >= 0) &&
             (cost.isBlank() || parsedCost != null && parsedCost.raw >= 0)
         Button(enabled = valid, onClick = {
             val delta = JSONObject()
             edits.forEach { (key, value) ->
-                delta.put(key, if (value.isBlank()) JSONObject.NULL else value)
+                val typed = when {
+                    value.isBlank() -> JSONObject.NULL
+                    key == "tdsApplicable" -> value.trim().equals("true", true)
+                    key in setOf("areaSqFt", "ownershipPercent") ->
+                        value.toDoubleOrNull() ?: JSONObject.NULL
+                    key in setOf("originalTenorMonths", "incomeDay") ->
+                        value.toIntOrNull() ?: JSONObject.NULL
+                    else -> value
+                }
+                delta.put(key, typed)
             }
             onStage(HoldingProfileEdit(
                 holdingId = profile.holdingId, ownerId = profile.ownerId,
