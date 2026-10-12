@@ -22,6 +22,7 @@ import `in`.growurdhan.core.model.HoldingProfileEdit
 import `in`.growurdhan.core.model.HoldingProfileSnapshot
 import `in`.growurdhan.core.model.MoneyScaled
 import `in`.growurdhan.core.model.ReactV9HoldingDetailsContract
+import `in`.growurdhan.core.model.HoldingRichMetadataContract
 import java.math.BigDecimal
 import org.json.JSONObject
 
@@ -44,6 +45,25 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
     var showAll by remember(profile.holdingId) { mutableStateOf(false) }
     var edits by remember(profile.holdingId, profile.detailsJson) {
         mutableStateOf<Map<String, String>>(emptyMap())
+    }
+    val richOriginal = remember(profile.holdingId, profile.richMetadataJson) {
+        JSONObject(profile.richMetadataJson)
+    }
+    var richEdits by remember(profile.holdingId, profile.richMetadataJson) {
+        mutableStateOf<Map<String, String>>(emptyMap())
+    }
+    var richExpanded by remember(profile.holdingId) { mutableStateOf(false) }
+    val relevantRich = when (profile.assetCategory) {
+        "GOLD_SGB" -> setOf("benchmark_price_scaled", "issue_price_scaled",
+            "coupon_rate_bps", "next_coupon_date", "maturity_date", "tag", "tags_json")
+        "FIXED_INCOME" -> setOf("interest_rate_bps", "institution_name", "maturity_date",
+            "account_number_masked", "tag", "tags_json")
+        "REAL_ESTATE" -> setOf("institution_name", "fmv_31jan2018_scaled",
+            "exposure_node", "tag", "tags_json")
+        "LIABILITY" -> setOf("interest_rate_bps", "monthly_emi_scaled",
+            "remaining_emi_count", "emi_status", "institution_name", "tag")
+        else -> setOf("exposure_node", "l2_node", "wrapper",
+            "allocation_split_json", "tag", "tags_json")
     }
     val original = remember(profile.holdingId, profile.detailsJson) {
         JSONObject(profile.detailsJson)
@@ -95,6 +115,38 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                 label = { Text(key) }, modifier = Modifier.fillMaxWidth(),
             )
         }
+
+        Text("Holding-level rate, maturity, EMI, allocation and tags",
+            style = MaterialTheme.typography.titleSmall)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = richExpanded, onCheckedChange = { richExpanded = it })
+            Text("Show all original Holding financial fields")
+        }
+        HoldingRichMetadataContract.editableColumns.sorted().filter { key ->
+            richExpanded || key in relevantRich || richOriginal.has(key)
+        }.forEach { key ->
+            val initial = if (richOriginal.has(key) && !richOriginal.isNull(key)) {
+                val source = richOriginal.get(key)
+                when {
+                    key in HoldingRichMetadataContract.moneyColumns ->
+                        BigDecimal.valueOf((source as Number).toLong(), 4).toPlainString()
+                    key in HoldingRichMetadataContract.rateColumns ->
+                        BigDecimal.valueOf((source as Number).toLong(), 2).toPlainString()
+                    else -> source.toString()
+                }
+            } else ""
+            val label = when {
+                key in HoldingRichMetadataContract.moneyColumns -> "$" + "{key} (INR)"
+                key in HoldingRichMetadataContract.rateColumns -> "$" + "{key} (percent p.a.)"
+                key in HoldingRichMetadataContract.jsonColumns -> "$" + "{key} (JSON array)"
+                else -> key
+            }
+            OutlinedTextField(
+                value = richEdits[key] ?: initial,
+                onValueChange = { richEdits = richEdits + (key to it.take(4000)) },
+                label = { Text(label) }, modifier = Modifier.fillMaxWidth(),
+            )
+        }
         Text("Recorded cost basis: " +
             (profile.verifiedCostPerUnit?.rupees()?.toPlainString() ?: "UNKNOWN"))
         OutlinedTextField(cost, { cost = it.take(24) },
@@ -132,7 +184,23 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                     (key != "ownershipPercent" || it <= 100) } ?: false
             else -> true
         } }
-        val valid = name.trim().isNotBlank() && detailInputsValid &&
+
+        val richValid = richEdits.all { (key, value) ->
+            when {
+                value.isBlank() -> true
+                key in HoldingRichMetadataContract.moneyColumns ->
+                    supportedMoney.matches(value)
+                key in HoldingRichMetadataContract.rateColumns ->
+                    runCatching { BigDecimal(value).movePointRight(2).longValueExact() >= 0 }
+                        .getOrDefault(false)
+                key in HoldingRichMetadataContract.countColumns ->
+                    value.toLongOrNull()?.let { it >= 0 } ?: false
+                key in HoldingRichMetadataContract.jsonColumns ->
+                    runCatching { org.json.JSONArray(value); true }.getOrDefault(false)
+                else -> value.length <= 300
+            }
+        }
+        val valid = name.trim().isNotBlank() && detailInputsValid && richValid &&
             (price.isBlank() || supportedMoney.matches(price)) &&
             (cost.isBlank() || supportedMoney.matches(cost)) &&
             (price.isBlank() || parsedPrice != null && parsedPrice.raw >= 0) &&
@@ -151,6 +219,20 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                 }
                 delta.put(key, typed)
             }
+
+            val richDelta = JSONObject()
+            richEdits.forEach { (key, value) ->
+                val typed: Any = when {
+                    value.isBlank() -> JSONObject.NULL
+                    key in HoldingRichMetadataContract.moneyColumns ->
+                        MoneyScaled.fromRupees(BigDecimal(value)).raw
+                    key in HoldingRichMetadataContract.rateColumns ->
+                        BigDecimal(value).movePointRight(2).longValueExact()
+                    key in HoldingRichMetadataContract.countColumns -> value.toLong()
+                    else -> value
+                }
+                richDelta.put(key, typed)
+            }
             onStage(HoldingProfileEdit(
                 holdingId = profile.holdingId, ownerId = profile.ownerId,
                 name = name, subCategory = subCategory.ifBlank { null },
@@ -161,6 +243,7 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                 priceSource = priceSource.ifBlank { null },
                 verifiedCostPerUnit = parsedCost, archived = archived,
                 closedOn = closedOn.ifBlank { null },
+                richMetadataJson = richDelta.toString(),
             ))
         }, modifier = Modifier.fillMaxWidth()) { Text("Review holding edits with device lock") }
     }
