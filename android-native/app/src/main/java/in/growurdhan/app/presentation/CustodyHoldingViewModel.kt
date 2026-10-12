@@ -6,6 +6,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.core.model.HoldingId
 import `in`.growurdhan.core.model.VaultBook
+import `in`.growurdhan.core.model.HoldingProfileSnapshot
+import `in`.growurdhan.core.model.HoldingProfileEdit
 import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
 import `in`.growurdhan.domain.vault.ManualAssetOnboarding
 import `in`.growurdhan.domain.vault.VaultRepository
@@ -20,7 +22,10 @@ import kotlinx.coroutines.launch
 sealed interface CustodyHoldingUiState {
     data object Locked : CustodyHoldingUiState
     data object Loading : CustodyHoldingUiState
-    data class Ready(val book: VaultBook, val error: String? = null) : CustodyHoldingUiState
+    data class Ready(
+        val book: VaultBook, val error: String? = null,
+        val profiles: List<HoldingProfileSnapshot> = emptyList(),
+    ) : CustodyHoldingUiState
     /** Volatile request requiring OS-confirmed credential AFTER this request was staged. */
     data class AwaitingCredential(
         val request: CustodyRegistration,
@@ -32,6 +37,7 @@ sealed interface CustodyHoldingUiState {
 }
 
 sealed interface CustodyRegistration {
+    data class Profile(val edit: HoldingProfileEdit) : CustodyRegistration
     data class Asset(
         val ownerId: OwnerId, val name: String, val category: String,
     ) : CustodyRegistration
@@ -45,6 +51,7 @@ sealed interface CustodyRegistration {
 }
 
 sealed interface CustodyHoldingIntent {
+    data class StageProfile(val edit: HoldingProfileEdit) : CustodyHoldingIntent
     data object Refresh : CustodyHoldingIntent
     data class StageAsset(
         val ownerId: OwnerId, val name: String, val category: String,
@@ -82,6 +89,7 @@ class CustodyHoldingViewModel @Inject constructor(
             is CustodyHoldingIntent.StageAccount -> stageAccount(intent)
             is CustodyHoldingIntent.StageAsset -> stageAsset(intent)
             is CustodyHoldingIntent.StageHolding -> stageHolding(intent)
+            is CustodyHoldingIntent.StageProfile -> stageProfile(intent.edit)
             CustodyHoldingIntent.SaveAfterCredential -> saveAfterCredential()
             CustodyHoldingIntent.Cancel -> clearSensitiveState()
         }
@@ -101,7 +109,9 @@ class CustodyHoldingViewModel @Inject constructor(
                 val book = vault.readBook()
                 if (expectedGeneration == generation) {
                     if (session.isCurrentSession(originalRevision)) {
-                        mutableState.value = CustodyHoldingUiState.Ready(book)
+                        mutableState.value = CustodyHoldingUiState.Ready(
+                            book, profiles = vault.holdingProfiles(),
+                        )
                     } else {
                         clearSensitiveState()
                     }
@@ -177,6 +187,22 @@ class CustodyHoldingViewModel @Inject constructor(
         }
     }
 
+    private fun stageProfile(edit: HoldingProfileEdit) {
+        val ready = mutableState.value as? CustodyHoldingUiState.Ready ?: return
+        if (!session.isUnlocked()) { clearSensitiveState(); return }
+        try {
+            require(ready.book.holdings.any {
+                it.id == edit.holdingId && it.ownerId == edit.ownerId
+            }) { "Select an owned holding." }
+            require(edit.name.trim().isNotBlank())
+            mutableState.value = CustodyHoldingUiState.AwaitingCredential(
+                CustodyRegistration.Profile(edit), session.credentialEpoch(),
+            )
+        } catch (_: Exception) {
+            mutableState.value = ready.copy(error = "Select an existing owned holding with valid details.")
+        }
+    }
+
     private fun saveAfterCredential() {
         val pending = mutableState.value as? CustodyHoldingUiState.AwaitingCredential ?: return
         if (!session.canCommitFinancialChanges() ||
@@ -192,6 +218,10 @@ class CustodyHoldingViewModel @Inject constructor(
         operation = viewModelScope.launch {
             try {
                 val notice = when (val request = pending.request) {
+                    is CustodyRegistration.Profile -> {
+                        vault.updateHoldingProfile(request.edit)
+                        "Holding details saved. Original ledger history and unknown source fields remain intact."
+                    }
                     is CustodyRegistration.Asset -> {
                         vault.registerManualAsset(
                             request.ownerId, request.name, request.category,
