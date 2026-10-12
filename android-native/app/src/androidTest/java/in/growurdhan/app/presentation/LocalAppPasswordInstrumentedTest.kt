@@ -72,6 +72,22 @@ class LocalAppPasswordInstrumentedTest {
         }
     }
 
+    @Test fun accountEmailIsHardwareBoundAndWrongEmailRevokesLogin() {
+        val password="Synthetic!Pass123".toCharArray()
+        try {
+            assertTrue(store.setup(password,"synthetic@example.test"))
+            assertTrue(store.hasAccountEmailBinding())
+            store.lock()
+            assertTrue(store.verify(password))
+            assertFalse(store.verifyAccountEmail("different@example.test"))
+            assertFalse(store.hasVerifiedPassword())
+            assertTrue(store.verify(password))
+            assertTrue(store.verifyAccountEmail("SYNTHETIC@EXAMPLE.TEST"))
+            assertFalse(store.bindAccountEmail("another@example.test"))
+            assertTrue(store.bindAccountEmail("synthetic@example.test"))
+        } finally { password.fill('\u0000') }
+    }
+
     @Test fun recoveryCodeRequiresVerifiedEnrolmentAndIsSingleUse() {
         val original="Synthetic!Pass123".toCharArray()
         val next="Replacement!Secure456".toCharArray()

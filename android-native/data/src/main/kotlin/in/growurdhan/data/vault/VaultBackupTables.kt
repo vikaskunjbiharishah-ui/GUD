@@ -95,6 +95,17 @@ internal object VaultBackupTables {
     /** M25: use the same strict native v4 backup-column contract for validated
      *  legacy migration. Only the approved whitelist can be emitted, and all
      *  original record objects are separately preserved as encrypted JSON. */
+    /** Inspect whitelisted column indexes, never interpret converted rows as JSON objects. */
+    fun rowsRetainingOriginalJson(payload: JSONObject, table: String): Int {
+        val index = columns[table]?.indexOf("extra_json") ?: return 0
+        if (index < 0) return 0
+        val rows = payload.getJSONArray(table)
+        return (0 until rows.length()).count { i ->
+            val row = rows.getJSONArray(i)
+            !row.isNull(index) && row.getString(index).isNotBlank()
+        }
+    }
+
     fun emptyLegacyConversion(): JSONObject = JSONObject()
         .put("format", 4).put("databaseVersion", VaultSchema.VERSION).also { payload ->
             for (table in columns.keys) payload.put(table, JSONArray())

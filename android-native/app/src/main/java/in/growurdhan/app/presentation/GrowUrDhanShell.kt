@@ -55,6 +55,7 @@ import `in`.growurdhan.app.presentation.screens.HomeScreen
 import `in`.growurdhan.app.presentation.screens.PortfolioScreen
 import `in`.growurdhan.app.presentation.screens.ManualTradeScreen
 import `in`.growurdhan.app.presentation.screens.InsightsScreen
+import `in`.growurdhan.app.presentation.screens.TaxOwnerScopeScreen
 import `in`.growurdhan.app.presentation.screens.StatementReviewScreen
 import `in`.growurdhan.app.presentation.screens.PrivacyScreen
 import `in`.growurdhan.app.presentation.screens.SettingsScreen
@@ -84,6 +85,8 @@ private const val PRIVACY_ROUTE = "privacy"
 private const val FAMILY_ROUTE = "family"
 private const val FAMILY_ADMIN_ROUTE = "family-admin"
 private const val ACCOUNTS_ROUTE = "accounts"
+private const val TAX_SCOPE_ROUTE = "tax-owner-scope"
+private const val DOCUMENTS_ROUTE = "documents"
 /** Secondary secure registrar/holding setup route, not an extra bottom tab. */
 private const val CUSTODY_ROUTE = "custody"
 private const val RECOVERY_ROUTE = "recovery"
@@ -228,6 +231,8 @@ fun GrowUrDhanShell(
                             onOpenInsights = { navigate(MainDestination.INSIGHTS.route) },
                             onManageFamily = { navigate(FAMILY_ADMIN_ROUTE) },
                             onOpenAccounts = { navigate(ACCOUNTS_ROUTE) },
+                            onOpenTaxScope = { navigate(TAX_SCOPE_ROUTE) },
+                            onOpenDocuments = { navigate(DOCUMENTS_ROUTE) },
                             selectedFamilyOwner = selectedOwner,
                             onSelectFamilyOwner = { selectedOwner = it },
                         )
@@ -239,6 +244,25 @@ fun GrowUrDhanShell(
                             onRefresh = onDashboardRefresh,
                             onManageHoldings = { navigate(CUSTODY_ROUTE) },
                             onRecordTrade = { navigate(MANUAL_TRADE_ROUTE) },
+                            selectedFamilyOwner = selectedOwner,
+                            onSelectFamilyOwner = { selectedOwner = it },
+                        )
+                    }
+                    composable(TAX_SCOPE_ROUTE) {
+                        TaxOwnerScopeScreen(
+                            state = dashboardState,
+                            ownerId = selectedOwner,
+                            onBack = { navigate(MainDestination.HOME.route) },
+                        )
+                    }
+                    composable(DOCUMENTS_ROUTE) {
+                        // Same consent-gated CAS importer, same owner lens as
+                        // the Statements destination. No separate file copies.
+                        StatementReviewScreen(
+                            state = reviewState,
+                            onIntent = onReviewIntent,
+                            onAddFamilyMember = { navigate(FAMILY_ROUTE) },
+                            onSetUpHoldings = { navigate(CUSTODY_ROUTE) },
                             selectedFamilyOwner = selectedOwner,
                             onSelectFamilyOwner = { selectedOwner = it },
                         )

@@ -36,8 +36,11 @@ fun LocalLoginScreen(
     message: String?,
     hasRecoveryCode: Boolean = false,
     onForgotPassword: () -> Unit = {},
+    accountEmailRequired: Boolean = false,
+    onSubmitWithEmail: ((email: String, password: String, repeated: String?) -> Unit)? = null,
     onSubmit: (password: String, repeated: String?) -> Unit,
 ) {
+    var email by remember(state) { mutableStateOf("") }
     var password by remember(state) { mutableStateOf("") }
     var repeated by remember(state) { mutableStateOf("") }
     val enrolling = state == LocalLoginStatus.NEEDS_SETUP
@@ -67,6 +70,18 @@ fun LocalLoginScreen(
                 )
             }
         } else {
+            if (enrolling || accountEmailRequired) {
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { if (it.length <= 254) email = it },
+                    label = { Text("Owner account email") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("LocalAccountEmail"),
+                )
+                Text("Email is checked locally using a Keystore-protected verifier; " +
+                    "no plaintext email is stored in login preferences.",
+                    style = MaterialTheme.typography.bodySmall)
+            }
             OutlinedTextField(
                 value = password,
                 onValueChange = { if (it.length <= LocalPasswordRules.MAX_LENGTH) password = it },
@@ -101,14 +116,19 @@ fun LocalLoginScreen(
                 Text(it, color = MaterialTheme.colorScheme.error)
             }
             Button(
-                enabled = password.isNotEmpty() && (!enrolling || repeated.isNotEmpty()),
+                enabled = password.isNotEmpty() && (!enrolling || repeated.isNotEmpty()) &&
+                    (!(enrolling || accountEmailRequired) ||
+                        Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").matches(email.trim())),
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
                     val entered = password
                     val confirmation = if (enrolling) repeated else null
+                    val ownerEmail = email.trim()
+                    email = ""
                     password = ""
                     repeated = ""
-                    onSubmit(entered, confirmation)
+                    if (onSubmitWithEmail != null) onSubmitWithEmail(ownerEmail,entered,confirmation)
+                    else onSubmit(entered, confirmation)
                 },
             ) { Text(if (enrolling) "Protect app with device credential" else "Verify app password") }
             if (!enrolling && hasRecoveryCode) {

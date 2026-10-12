@@ -23,6 +23,15 @@ import `in`.growurdhan.domain.vault.LegacyRestoreIdentity
  * bytes are a *transient plaintext conversion document* used ONLY by the
  * native transaction in SqlCipherVaultRepository and wiped immediately.
  */
+/** Identity-confirmed, read-only conversion report. No original IDs or PAN appear in UI. */
+data class LegacyConversionReport(
+    val tableCounts: Map<String, Int>,
+    val totalRows: Int,
+    val sourceSha256: String,
+    val originalJsonRows: Int,
+    val policy: String = "CREATE_EMPTY_ONLY",
+)
+
 object LegacyVaultMigration {
     const val MAX_INPUT_BYTES = 32 * 1024 * 1024
     private val magic = "GUDVLT01".toByteArray(Charsets.US_ASCII)
@@ -265,6 +274,28 @@ object LegacyVaultMigration {
         }
         require(root.optString("kind") == "GUDVAULT" && root.optInt("version") == 2)
         return root
+    }
+
+    /**
+     * Same authenticated mapping as final import, but without creating or
+     * mutating SQLCipher records. Final approval must check source SHA again.
+     */
+    fun dryRunAuthenticated(data: ByteArray, identity: LegacyRestoreIdentity): LegacyConversionReport {
+        val bytes = convertAuthenticated(data, identity)
+        return try {
+            val doc = JSONObject(bytes.toString(Charsets.UTF_8))
+            require(doc.getInt("format") == 4 && doc.getInt("databaseVersion") == 4)
+            val names = doc.keys().asSequence().filter {
+                it != "format" && it != "databaseVersion"
+            }.toList().sorted()
+            val counts = names.associateWith { name -> doc.getJSONArray(name).length() }
+            val originalRows = names.sumOf { name ->
+                VaultBackupTables.rowsRetainingOriginalJson(doc, name)
+            }
+            val source = MessageDigest.getInstance("SHA-256").digest(data)
+                .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+            LegacyConversionReport(counts, counts.values.sum(), source, originalRows)
+        } finally { bytes.fill(0) }
     }
 
     fun convertAuthenticated(data: ByteArray, identity: LegacyRestoreIdentity): ByteArray {

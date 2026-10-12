@@ -25,12 +25,30 @@ class LocalLoginShellTest {
                 entered = password to repeated
             }
         }
+        compose.onNodeWithTag("LocalAccountEmail").performTextInput("synthetic@example.test")
         compose.onNodeWithTag("LocalAppPassword").performTextInput("Synthetic!Pass123")
         compose.onNodeWithTag("LocalAppPasswordRepeat").performTextInput("Synthetic!Pass123")
         compose.onNodeWithText("Protect app with device credential").performClick()
         compose.runOnIdle {
             assertEquals("Synthetic!Pass123" to "Synthetic!Pass123", entered)
         }
+    }
+
+    @Test fun signedInAccountEmailIsRequiredWhenExistingLoginHasEmailBinding() {
+        var captured: String? = null
+        compose.setContent {
+            LocalLoginScreen(
+                state = LocalLoginStatus.LOCKED,
+                message = null,
+                accountEmailRequired = true,
+                onSubmitWithEmail = { email, _, _ -> captured = email },
+                onSubmit = { _, _ -> },
+            )
+        }
+        compose.onNodeWithTag("LocalAccountEmail").performTextInput("SYNTHETIC@EXAMPLE.TEST")
+        compose.onNodeWithTag("LocalAppPassword").performTextInput("Synthetic!Pass123")
+        compose.onNodeWithText("Verify app password").performClick()
+        compose.runOnIdle { assertEquals("SYNTHETIC@EXAMPLE.TEST", captured) }
     }
 
     @Test fun forgotPasswordIsOfferedOnlyWhenOneTimeRecoveryCodeExists() {

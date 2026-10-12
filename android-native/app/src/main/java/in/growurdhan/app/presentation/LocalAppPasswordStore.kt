@@ -11,6 +11,7 @@ import `in`.growurdhan.domain.vault.LocalPasswordRules
 import java.security.KeyStore
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.util.Locale
 import javax.crypto.KeyGenerator
 import javax.crypto.Mac
 import javax.crypto.SecretKey
@@ -72,11 +73,58 @@ class LocalAppPasswordStore private constructor(
     @Synchronized override fun hasVerifiedPassword(): Boolean =
         authorized && mutableStatus.value == LocalLoginStatus.VERIFIED
 
+    private fun emailMac(email: String): ByteArray {
+        val value = email.trim().lowercase(Locale.ROOT)
+        require(value.length in 5..254 &&
+            Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").matches(value))
+        val bytes = ("GUD:email:v1:" + value).toByteArray(Charsets.UTF_8)
+        return try { hmac(bytes, allowCreate = false) } finally { bytes.fill(0) }
+    }
+
+    @Synchronized fun hasAccountEmailBinding(): Boolean =
+        !prefs.getString("account_email_mac", null).isNullOrBlank()
+
+    /** An email mismatch revokes the local password admission immediately. */
+    @Synchronized fun verifyAccountEmail(email: String): Boolean {
+        if (!hasVerifiedPassword()) return false
+        val expected = prefs.getString("account_email_mac", null) ?: return true
+        val obtained = try { emailMac(email) } catch (_: Exception) {
+            lock(); return false
+        }
+        return try {
+            val saved = decode(expected)
+            try {
+                val matches = saved.size == 32 && MessageDigest.isEqual(saved, obtained)
+                if (!matches) lock()
+                matches
+            } finally { saved.fill(0) }
+        } catch (_: Exception) {
+            lock(); false
+        } finally { obtained.fill(0) }
+    }
+
+    /** Migrate an old verified installation after native account registration. */
+    @Synchronized fun bindAccountEmail(email: String): Boolean {
+        if (!hasVerifiedPassword()) return false
+        val obtained = try { emailMac(email) } catch (_: Exception) { return false }
+        return try {
+            val old = prefs.getString("account_email_mac", null)
+            if (old == null) prefs.edit()
+                .putString("account_email_mac", encode(obtained)).commit()
+            else {
+                val saved = decode(old)
+                try { saved.size == 32 && MessageDigest.isEqual(saved, obtained) }
+                finally { saved.fill(0) }
+            }
+        } catch (_: Exception) { false }
+        finally { obtained.fill(0) }
+    }
+
     @Synchronized fun passwordNeedsRotation(nowMillis: Long = System.currentTimeMillis()): Boolean =
         initialStatus() == LocalLoginStatus.LOCKED &&
             LocalPasswordRules.requiresRotation(prefs.getLong("changed_at", 0L), nowMillis)
 
-    @Synchronized fun setup(password: CharArray): Boolean {
+    @Synchronized fun setup(password: CharArray, accountEmail: String? = null): Boolean {
         check(initialStatus() == LocalLoginStatus.NEEDS_SETUP) {
             "An existing password may never be replaced by setup."
         }
@@ -90,7 +138,8 @@ class LocalAppPasswordStore private constructor(
         } finally {
             derived.fill(0)
         }
-        val saved = prefs.edit()
+        val emailTag = accountEmail?.let { hashEmail(it) }
+        val editor = prefs.edit()
             .putString("salt", encode(salt))
             .putString("tag", encode(tag))
             .putInt("iterations", LocalPasswordRules.KDF_ITERATIONS)
@@ -98,7 +147,9 @@ class LocalAppPasswordStore private constructor(
             .putBoolean("enrolled", true)
             .putInt("failed_attempts", 0)
             .putLong("blocked_until", 0L)
-            .commit()
+        if (emailTag != null) editor.putString("account_email_mac", encode(emailTag))
+        val saved = editor.commit()
+        emailTag?.fill(0)
         salt.fill(0)
         tag.fill(0)
         if (!saved) {

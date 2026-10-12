@@ -51,6 +51,8 @@ fun HomeScreen(
     onOpenInsights: () -> Unit = {},
     onManageFamily: () -> Unit = {},
     onOpenAccounts: () -> Unit = {},
+    onOpenTaxScope: () -> Unit = {},
+    onOpenDocuments: () -> Unit = {},
     selectedFamilyOwner: OwnerId? = null,
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
@@ -269,6 +271,14 @@ fun HomeScreen(
 
         OutlinedButton(onClick = onOpenAccounts, modifier = Modifier.fillMaxWidth()) {
             Text("Accounts, custodians and nominees")
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(onClick = onOpenTaxScope, modifier = Modifier.weight(1f)) {
+                Text("Tax owner scope")
+            }
+            OutlinedButton(onClick = onOpenDocuments, modifier = Modifier.weight(1f)) {
+                Text("Documents / CAS")
+            }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -42,6 +42,28 @@ import org.junit.runner.RunWith
 class NativeShellTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun taxAndDocumentsOwnerScopeEntryPointsAreUserNavigable() {
+        var tax = 0
+        var documents = 0
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
+                HomeScreen(
+                    dashboardState = HouseholdDashboardUiState.Locked,
+                    onOpenSettings = {},
+                    onOpenPrivacy = {},
+                    onOpenTaxScope = { tax++ },
+                    onOpenDocuments = { documents++ },
+                )
+            }
+        }
+        compose.onNodeWithText("Tax owner scope").performScrollTo().performClick()
+        compose.onNodeWithText("Documents / CAS").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(1,tax)
+            assertEquals(1,documents)
+        }
+    }
+
     @Test fun accountsDestinationIsReachableWithoutChangingOwnershipOrRecordingTrades() {
         var opened = false
         compose.setContent {

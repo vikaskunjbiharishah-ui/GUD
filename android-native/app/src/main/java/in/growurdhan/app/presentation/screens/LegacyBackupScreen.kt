@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.data.vault.LegacyBackupPreview
+import `in`.growurdhan.data.vault.LegacyConversionReport
 
 sealed interface LegacyBackupUiState {
     data object Empty : LegacyBackupUiState
@@ -29,6 +30,7 @@ sealed interface LegacyBackupUiState {
     data object Inspecting : LegacyBackupUiState
     data class Preview(val summary: LegacyBackupPreview) : LegacyBackupUiState
     data object EnterRecovery : LegacyBackupUiState
+    data class DryRunReady(val report: LegacyConversionReport) : LegacyBackupUiState
     data object Restoring : LegacyBackupUiState
     data object Recovered : LegacyBackupUiState
     data class Error(val message: String) : LegacyBackupUiState
@@ -37,6 +39,7 @@ sealed interface LegacyBackupUiState {
 sealed interface LegacyBackupIntent {
     data object SelectFile : LegacyBackupIntent
     data object PrepareRestore : LegacyBackupIntent
+    data object ConfirmDryRun : LegacyBackupIntent
     class Restore(
         val email: String, val password: String, val pan: String, val dateOfBirth: String,
         val firstQuestionId: String, val firstAnswer: String,
@@ -164,6 +167,28 @@ fun LegacyBackupScreen(
                 "Verifying original identity and restoring encrypted records. " +
                     "Do not close the application."
             )
+            is LegacyBackupUiState.DryRunReady -> {
+                Text("Verified dry-run mapping • no records written",
+                    style = MaterialTheme.typography.titleLarge)
+                Text("The original password, PAN, DOB and two security answers " +
+                    "were verified, and source rows were structurally converted.")
+                state.report.tableCounts.filterValues { it > 0 }.forEach { (table, count) ->
+                    Text("$table: $count record(s)")
+                }
+                Text("Total mapped records: ${state.report.totalRows}")
+                Text("Records with encrypted original JSON retained: " +
+                    "${state.report.originalJsonRows}")
+                Text("Source fingerprint: ${state.report.sourceSha256.take(16)}…")
+                Text("Choose CREATE NEW EMPTY vault: existing native books are " +
+                    "never merged or overwritten. A nonempty vault is rejected. " +
+                    "Your source archive remains unchanged.")
+                Button(onClick = { onIntent(LegacyBackupIntent.ConfirmDryRun) }) {
+                    Text("Confirm empty-vault restore with new device challenge")
+                }
+                OutlinedButton(onClick = { onIntent(LegacyBackupIntent.Cancel) }) {
+                    Text("Cancel without importing")
+                }
+            }
             LegacyBackupUiState.Recovered -> {
                 Text("Legacy book restored successfully into the private SQLCipher vault.")
                 Text("Close and reopen the vault to reload the complete family and holdings.")

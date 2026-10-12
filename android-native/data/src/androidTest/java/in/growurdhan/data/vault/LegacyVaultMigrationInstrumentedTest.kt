@@ -140,6 +140,33 @@ class LegacyVaultMigrationInstrumentedTest {
         }
     }
 
+    @Test fun authenticatedDryRunMapsAndPreservesOriginalRowsWithoutWritingVault() {
+        val encrypted = lockedFixture()
+        val proof = identity()
+        val preview = try {
+            LegacyVaultMigration.dryRunAuthenticated(encrypted,proof)
+        } finally { proof.wipeSecrets() }
+        assertEquals("CREATE_EMPTY_ONLY",preview.policy)
+        assertEquals(2,preview.tableCounts["ledger_event"])
+        assertEquals(1,preview.tableCounts["family_member"])
+        assertEquals(1,preview.tableCounts["holding"])
+        assertEquals(64,preview.sourceSha256.length)
+        assertTrue(preview.originalJsonRows > 0)
+        val wrong = identity(secondAnswer = "incorrect")
+        try {
+            assertThrows(Exception::class.java) {
+                LegacyVaultMigration.dryRunAuthenticated(encrypted,wrong)
+            }
+        } finally { wrong.wipeSecrets() }
+        withSql { db ->
+            db.rawQuery("SELECT COUNT(*) FROM family_member",null).use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals(0,c.getInt(0))
+            }
+        }
+        encrypted.fill(0)
+    }
+
     @Test fun verifiedLegacyArchiveRestoresExactIdsAndFinancialAmountsAtomically() {
         val source = lockedFixture()
         val proof = identity()

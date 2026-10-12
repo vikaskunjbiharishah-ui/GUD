@@ -130,7 +130,7 @@ fun StatementReviewScreen(
                 }
             }
             is StatementReviewUiState.SelectOwner -> {
-                var selected by remember(state.members) {
+                var selected by remember(state.members, selectedFamilyOwner) {
                     mutableStateOf<`in`.growurdhan.core.model.OwnerId?>(
                         selectedFamilyOwner?.takeIf { wanted ->
                             state.members.any { it.id == wanted }
