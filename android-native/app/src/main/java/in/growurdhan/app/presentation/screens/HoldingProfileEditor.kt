@@ -40,6 +40,7 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
     var priceAsOf by remember(profile.holdingId) { mutableStateOf(profile.priceAsOf.orEmpty()) }
     var priceSource by remember(profile.holdingId) { mutableStateOf(profile.priceSource.orEmpty()) }
     var cost by remember(profile.holdingId) { mutableStateOf("") }
+    var resetCost by remember(profile.holdingId) { mutableStateOf(false) }
     var archived by remember(profile.holdingId) { mutableStateOf(profile.archived) }
     var closedOn by remember(profile.holdingId) { mutableStateOf(profile.closedOn.orEmpty()) }
     var showAll by remember(profile.holdingId) { mutableStateOf(false) }
@@ -153,6 +154,10 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
             label = { Text("Verified unit cost in INR (optional)") },
             modifier = Modifier.fillMaxWidth())
         Text("Verified cost is metadata, never a fabricated purchase or tax lot.")
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = resetCost, onCheckedChange = { resetCost = it })
+            Text("Mark acquisition cost as UNKNOWN (does not erase ledger history)")
+        }
         OutlinedTextField(price, { price = it.take(24) },
             label = { Text("Custom quoted unit price in INR (optional)") },
             modifier = Modifier.fillMaxWidth())
@@ -200,7 +205,8 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                 else -> value.length <= 300
             }
         }
-        val valid = name.trim().isNotBlank() && detailInputsValid && richValid &&
+        val valid = name.trim().isNotBlank() && ! (resetCost && cost.isNotBlank()) &&
+            detailInputsValid && richValid &&
             (price.isBlank() || supportedMoney.matches(price)) &&
             (cost.isBlank() || supportedMoney.matches(cost)) &&
             (price.isBlank() || parsedPrice != null && parsedPrice.raw >= 0) &&
@@ -242,6 +248,7 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                 customPrice = parsedPrice, priceAsOf = priceAsOf.ifBlank { null },
                 priceSource = priceSource.ifBlank { null },
                 verifiedCostPerUnit = parsedCost, archived = archived,
+                clearVerifiedCost = resetCost,
                 closedOn = closedOn.ifBlank { null },
                 richMetadataJson = richDelta.toString(),
             ))
