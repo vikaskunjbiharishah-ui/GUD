@@ -51,6 +51,21 @@ class FinancialGoldenTest {
         assertEquals(110 * QUANTITY_SCALE, book.members.single().holdings.single().position.quantityScaled)
     }
 
+    @Test fun saleChargesReduceRealisedProceedsWithoutChangingAcquisitionLots() {
+        val bought = ev("paid", FinancialEventKind.BUY, "2026-01-01", 2, 100)
+        val sold = FinancialEvent(
+            "disposed", holdingId, owner, FinancialEventKind.SELL,
+            date("2026-10-01"), -QUANTITY_SCALE,
+            rupees(150), rupees(150), rupees(5),
+        )
+        val result = LotEngine.fold(holdingId, "EQUITY", listOf(bought, sold))
+        assertTrue(result.errors.isEmpty())
+        assertEquals(QUANTITY_SCALE, result.quantityScaled)
+        assertEquals(100L, result.investedCost.rupees().longValueExact())
+        assertEquals(145L, result.disposals.single().proceeds.rupees().longValueExact())
+        assertEquals(45L, result.realisedGain.rupees().longValueExact())
+    }
+
     @Test fun bonusAndSplitPreserveInvestedCost() {
         val events = listOf(
             ev("buy", FinancialEventKind.BUY, "2025-01-01", 10, 100),
