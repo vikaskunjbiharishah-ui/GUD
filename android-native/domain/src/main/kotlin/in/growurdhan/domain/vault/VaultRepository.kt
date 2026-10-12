@@ -31,6 +31,7 @@ interface VaultRepository {
     /** Atomically enroll canonical category and subtype, with zero quantity/cost. */
     suspend fun registerDetailedAsset(
         ownerId: OwnerId, name: String, category: String, subCategory: String,
+        accountId: String? = null,
     ): Holding
     /** Atomically add a zero-unit holding and its exact CAS ISIN/folio identity. */
     suspend fun registerCasHolding(
