@@ -851,11 +851,11 @@ class SqlCipherVaultRepository(
         require(cleanName.length in 1..200 && cleanName.none { it.isISOControl() }) {
             "Holding name must contain 1–200 printable characters."
         }
-        require(edit.subCategory == null || edit.subCategory.length <= 80)
-        require(edit.notes == null || edit.notes.length <= 4_000)
-        require(edit.location == null || edit.location.length <= 300)
-        require(edit.symbolOrFolio == null || edit.symbolOrFolio.length <= 120)
-        require(edit.isin == null || Regex("[A-Z0-9]{12}").matches(edit.isin))
+        edit.subCategory?.let { require(it.length <= 80) }
+        edit.notes?.let { require(it.length <= 4_000) }
+        edit.location?.let { require(it.length <= 300) }
+        edit.symbolOrFolio?.let { require(it.length <= 120) }
+        edit.isin?.let { require(Regex("[A-Z0-9]{12}").matches(it)) }
         val verifiedCas = readCasIdentities(db).firstOrNull { it.holdingId == edit.holdingId }
         require(verifiedCas == null || edit.isin == null || edit.isin == verifiedCas.isin) {
             "A registrar-verified CAS identity cannot be edited here."
@@ -945,17 +945,20 @@ class SqlCipherVaultRepository(
         }
         val custom = edit.customPrice
         require(custom == null || custom.raw >= 0) { "A quoted price cannot be negative." }
-        require(edit.verifiedCostPerUnit == null || edit.verifiedCostPerUnit.raw >= 0) {
+        edit.verifiedCostPerUnit?.let { require(it.raw >= 0) {
             "Verified acquisition cost cannot be negative."
-        }
+        } }
         if (custom != null) {
-            require(validDate(edit.priceAsOf) && edit.priceAsOf != null) {
-                "Explicit prices require a valid as-of date."
-            }
-            require(originalPriceDate == null || edit.priceAsOf >= originalPriceDate) {
+            val asOf = edit.priceAsOf
+                ?: throw IllegalArgumentException("Explicit prices require an as-of date.")
+            require(validDate(asOf)) { "Explicit prices require a valid as-of date." }
+            val priorDate = originalPriceDate
+            require(priorDate == null || asOf >= priorDate) {
                 "A custom quote cannot replace a newer dated price observation."
             }
-            require(!edit.priceSource.isNullOrBlank() && edit.priceSource.length <= 120) {
+            val source = edit.priceSource
+                ?: throw IllegalArgumentException("Explicit prices require a source.")
+            require(source.isNotBlank() && source.length <= 120) {
                 "Explicit prices require a recorded source."
             }
         }
