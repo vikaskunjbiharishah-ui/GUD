@@ -119,7 +119,7 @@ fun LocalLoginScreen(
                 enabled = password.isNotEmpty() && (!enrolling || repeated.isNotEmpty()) &&
                     (!(enrolling || accountEmailRequired) ||
                         Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").matches(email.trim())),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("LocalLoginSubmit"),
                 onClick = {
                     val entered = password
                     val confirmation = if (enrolling) repeated else null

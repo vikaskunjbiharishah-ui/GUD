@@ -1,6 +1,7 @@
 package `in`.growurdhan.app.presentation
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -33,7 +34,8 @@ class LocalLoginShellTest {
         compose.onNodeWithTag("LocalAccountEmail").performTextInput("synthetic@example.test")
         compose.onNodeWithTag("LocalAppPassword").performTextInput("Synthetic!Pass123")
         compose.onNodeWithTag("LocalAppPasswordRepeat").performTextInput("Synthetic!Pass123")
-        compose.onNodeWithText("Protect app with device credential").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("LocalLoginSubmit").assertIsEnabled().performClick()
         compose.runOnIdle {
             assertEquals("Synthetic!Pass123" to "Synthetic!Pass123", entered)
         }
