@@ -80,6 +80,66 @@ class NativeCustodyHoldingInstrumentedTest {
         assertTrue(vault.events().isEmpty())
     }
 
+    @Test fun originalHoldingFinancialMetadataAndTagsSurviveEncryptedReopen(): Unit = runBlocking {
+        val account = seed()
+        val holding = vault.registerDetailedAsset(account.ownerId,
+            "Synthetic housing loan", "LIABILITY", "Home loan")
+        val rich = JSONObject()
+            .put("interest_rate_bps", 825)
+            .put("monthly_emi_scaled", 2250000)
+            .put("remaining_emi_count", 120)
+            .put("emi_status", "Paying")
+            .put("institution_name", "Synthetic Bank")
+            .put("maturity_date", "2040-10-01")
+            .put("tags_json", "[\"Home\",\"Family\"]")
+        vault.updateHoldingProfile(HoldingProfileEdit(
+            holdingId = holding.id, ownerId = account.ownerId,
+            name = holding.name, subCategory = "Home loan",
+            richMetadataJson = rich.toString(),
+        ))
+        vault.close()
+        vault.openOrCreate()
+        val saved = JSONObject(vault.holdingProfiles().single().richMetadataJson)
+        assertEquals(825L, saved.getLong("interest_rate_bps"))
+        assertEquals(2250000L, saved.getLong("monthly_emi_scaled"))
+        assertEquals("Paying", saved.getString("emi_status"))
+        assertEquals("[\"Home\",\"Family\"]", saved.getString("tags_json"))
+        assertTrue(vault.events().isEmpty())
+        assertEquals(0, vault.health().foreignKeyViolations)
+        assertThrows(Exception::class.java) {
+            runBlocking {
+                vault.updateHoldingProfile(HoldingProfileEdit(
+                    holdingId = holding.id, ownerId = account.ownerId,
+                    name = holding.name,
+                    richMetadataJson = """{"account_number_masked":"1234567890"}""",
+                ))
+            }
+        }
+    }
+
+    @Test fun newManualCustodyLinkRejectsCrossOwnerAndRegistrarBypass(): Unit = runBlocking {
+        val account = seed()
+        val asset = vault.registerDetailedAsset(
+            account.ownerId, "Synthetic custody share", "EQUITY", "Large cap", account.id,
+        )
+        assertEquals(account.id, asset.accountId)
+        assertEquals(account.id, vault.holdings().single().accountId)
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking {
+                vault.registerDetailedAsset(OwnerId("not-an-owner"),
+                    "Spoofed", "EQUITY", "Large cap", account.id)
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking {
+                vault.registerDetailedAsset(account.ownerId,
+                    "Fake registrar", "MUTUAL_FUND", "Equity fund", account.id)
+            }
+        }
+        assertEquals(1, vault.holdings().size)
+        assertEquals(0, vault.health().foreignKeyViolations)
+    }
+
     @Test fun canonicalSubtypeAndHoldingProfileEditsAreEncryptedAndReversible(): Unit = runBlocking {
         val account = seed()
         val asset = vault.registerDetailedAsset(
