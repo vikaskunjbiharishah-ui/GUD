@@ -967,6 +967,20 @@ class SqlCipherVaultRepository(
                     }
                     key in moneyStringKeys -> require(value is String &&
                         Regex("[0-9]{1,18}").matches(value))
+                    key == "linkedHoldingId" -> {
+                        require(value is String && readHoldings(db).any {
+                            it.id.raw == value && it.ownerId == edit.ownerId &&
+                                it.assetCategory == "LIABILITY" &&
+                                it.id != edit.holdingId
+                        }) { "Linked loan must belong to the same family owner." }
+                    }
+                    key in setOf("earlyExitDate","contributionOn","incomeStart","incomeEnd") -> {
+                        require(value is String)
+                        val day = LocalDate.parse(value as String)
+                        require(day.year in 1900..2300) {
+                            "Financial date is outside supported years."
+                        }
+                    }
                     key in allowed -> require(value is String)
                 }
                 details.put(key, value)
