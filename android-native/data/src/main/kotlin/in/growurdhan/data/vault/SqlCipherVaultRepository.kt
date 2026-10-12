@@ -860,9 +860,12 @@ class SqlCipherVaultRepository(
         require(verifiedCas == null || edit.isin == null || edit.isin == verifiedCas.isin) {
             "A registrar-verified CAS identity cannot be edited here."
         }
-        fun validDate(value: String?): Boolean = value == null || runCatching {
-            LocalDate.parse(value).let { !it.isAfter(LocalDate.now()) && it.year >= 1900 }
-        }.getOrDefault(false)
+        fun validDate(value: String?): Boolean {
+            if (value == null) return true
+            return runCatching {
+                LocalDate.parse(value).let { !it.isAfter(LocalDate.now()) && it.year >= 1900 }
+            }.getOrDefault(false)
+        }
         require(validDate(edit.acquiredOn)) { "Acquisition date is invalid." }
         require(edit.detailsJson.toByteArray(Charsets.UTF_8).size <= 32_768)
         val incoming = JSONObject(edit.detailsJson)
@@ -981,10 +984,11 @@ class SqlCipherVaultRepository(
                 edit.symbolOrFolio,edit.isin,edit.acquiredOn,extras.toString(),
                 edit.holdingId.raw,edit.ownerId.raw),
         )
-        if (edit.verifiedCostPerUnit != null) db.execSQL(
+        val verifiedCost = edit.verifiedCostPerUnit
+        if (verifiedCost != null) db.execSQL(
             """UPDATE holding_profile SET average_cost_per_unit_scaled=?,cost_unknown=0
                 WHERE holding_id=? AND owner_id=?""",
-            arrayOf(edit.verifiedCostPerUnit.raw,edit.holdingId.raw,edit.ownerId.raw),
+            arrayOf(verifiedCost.raw,edit.holdingId.raw,edit.ownerId.raw),
         )
         if (custom != null) {
             db.execSQL("UPDATE holding SET price_scaled=? WHERE id=? AND owner_id=?",
