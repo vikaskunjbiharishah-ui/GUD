@@ -133,6 +133,8 @@ object LotEngine {
                 }
                 FinancialEventKind.SELL -> {
                     var left = qty.big().abs()
+                    val totalUnits = left
+                    var chargesRemaining = event.charges.raw
                     if (left == BigInteger.ZERO) {
                         errors += "SELL ${event.id} has no quantity."
                         continue
@@ -145,11 +147,21 @@ object LotEngine {
                         val proceeds = if (event.unitPrice != null) timesQuantity(take, event.unitPrice.raw)
                             else if (event.quantityScaled.big().abs() == take.big()) event.totalAmount.raw.big().abs().toCheckedLong()
                             else (event.totalAmount.raw.big().abs() * take.big() / event.quantityScaled.big().abs()).toCheckedLong()
+                        // Allocate the exact event fee across disposed FIFO parcels.
+                        // The final parcel receives the rounding residual so that
+                        // sum(net proceeds) equals recorded gross less charges.
+                        val feeShare = if (left == take.big()) chargesRemaining else
+                            (event.charges.raw.big() * take.big() / totalUnits).toCheckedLong()
+                        chargesRemaining = Math.subtractExact(chargesRemaining, feeShare)
+                        val netProceeds = Math.subtractExact(proceeds, feeShare)
+                        if (netProceeds < 0L) {
+                            errors += "SELL ${event.id} has charges exceeding parcel proceeds."
+                        }
                         val days = calendarDays(lot.acquired, event.date)
                         disposals += RealisedDisposal(
                             event.id, lot.id, lot.acquired, event.date, take,
-                            MoneyScaled(cost), MoneyScaled(proceeds),
-                            MoneyScaled(Math.subtractExact(proceeds, cost)),
+                            MoneyScaled(cost), MoneyScaled(netProceeds),
+                            MoneyScaled(Math.subtractExact(netProceeds, cost)),
                             days > longTermDays(category),
                         )
                         lot.remaining = Math.subtractExact(lot.remaining, take)
