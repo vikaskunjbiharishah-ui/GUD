@@ -48,6 +48,28 @@ object LotEngine {
         require(events.map { it.id }.distinct().size == events.size) { "Duplicate event IDs." }
         val lookup = events.associateBy { it.id }
         val errors = mutableListOf<String>()
+        // An immutable correction must refer to a real, same-owner event in
+        // the same holding. Otherwise filtering the target would silently
+        // erase accounting history or allow a cross-family supersession.
+        val correctedTargets = mutableSetOf<String>()
+        for (event in events) {
+            if (event.kind == FinancialEventKind.CORRECTION && event.supersedesEventId == null) {
+                errors += "CORRECTION ${event.id} has no target."
+            }
+            val targetId = event.supersedesEventId ?: continue
+            val target = lookup[targetId]
+            when {
+                event.kind != FinancialEventKind.CORRECTION ->
+                    errors += "Only CORRECTION events may supersede another event: ${event.id}."
+                target == null -> errors += "CORRECTION ${event.id} targets a missing event."
+                target.ownerId != event.ownerId || target.holdingId != event.holdingId ->
+                    errors += "CORRECTION ${event.id} crosses holding or owner boundaries."
+                target.date.isAfter(event.date) ->
+                    errors += "CORRECTION ${event.id} predates its target."
+                !correctedTargets.add(targetId) ->
+                    errors += "Event ${targetId} has multiple competing corrections."
+            }
+        }
         val superseded = events.mapNotNull { it.supersedesEventId }.toSet()
         fun resolvedKind(event: FinancialEvent): FinancialEventKind {
             if (event.kind != FinancialEventKind.CORRECTION) return event.kind
