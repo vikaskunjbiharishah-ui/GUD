@@ -372,6 +372,7 @@ fun CustodyHoldingScreen(
                     var categoryFilter by remember(selectedOwner) { mutableStateOf("ALL") }
                     var categoryMenu by remember { mutableStateOf(false) }
                     var includeArchived by remember(selectedOwner) { mutableStateOf(false) }
+                    var includeClosed by remember(selectedOwner) { mutableStateOf(false) }
                     var expandedHolding by remember(selectedOwner) { mutableStateOf<HoldingId?>(null) }
                     val profileById = state.profiles.associateBy { it.holdingId }
                     OutlinedTextField(
@@ -393,10 +394,15 @@ fun CustodyHoldingScreen(
                             onCheckedChange = { includeArchived = it })
                         Text("Show archived holdings")
                     }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = includeClosed, onCheckedChange = { includeClosed = it })
+                        Text("Show closed holdings")
+                    }
                     val filtered = book.holdings.filter { holding ->
                         val profile = profileById[holding.id]
                         holding.ownerId == selectedOwner &&
                             (includeArchived || profile?.archived != true) &&
+                            (includeClosed || profile?.closedOn == null) &&
                             (categoryFilter == "ALL" || holding.assetCategory == categoryFilter) &&
                             (holdingQuery.isBlank() ||
                                 holding.name.contains(holdingQuery, ignoreCase = true) ||
@@ -425,6 +431,7 @@ fun CustodyHoldingScreen(
                                     (book.accounts.firstOrNull { it.id == holding.accountId }
                                         ?.identifierMasked ?: "No linked account"))
                                 if (profile?.archived == true) Text("Archived; financial history preserved")
+                                profile?.closedOn?.let { Text("Closed on: " + it) }
                                 OutlinedButton(onClick = {
                                     expandedHolding = if (expandedHolding == holding.id) null
                                         else holding.id
