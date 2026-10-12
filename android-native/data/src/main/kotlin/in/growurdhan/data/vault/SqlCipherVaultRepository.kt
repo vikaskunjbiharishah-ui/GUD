@@ -1111,6 +1111,14 @@ class SqlCipherVaultRepository(
                 edit.symbolOrFolio,edit.isin,edit.acquiredOn,extras.toString(),
                 edit.holdingId.raw,edit.ownerId.raw),
         )
+        require(!edit.clearVerifiedCost || edit.verifiedCostPerUnit == null) {
+            "Choose either unknown cost or a verified amount."
+        }
+        if (edit.clearVerifiedCost) db.execSQL(
+            """UPDATE holding_profile SET average_cost_per_unit_scaled=NULL,cost_unknown=1
+                WHERE holding_id=? AND owner_id=?""",
+            arrayOf(edit.holdingId.raw,edit.ownerId.raw),
+        )
         val verifiedCost = edit.verifiedCostPerUnit
         if (verifiedCost != null) db.execSQL(
             """UPDATE holding_profile SET average_cost_per_unit_scaled=?,cost_unknown=0
