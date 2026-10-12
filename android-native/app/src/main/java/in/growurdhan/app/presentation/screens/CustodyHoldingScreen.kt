@@ -247,7 +247,11 @@ fun CustodyHoldingScreen(
                     }
 
                     var manualName by remember(selectedOwner) { mutableStateOf("") }
-                    var manualCategory by remember(selectedOwner) { mutableStateOf("NPS") }
+                    var manualCategory by remember(selectedOwner) { mutableStateOf("EQUITY") }
+                    var manualSubCategory by remember(selectedOwner) {
+                        mutableStateOf(ManualAssetOnboarding.subCategories["EQUITY"]!!.first())
+                    }
+                    var subCategoryExpanded by remember { mutableStateOf(false) }
                     var categoryExpanded by remember { mutableStateOf(false) }
                     Card(Modifier.fillMaxWidth()) {
                         Column(
@@ -271,11 +275,27 @@ fun CustodyHoldingScreen(
                                 expanded = categoryExpanded,
                                 onDismissRequest = { categoryExpanded = false },
                             ) {
-                                ManualAssetOnboarding.supportedCategories.forEach { choice ->
+                                ManualAssetOnboarding.canonicalCategories.forEach { choice ->
                                     DropdownMenuItem(
                                         text = { Text(choice.replace('_', ' ')) },
-                                        onClick = { manualCategory = choice; categoryExpanded = false },
+                                        onClick = {
+                                            manualCategory = choice
+                                            manualSubCategory = ManualAssetOnboarding.subCategories[choice]!!.first()
+                                            categoryExpanded = false
+                                        },
                                     )
+                                }
+                            }
+                            Text("Asset subtype", style = MaterialTheme.typography.titleSmall)
+                            OutlinedButton(onClick = { subCategoryExpanded = true },
+                                modifier = Modifier.fillMaxWidth()) {
+                                Text(manualSubCategory.replace('_', ' '))
+                            }
+                            DropdownMenu(expanded = subCategoryExpanded,
+                                onDismissRequest = { subCategoryExpanded = false }) {
+                                ManualAssetOnboarding.subCategories[manualCategory].orEmpty().forEach { subtype ->
+                                    DropdownMenuItem(text = { Text(subtype.replace('_', ' ')) },
+                                        onClick = { manualSubCategory = subtype; subCategoryExpanded = false })
                                 }
                             }
                             OutlinedTextField(
@@ -292,6 +312,7 @@ fun CustodyHoldingScreen(
                                 onClick = {
                                     onIntent(CustodyHoldingIntent.StageAsset(
                                         selectedOwner, manualName, manualCategory,
+                                        manualSubCategory,
                                     ))
                                 },
                                 modifier = Modifier.fillMaxWidth(),
