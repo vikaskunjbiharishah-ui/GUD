@@ -12,7 +12,10 @@ import java.time.format.DateTimeFormatter
 import java.time.format.ResolverStyle
 
 /** Explicitly entered trades only; statement snapshots never use this path. */
-enum class ManualTradeKind { BUY, SELL }
+enum class ManualTradeKind {
+    BUY, SELL, OPENING_BALANCE, BONUS, SPLIT, DIVIDEND, INTEREST,
+    REPAYMENT, VALUATION_UPDATE, CORRECTION,
+}
 
 data class ManualTradeDraft(
     val holdingId: HoldingId,
@@ -21,6 +24,8 @@ data class ManualTradeDraft(
     val quantity: String,
     val unitPriceInr: String,
     val chargesInr: String = "0",
+    /** The immutable event being replaced; only valid for CORRECTION. */
+    val supersedesEventId: String? = null,
 )
 
 data class ManualTradePlan(
@@ -101,15 +106,130 @@ object ManualTradePlanner {
             ?: throw IllegalArgumentException("Select an enrolled holding.")
         val owner = book.members.singleOrNull { it.id == holding.ownerId }
             ?: throw IllegalArgumentException("Holding owner is no longer enrolled.")
-        require(holding.assetCategory != "LIABILITY") {
-            "Buy and sell transactions cannot be entered for liabilities."
-        }
+        require(holding.assetCategory != "LIABILITY" || draft.kind in setOf(
+            ManualTradeKind.INTEREST, ManualTradeKind.REPAYMENT, ManualTradeKind.VALUATION_UPDATE
+        )) { "Buy and sell transactions cannot be entered for liabilities." }
         require(eventId.isNotBlank() && eventId.length <= 128)
         require(Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}").matches(draft.tradeDate))
         val day = LocalDate.parse(draft.tradeDate, dateFormatter)
         require(day >= LocalDate.of(1900, 1, 1) && !day.isAfter(today)) {
             "Trade date must be valid and cannot be in the future."
         }
+
+        // Non-trade actions use the same preview/approval/revalidation route as BUY/SELL.
+        // Snapshot observations are deliberately absent from ManualTradeKind.
+        if (draft.kind !in setOf(ManualTradeKind.BUY, ManualTradeKind.SELL)) {
+            val history = book.events.filter { it.holdingId == holding.id }
+                .map { it.toFinancialEvent() }
+            val target = if (draft.kind == ManualTradeKind.CORRECTION) {
+                val id = draft.supersedesEventId?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalArgumentException("Select an original event to correct.")
+                val original = history.singleOrNull { it.id == id }
+                    ?: throw IllegalArgumentException("Correction target does not exist on this holding.")
+                require(original.ownerId == owner.id &&
+                    original.kind != FinancialEventKind.SNAPSHOT_ADJUSTMENT &&
+                    history.none { it.supersedesEventId == id }) {
+                    "Cannot supersede an observation, cross-owner event or already corrected entry."
+                }
+                original
+            } else {
+                require(draft.supersedesEventId == null) {
+                    "Only corrections can reference a prior event."
+                }
+                null
+            }
+            val semanticKind = target?.let {
+                // Corrections can replace trade or income rows; no nested corrections.
+                require(it.kind != FinancialEventKind.CORRECTION) {
+                    "Correct the original event using a single reviewed replacement."
+                }
+                it.kind
+            } ?: FinancialEventKind.valueOf(draft.kind.name)
+            require(semanticKind != FinancialEventKind.SNAPSHOT_ADJUSTMENT)
+            val fee = amount(draft.chargesInr, 4, moneyPattern)
+            val quantity = when (semanticKind) {
+                FinancialEventKind.DIVIDEND, FinancialEventKind.INTEREST,
+                FinancialEventKind.REPAYMENT, FinancialEventKind.VALUATION_UPDATE -> {
+                    require(draft.quantity.isBlank() || draft.quantity == "0") {
+                        "Income, repayment and value observations do not change units."
+                    }
+                    0L
+                }
+                FinancialEventKind.SPLIT -> {
+                    require(Regex("[0-9]{1,6}").matches(draft.quantity)) {
+                        "Enter an integer split numerator."
+                    }
+                    draft.quantity.toLong()
+                }
+                else -> amount(draft.quantity, 8, quantityPattern)
+            }
+            val price = if (semanticKind == FinancialEventKind.SPLIT) {
+                require(Regex("[0-9]{1,6}").matches(draft.unitPriceInr)) {
+                    "Enter an integer split denominator."
+                }
+                draft.unitPriceInr.toLong()
+            } else amount(draft.unitPriceInr, 4, moneyPattern)
+            require(price > 0 || (semanticKind == FinancialEventKind.BONUS && price == 0L)) {
+                "Enter a positive amount or unit price; bonus units use zero cost."
+            }
+            val incomeKinds = setOf(FinancialEventKind.DIVIDEND, FinancialEventKind.INTEREST,
+                FinancialEventKind.REPAYMENT, FinancialEventKind.VALUATION_UPDATE)
+            require(semanticKind in setOf(FinancialEventKind.BUY, FinancialEventKind.SELL,
+                FinancialEventKind.OPENING_BALANCE, FinancialEventKind.BONUS,
+                FinancialEventKind.SPLIT) + incomeKinds) {
+                "This event type cannot be manually replaced."
+            }
+            require(fee == 0L || semanticKind in setOf(FinancialEventKind.BUY,
+                FinancialEventKind.SELL, FinancialEventKind.OPENING_BALANCE)) {
+                "Only acquisition and disposal entries may include charges."
+            }
+            require(quantity > 0 || semanticKind in incomeKinds) {
+                "This entry requires positive units or a valid split ratio."
+            }
+            require(holding.assetCategory != "LIABILITY" ||
+                semanticKind in setOf(FinancialEventKind.REPAYMENT,
+                    FinancialEventKind.INTEREST, FinancialEventKind.VALUATION_UPDATE)) {
+                "Liability entries must be repayments, interest or valuation updates."
+            }
+            if (semanticKind in setOf(FinancialEventKind.SPLIT, FinancialEventKind.BONUS)) {
+                require(holding.assetCategory in setOf("EQUITY", "MUTUAL_FUND", "GOLD_SGB", "SPECIALISED")) {
+                    "Splits and bonus units are unavailable for this asset category."
+                }
+            }
+            val gross = if (semanticKind in incomeKinds) price else if (
+                semanticKind == FinancialEventKind.SPLIT || semanticKind == FinancialEventKind.BONUS
+            ) 0L else {
+                val scale = BigInteger.valueOf(100_000_000L)
+                val product = BigInteger.valueOf(quantity).multiply(BigInteger.valueOf(price))
+                val (whole, remainder) = product.divideAndRemainder(scale)
+                whole.add(if (remainder.shiftLeft(1) >= scale) BigInteger.ONE
+                    else BigInteger.ZERO).longValueExact()
+            }
+            val entry = FinancialEvent(
+                id = eventId, holdingId = holding.id, ownerId = owner.id,
+                kind = FinancialEventKind.valueOf(draft.kind.name), date = day,
+                quantityScaled = if (semanticKind == FinancialEventKind.SELL) -quantity else quantity,
+                unitPrice = if (semanticKind in incomeKinds &&
+                    semanticKind != FinancialEventKind.VALUATION_UPDATE) null
+                    else MoneyScaled(price),
+                totalAmount = MoneyScaled(gross), charges = MoneyScaled(fee),
+                supersedesEventId = target?.id,
+            )
+            // The FIFO fold resolves CORRECTION to its original economic kind.
+            // Re-running the entire chronological history rejects negative positions.
+            val verified = LotEngine.fold(holding.id, holding.assetCategory, history + entry)
+            require(verified.errors.isEmpty()) {
+                "This entry would invalidate the historical lots or sale chronology."
+            }
+            return ManualTradePlan(
+                entry, holding.name, owner.displayName, quantity,
+                MoneyScaled(gross), MoneyScaled(fee),
+                MoneyScaled(if (semanticKind == FinancialEventKind.SELL)
+                    Math.subtractExact(gross, fee) else Math.addExact(gross, fee)),
+                fingerprint(book),
+            )
+        }
+
         val quantity = amount(draft.quantity, 8, quantityPattern)
         val price = amount(draft.unitPriceInr, 4, moneyPattern)
         val fees = amount(draft.chargesInr, 4, moneyPattern)
