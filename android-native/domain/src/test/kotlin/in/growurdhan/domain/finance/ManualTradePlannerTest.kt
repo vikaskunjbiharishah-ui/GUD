@@ -147,6 +147,92 @@ class ManualTradePlannerTest {
         assertNotEquals(original.bookFingerprint, renamed.bookFingerprint)
     }
 
+
+    @Test fun incomeAndValuationDoNotChangeQuantity() {
+        for (kind in listOf(ManualTradeKind.DIVIDEND,
+            ManualTradeKind.INTEREST, ManualTradeKind.VALUATION_UPDATE)) {
+            val plan = ManualTradePlanner.prepare(book(listOf(purchase)),
+                draft(kind = kind, qty = "", price = "123.4567"),
+                "income-" + kind.name, today)
+            assertEquals(0L, plan.event.quantityScaled)
+            assertEquals(1_234_567L, plan.gross.raw)
+            assertEquals(kind.name, plan.event.kind.name)
+        }
+    }
+
+    @Test fun bonusAndSplitAreFoldedWithRetainedOriginalAcquisitionLots() {
+        val bonus = ManualTradePlanner.prepare(book(listOf(purchase)),
+            draft(kind = ManualTradeKind.BONUS, qty = "1", price = "0"),
+            "bonus", today)
+        assertEquals(0L, bonus.event.totalAmount.raw)
+        assertEquals(100_000_000L, bonus.event.quantityScaled)
+        val split = ManualTradePlanner.prepare(book(listOf(purchase)),
+            draft(kind = ManualTradeKind.SPLIT, qty = "2", price = "1"),
+            "split", today)
+        val lot = LotEngine.fold(holding.id, holding.assetCategory,
+            listOf(purchase.toFinancialEvent(), split.event))
+        assertTrue(lot.errors.isEmpty())
+        assertEquals(400_000_000L, lot.quantityScaled)
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book(),
+                draft(kind = ManualTradeKind.SPLIT, qty = "2", price = "1"),
+                "split-empty", today)
+        }
+    }
+
+    @Test fun correctedBuyDoesNotMutateOldEventAndRejectsNegativeHistoricalPosition() {
+        val correction = ManualTradePlanner.prepare(book(listOf(purchase)),
+            draft(kind = ManualTradeKind.CORRECTION, qty = "3", price = "15")
+                .copy(supersedesEventId = purchase.id), "corrected", today)
+        assertEquals(FinancialEventKind.CORRECTION, correction.event.kind)
+        assertEquals(purchase.id, correction.event.supersedesEventId)
+        val position = LotEngine.fold(holding.id, holding.assetCategory,
+            listOf(purchase.toFinancialEvent(), correction.event))
+        assertEquals(300_000_000L, position.quantityScaled)
+        assertEquals(purchase.quantityDeltaScaled, 200_000_000L)
+        val sale = LedgerEvent("sold", holding.id, owner, LedgerKind.SELL,
+            "2026-09-10", -100_000_000L, MoneyScaled(170_000),
+            null, MoneyScaled(170_000))
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book(listOf(purchase, sale)),
+                draft(kind = ManualTradeKind.CORRECTION, qty = "0.5", price = "15")
+                    .copy(supersedesEventId = purchase.id), "invalid", today)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book(listOf(purchase,
+                LedgerEvent("corrected", holding.id, owner, LedgerKind.CORRECTION,
+                    "2026-10-10", 300_000_000L, MoneyScaled(450_000),
+                    null, MoneyScaled(150_000), supersedesEventId = "purchase"))),
+                draft(kind = ManualTradeKind.CORRECTION, qty = "3", price = "15")
+                    .copy(supersedesEventId = purchase.id), "again", today)
+        }
+    }
+
+    @Test fun openingBalancesWithExplicitZeroCostAreNotInferredPurchases() {
+        val opening = ManualTradePlanner.prepare(book(),
+            draft(kind = ManualTradeKind.OPENING_BALANCE, qty = "1", price = "0"),
+            "opening", today)
+        assertEquals(FinancialEventKind.OPENING_BALANCE, opening.event.kind)
+        assertEquals(0L, opening.event.unitPrice?.raw)
+        assertEquals(100_000_000L, opening.event.quantityScaled)
+    }
+
+    @Test fun repaymentRequiresLiabilityAndNoManualSnapshotKindExists() {
+        assertFalse(ManualTradeKind.entries.any { it.name == "SNAPSHOT_ADJUSTMENT" })
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book(),
+                draft(kind = ManualTradeKind.REPAYMENT, qty = "", price = "200"),
+                "repayment", today)
+        }
+        val liability = holding.copy(assetCategory = "LIABILITY")
+        val result = ManualTradePlanner.prepare(book().copy(holdings = listOf(liability)),
+            draft(kind = ManualTradeKind.REPAYMENT, qty = "", price = "200"),
+            "repayment-liability", today)
+        assertEquals(0L, result.event.quantityScaled)
+        assertEquals(2_000_000L, result.event.totalAmount.raw)
+    }
+
+
     @Test fun smallFractionalTradesUseIntegerHalfUpRounding() {
         val result = ManualTradePlanner.prepare(
             book(), draft(qty = "0.00000001", price = "5000"), "event", today,
