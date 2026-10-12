@@ -47,6 +47,66 @@ class NativeCustodyHoldingInstrumentedTest {
         return vault.registerCustodyAccount(actualOwner, "CAMS", "Synthetic registrar")
     }
 
+    @Test fun canonicalSubtypeAndHoldingProfileEditsAreEncryptedAndReversible(): Unit = runBlocking {
+        val account = seed()
+        val asset = vault.registerDetailedAsset(
+            account.ownerId, "Synthetic SGB", "GOLD_SGB", "SGB",
+        )
+        assertEquals(0L, asset.quantity.raw)
+        assertTrue(vault.events().isEmpty())
+        assertEquals("SGB", vault.holdingProfiles().single().subCategory)
+        assertNull(vault.holdingProfiles().single().verifiedCostPerUnit)
+        vault.updateHoldingProfile(HoldingProfileEdit(
+            asset.id, account.ownerId, "Synthetic Sovereign Gold Bond",
+            "SGB", """{"goldHoldMode":"DEMAT","goldPurity":"24K"}""",
+            "synthetic note", "India", "SGB-TEST", null, "2026-08-01",
+            MoneyScaled(750_000), "2026-10-10", "USER_ENTERED",
+            MoneyScaled(600_000), true,
+        ))
+        val saved = vault.holdingProfiles().single()
+        assertEquals("Synthetic Sovereign Gold Bond", saved.name)
+        assertTrue(saved.archived)
+        assertEquals(600_000L, saved.verifiedCostPerUnit?.raw)
+        assertEquals("USER_ENTERED", saved.priceSource)
+        assertEquals("DEMAT", JSONObject(saved.detailsJson).getString("goldHoldMode"))
+        assertEquals(750_000L, vault.holdings().single().currentUnitPrice.raw)
+        assertTrue(vault.events().isEmpty())
+        vault.close()
+        vault.openOrCreate()
+        assertTrue(vault.holdingProfiles().single().archived)
+        vault.updateHoldingProfile(HoldingProfileEdit(
+            asset.id, account.ownerId, "Synthetic Sovereign Gold Bond",
+            "SGB", "{}", archived = false,
+        ))
+        val restored = vault.holdingProfiles().single()
+        assertFalse(restored.archived)
+        assertEquals("DEMAT", JSONObject(restored.detailsJson).getString("goldHoldMode"))
+        assertTrue(vault.events().isEmpty())
+        assertEquals(0, vault.health().foreignKeyViolations)
+    }
+
+    @Test fun subtypeConflictAndCrossOwnerProfileChangeRollbackWithoutLedgerMutation(): Unit = runBlocking {
+        val account = seed()
+        val holding = vault.registerDetailedAsset(
+            account.ownerId, "Synthetic PPF", "FIXED_INCOME", "PPF",
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { vault.registerDetailedAsset(account.ownerId,
+                "Invalid", "LIABILITY", "NPS_TIER_I") }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { vault.updateHoldingProfile(HoldingProfileEdit(
+                holding.id, OwnerId("another-owner"), "Spoofed owner")) }
+        }
+        assertThrows(Exception::class.java) {
+            runBlocking { vault.updateHoldingProfile(HoldingProfileEdit(
+                holding.id, account.ownerId, "Bad details", "PPF", """{"fakeField":"unsafe"}""")) }
+        }
+        assertEquals(1, vault.holdings().size)
+        assertEquals("Synthetic PPF", vault.holdings().single().name)
+        assertTrue(vault.events().isEmpty())
+    }
+
     @Test fun manualRetirementAssetIsZeroValueAndRestorableWithoutCasIdentity(): Unit = runBlocking {
         val account = seed()
         val asset = vault.registerManualAsset(account.ownerId, "Synthetic NPS Tier I", "NPS")
