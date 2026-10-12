@@ -252,6 +252,8 @@ fun CustodyHoldingScreen(
                         mutableStateOf(ManualAssetOnboarding.subCategories["EQUITY"]!!.first())
                     }
                     var subCategoryExpanded by remember { mutableStateOf(false) }
+                    var manualAccountId by remember(selectedOwner) { mutableStateOf<String?>(null) }
+                    var manualAccountExpanded by remember { mutableStateOf(false) }
                     var categoryExpanded by remember { mutableStateOf(false) }
                     Card(Modifier.fillMaxWidth()) {
                         Column(
@@ -298,6 +300,35 @@ fun CustodyHoldingScreen(
                                         onClick = { manualSubCategory = subtype; subCategoryExpanded = false })
                                 }
                             }
+                            Text("Linked custody account (optional)",
+                                style = MaterialTheme.typography.titleSmall)
+                            val eligibleAccounts = accounts.filter { account ->
+                                manualCategory != "MUTUAL_FUND" ||
+                                    account.accountType !in CustodyHoldingOnboarding.registrarTypes
+                            }
+                            OutlinedButton(onClick = { manualAccountExpanded = true },
+                                modifier = Modifier.fillMaxWidth()) {
+                                Text(eligibleAccounts.firstOrNull { it.id == manualAccountId }
+                                    ?.let { it.accountType + " · " + it.identifierMasked }
+                                    ?: "No linked custody account")
+                            }
+                            DropdownMenu(expanded = manualAccountExpanded,
+                                onDismissRequest = { manualAccountExpanded = false }) {
+                                DropdownMenuItem(text = { Text("No linked account") },
+                                    onClick = { manualAccountId = null; manualAccountExpanded = false })
+                                eligibleAccounts.forEach { account ->
+                                    DropdownMenuItem(
+                                        text = { Text(account.accountType + " · " + account.identifierMasked) },
+                                        onClick = {
+                                            manualAccountId = account.id
+                                            manualAccountExpanded = false
+                                        },
+                                    )
+                                }
+                            }
+                            Text("A manually tracked fund cannot bypass CAMS/KFINTECH " +
+                                "verified ISIN/folio enrollment.",
+                                style = MaterialTheme.typography.bodySmall)
                             OutlinedTextField(
                                 value = manualName,
                                 onValueChange = { if (it.length <= 200) manualName = it },
@@ -312,7 +343,7 @@ fun CustodyHoldingScreen(
                                 onClick = {
                                     onIntent(CustodyHoldingIntent.StageAsset(
                                         selectedOwner, manualName, manualCategory,
-                                        manualSubCategory,
+                                        manualSubCategory, manualAccountId,
                                     ))
                                 },
                                 modifier = Modifier.fillMaxWidth(),
