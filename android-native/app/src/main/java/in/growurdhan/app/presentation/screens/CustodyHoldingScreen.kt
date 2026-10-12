@@ -13,6 +13,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -30,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.core.model.OwnerId
+import `in`.growurdhan.core.model.HoldingId
 import `in`.growurdhan.app.presentation.CustodyHoldingIntent
 import `in`.growurdhan.app.presentation.CustodyHoldingUiState
 import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
@@ -342,6 +344,93 @@ fun CustodyHoldingScreen(
                             Text("Showing 100 of ${manualAssets.size} registered manual assets.")
                         }
                     }
+
+                    Text("Holding details and complete history",
+                        style = MaterialTheme.typography.titleMedium)
+                    var holdingQuery by remember(selectedOwner) { mutableStateOf("") }
+                    var categoryFilter by remember(selectedOwner) { mutableStateOf("ALL") }
+                    var categoryMenu by remember { mutableStateOf(false) }
+                    var includeArchived by remember(selectedOwner) { mutableStateOf(false) }
+                    var expandedHolding by remember(selectedOwner) { mutableStateOf<HoldingId?>(null) }
+                    val profileById = state.profiles.associateBy { it.holdingId }
+                    OutlinedTextField(
+                        value = holdingQuery, onValueChange = { holdingQuery = it.take(120) },
+                        label = { Text("Search holdings / identifiers / categories") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedButton(onClick = { categoryMenu = true }) {
+                        Text("Category: " + categoryFilter)
+                    }
+                    DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
+                        (listOf("ALL") + book.holdings.map { it.assetCategory }.distinct()).forEach { cat ->
+                            DropdownMenuItem(text = { Text(cat.replace('_', ' ')) },
+                                onClick = { categoryFilter = cat; categoryMenu = false })
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = includeArchived,
+                            onCheckedChange = { includeArchived = it })
+                        Text("Show archived holdings")
+                    }
+                    val filtered = book.holdings.filter { holding ->
+                        val profile = profileById[holding.id]
+                        holding.ownerId == selectedOwner &&
+                            (includeArchived || profile?.archived != true) &&
+                            (categoryFilter == "ALL" || holding.assetCategory == categoryFilter) &&
+                            (holdingQuery.isBlank() ||
+                                holding.name.contains(holdingQuery, ignoreCase = true) ||
+                                holding.assetCategory.contains(holdingQuery, ignoreCase = true) ||
+                                profile?.subCategory?.contains(holdingQuery, ignoreCase = true) == true)
+                    }
+                    if (filtered.isEmpty()) Text("No holdings match the current filters.")
+                    filtered.forEach { holding ->
+                        val profile = profileById[holding.id]
+                        Card(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(holding.name, style = MaterialTheme.typography.titleSmall)
+                                Text(holding.assetCategory.replace('_', ' ') +
+                                    (profile?.subCategory?.let { " · " + it } ?: ""))
+                                Text("Recorded units: " + holding.quantity.units().toPlainString())
+                                Text("Last recorded price: " +
+                                    holding.currentUnitPrice.rupees().toPlainString() + " INR")
+                                Text("Price as-of/source: " +
+                                    (profile?.priceAsOf ?: "not recorded") + " · " +
+                                    (profile?.priceSource ?: "unknown"))
+                                Text("Acquisition cost: " +
+                                    (profile?.verifiedCostPerUnit?.rupees()?.toPlainString()
+                                        ?: "UNKNOWN"))
+                                Text("Related custody account: " +
+                                    (book.accounts.firstOrNull { it.id == holding.accountId }
+                                        ?.identifierMasked ?: "No linked account"))
+                                if (profile?.archived == true) Text("Archived; financial history preserved")
+                                OutlinedButton(onClick = {
+                                    expandedHolding = if (expandedHolding == holding.id) null
+                                        else holding.id
+                                }) { Text(if (expandedHolding == holding.id) "Close details" else "Details / edit") }
+                                if (expandedHolding == holding.id) {
+                                    Text("Complete immutable ledger history",
+                                        style = MaterialTheme.typography.titleSmall)
+                                    val timeline = book.events.filter {
+                                        it.holdingId == holding.id
+                                    }.sortedWith(compareBy({ it.eventDate }, { it.id }))
+                                    if (timeline.isEmpty()) Text("No recorded transactions.")
+                                    timeline.forEach { event ->
+                                        Text(event.eventDate + " · " + event.kind.name +
+                                            " · units " + event.quantityDeltaScaled.toString() +
+                                            " · INR " + event.amount.rupees().toPlainString())
+                                        event.supersedesEventId?.let {
+                                            Text("Supersedes original event " + it)
+                                        }
+                                    }
+                                    if (profile != null) HoldingProfileEditor(profile) { edit ->
+                                        onIntent(CustodyHoldingIntent.StageProfile(edit))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     Button(
                         onClick = onContinueToStatements,
                         modifier = Modifier.fillMaxWidth(),
