@@ -323,7 +323,8 @@ class SqlCipherVaultRepository(
             require(event.unitPrice != null || event.kind in setOf(
                 FinancialEventKind.DIVIDEND, FinancialEventKind.INTEREST,
                 FinancialEventKind.VALUATION_UPDATE, FinancialEventKind.REPAYMENT,
-            )) { "Trade, adjustment and split events require an explicit unit price or ratio." }
+                FinancialEventKind.CORRECTION,
+            )) { "Acquisition, disposal, bonus and split events require explicit price or ratio." }
             require(event.kind != FinancialEventKind.CORRECTION || event.supersedesEventId != null) {
                 "Corrections require the original event ID."
             }
