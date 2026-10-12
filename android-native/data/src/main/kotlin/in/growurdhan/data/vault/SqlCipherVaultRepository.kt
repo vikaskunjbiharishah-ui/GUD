@@ -13,6 +13,7 @@ import `in`.growurdhan.domain.finance.FinancialEventKind
 import `in`.growurdhan.domain.finance.ManualTradeDraft
 import `in`.growurdhan.domain.finance.ManualTradePlan
 import `in`.growurdhan.domain.finance.ManualTradePlanner
+import `in`.growurdhan.domain.finance.LotEngine
 import `in`.growurdhan.domain.finance.ReviewedStatement
 import `in`.growurdhan.domain.finance.StatementLine
 import `in`.growurdhan.domain.finance.SnapshotReconciler
@@ -834,6 +835,7 @@ class SqlCipherVaultRepository(
                             (!cursor.isNull(14) && cursor.getInt(14) == 1)) null
                             else MoneyScaled(cursor.getLong(13)),
                         archived = extras.optBoolean("m27Archived", false),
+                        closedOn = extras.optString("m27ClosedOn").ifBlank { null },
                     ))
                 }
             }
@@ -892,6 +894,27 @@ class SqlCipherVaultRepository(
         require(details.toString().toByteArray(Charsets.UTF_8).size <= 65_536)
         val extras = JSONObject(originalExtras)
         extras.put("m27Archived", edit.archived)
+        if (edit.closedOn == null) extras.remove("m27ClosedOn")
+        else {
+            require(validDate(edit.closedOn)) { "Closing date is invalid." }
+            val history = readEvents(db).filter { it.holdingId == edit.holdingId }
+                .map { it.toFinancialEvent() }
+            val position = LotEngine.fold(edit.holdingId, ownerHolding.assetCategory, history)
+            require(position.errors.isEmpty() && position.quantityScaled == 0L &&
+                ownerHolding.quantity.raw == 0L) {
+                "An asset can close only after all units are reconciled to zero."
+            }
+            db.rawQuery("SELECT outstanding_scaled FROM liability_profile " +
+                "WHERE holding_id=? AND owner_id=?",
+                arrayOf(edit.holdingId.raw,edit.ownerId.raw)).use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) {
+                    require(cursor.getLong(0) == 0L) {
+                        "Outstanding liabilities must be settled before closing."
+                    }
+                }
+            }
+            extras.put("m27ClosedOn", edit.closedOn)
+        }
         val custom = edit.customPrice
         require(custom == null || custom.raw >= 0) { "A quoted price cannot be negative." }
         require(edit.verifiedCostPerUnit == null || edit.verifiedCostPerUnit.raw >= 0) {
