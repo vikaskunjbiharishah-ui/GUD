@@ -62,6 +62,8 @@ def repository_binding_errors(binding: str) -> list[str]:
         "casIdentities": "sessionBound.read { delegate.casIdentities() }",
         "holdings": "sessionBound.read { delegate.holdings() }",
         "events": "sessionBound.read { delegate.events() }",
+        "holdingProfiles": "sessionBound.read { delegate.holdingProfiles() }",
+        "updateHoldingProfile": "approvedWrite { delegate.updateHoldingProfile(",
         "readBook": "sessionBound.read { delegate.readBook() }",
         "health": "sessionBound.read { delegate.health() }",
         "exportEncryptedBackup": "sessionBound.readRecentlyApprovedBytes { delegate.exportEncryptedBackup(",
