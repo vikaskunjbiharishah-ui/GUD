@@ -41,6 +41,7 @@ sealed interface CustodyRegistration {
     data class Asset(
         val ownerId: OwnerId, val name: String, val category: String,
         val subCategory: String? = null,
+        val accountId: String? = null,
     ) : CustodyRegistration
     data class Account(
         val ownerId: OwnerId, val type: String, val label: String,
@@ -57,6 +58,7 @@ sealed interface CustodyHoldingIntent {
     data class StageAsset(
         val ownerId: OwnerId, val name: String, val category: String,
         val subCategory: String? = null,
+        val accountId: String? = null,
     ) : CustodyHoldingIntent
     data class StageAccount(
         val ownerId: OwnerId, val type: String, val label: String,
@@ -154,13 +156,22 @@ class CustodyHoldingViewModel @Inject constructor(
             intent.subCategory?.let {
                 ManualAssetOnboarding.requireCanonicalSubCategory(intent.category, it)
             }
+            intent.accountId?.let { accountId ->
+                val account = ready.book.accounts.single {
+                    it.id == accountId && it.ownerId == intent.ownerId
+                }
+                require(intent.category != "MUTUAL_FUND" ||
+                    account.accountType !in CustodyHoldingOnboarding.registrarTypes) {
+                    "Use CAS enrollment for a registrar mutual fund."
+                }
+            }
             val asset = ManualAssetOnboarding.create(
                 intent.ownerId, intent.name, intent.category,
                 HoldingId(UUID.randomUUID().toString()), ready.book.holdings,
             )
             mutableState.value = CustodyHoldingUiState.AwaitingCredential(
                 CustodyRegistration.Asset(asset.ownerId, asset.name, asset.assetCategory,
-                    intent.subCategory),
+                    intent.subCategory, intent.accountId),
                 session.credentialEpoch(),
             )
         } catch (_: Exception) {
@@ -234,7 +245,7 @@ class CustodyHoldingViewModel @Inject constructor(
                             vault.registerManualAsset(request.ownerId, request.name, request.category)
                         } else {
                             vault.registerDetailedAsset(request.ownerId, request.name,
-                                request.category, request.subCategory)
+                                request.category, request.subCategory, request.accountId)
                         }
                         "Asset tracked with zero units and zero recorded value. Add a " +
                             "separately reviewed transaction to record an acquisition."
