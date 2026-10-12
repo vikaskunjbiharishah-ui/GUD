@@ -125,7 +125,7 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
         val detailInputsValid = edits.all { (key, value) -> when {
             value.isBlank() -> true
             key == "tdsApplicable" -> value.equals("true", true) || value.equals("false", true)
-            key == "incomeDay" -> value.toIntOrNull() in 1..28
+            key == "incomeDay" -> (value.toIntOrNull() ?: -1) in 1..28
             key == "originalTenorMonths" -> (value.toIntOrNull() ?: -1) >= 0
             key in setOf("areaSqFt", "ownershipPercent") ->
                 value.toDoubleOrNull()?.let { it.isFinite() && it >= 0 &&
