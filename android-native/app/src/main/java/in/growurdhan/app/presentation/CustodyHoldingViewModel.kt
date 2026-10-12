@@ -109,10 +109,11 @@ class CustodyHoldingViewModel @Inject constructor(
         operation = viewModelScope.launch {
             try {
                 val book = vault.readBook()
+                val profiles = vault.holdingProfiles()
                 if (expectedGeneration == generation) {
                     if (session.isCurrentSession(originalRevision)) {
                         mutableState.value = CustodyHoldingUiState.Ready(
-                            book, profiles = vault.holdingProfiles(),
+                            book, profiles = profiles,
                         )
                     } else {
                         clearSensitiveState()
