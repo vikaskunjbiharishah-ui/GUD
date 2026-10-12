@@ -200,7 +200,7 @@ object ManualTradePlanner {
                 holding.assetCategory == "LIABILITY") {
                 "Repayments require an enrolled liability holding."
             }
-            if (semanticKind == FinancialEventKind.SPLIT) {
+            if (semanticKind in setOf(FinancialEventKind.SPLIT, FinancialEventKind.BONUS)) {
                 require(history.any { it.kind in setOf(FinancialEventKind.BUY,
                     FinancialEventKind.OPENING_BALANCE, FinancialEventKind.BONUS) }) {
                     "A split requires an existing acquisition lot."
