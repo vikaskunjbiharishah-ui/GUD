@@ -140,6 +140,39 @@ class NativeCustodyHoldingInstrumentedTest {
         assertEquals(0, vault.health().foreignKeyViolations)
     }
 
+    @Test fun portableBackupRoundTripPreservesEditedOriginalHoldingFields(): Unit = runBlocking {
+        val account = seed()
+        val holding = vault.registerDetailedAsset(account.ownerId,
+            "Synthetic portfolio property", "REAL_ESTATE", "Residential")
+        vault.updateHoldingProfile(HoldingProfileEdit(
+            holdingId = holding.id, ownerId = account.ownerId,
+            name = "Updated synthetic property", subCategory = "Residential",
+            detailsJson = """{"ownershipPercent":50,"areaSqFt":1000}""",
+            notes = "Synthetic fixture", location = "India",
+            richMetadataJson = """{"benchmark_price_scaled":50000000,"tags_json":"[\"House\"]"}""",
+            archived = true,
+        ))
+        val source = vault.holdingProfiles().single()
+        val pass = "synthetic encrypted backup passphrase".toCharArray()
+        val archive = vault.exportEncryptedBackup(pass)
+        val restoreRoot = File(context.noBackupFilesDir, "m27-restore-" + UUID.randomUUID())
+        val restoreAlias = "in.growurdhan.restore.m27." + UUID.randomUUID()
+        val target = SqlCipherVaultRepository(context, restoreRoot, restoreAlias)
+        try {
+            target.openOrCreate()
+            target.restoreEncryptedBackup(pass, archive)
+            assertEquals(source, target.holdingProfiles().single())
+            assertEquals(vault.readBook(), target.readBook())
+            assertEquals(0, target.health().foreignKeyViolations)
+        } finally {
+            pass.fill('\u0000')
+            archive.fill(0)
+            target.close()
+            restoreRoot.deleteRecursively()
+            KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(restoreAlias)
+        }
+    }
+
     @Test fun canonicalSubtypeAndHoldingProfileEditsAreEncryptedAndReversible(): Unit = runBlocking {
         val account = seed()
         val asset = vault.registerDetailedAsset(
