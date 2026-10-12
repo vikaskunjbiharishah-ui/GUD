@@ -38,9 +38,9 @@ object ManualAssetOnboarding {
             "Choose a valid category and its matching subcategory."
         }
     }
-    val supportedCategories = listOf(
-        "EQUITY", "MUTUAL_FUND", "NPS", "PPF", "EPF",
-        "FIXED_DEPOSIT", "BOND", "GOLD", "REAL_ESTATE", "CASH", "OTHER",
+    /** Legacy aliases remain importable/readable; new forms use canonicalCategories. */
+    val supportedCategories = canonicalCategories + listOf(
+        "NPS", "PPF", "EPF", "FIXED_DEPOSIT", "BOND", "GOLD", "CASH", "OTHER",
     )
     const val MAX_MANUAL_HOLDINGS_PER_OWNER = 2_000
 
