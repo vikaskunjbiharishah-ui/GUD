@@ -107,7 +107,8 @@ object ManualTradePlanner {
         val owner = book.members.singleOrNull { it.id == holding.ownerId }
             ?: throw IllegalArgumentException("Holding owner is no longer enrolled.")
         require(holding.assetCategory != "LIABILITY" || draft.kind in setOf(
-            ManualTradeKind.INTEREST, ManualTradeKind.REPAYMENT, ManualTradeKind.VALUATION_UPDATE
+            ManualTradeKind.INTEREST, ManualTradeKind.REPAYMENT, ManualTradeKind.VALUATION_UPDATE,
+            ManualTradeKind.CORRECTION,
         )) { "Buy and sell transactions cannot be entered for liabilities." }
         require(eventId.isNotBlank() && eventId.length <= 128)
         require(Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}").matches(draft.tradeDate))
@@ -116,6 +117,9 @@ object ManualTradePlanner {
             "Trade date must be valid and cannot be in the future."
         }
 
+        require(draft.kind == ManualTradeKind.CORRECTION || draft.supersedesEventId == null) {
+            "Ordinary transactions cannot supersede a previous ledger event."
+        }
         // Non-trade actions use the same preview/approval/revalidation route as BUY/SELL.
         // Snapshot observations are deliberately absent from ManualTradeKind.
         if (draft.kind !in setOf(ManualTradeKind.BUY, ManualTradeKind.SELL)) {
@@ -169,7 +173,8 @@ object ManualTradePlanner {
                 }
                 draft.unitPriceInr.toLong()
             } else amount(draft.unitPriceInr, 4, moneyPattern)
-            require(price > 0 || (semanticKind == FinancialEventKind.BONUS && price == 0L)) {
+            require(price > 0 || (semanticKind in setOf(FinancialEventKind.BONUS,
+                FinancialEventKind.OPENING_BALANCE) && price == 0L)) {
                 "Enter a positive amount or unit price; bonus units use zero cost."
             }
             val incomeKinds = setOf(FinancialEventKind.DIVIDEND, FinancialEventKind.INTEREST,
@@ -190,6 +195,16 @@ object ManualTradePlanner {
                 semanticKind in setOf(FinancialEventKind.REPAYMENT,
                     FinancialEventKind.INTEREST, FinancialEventKind.VALUATION_UPDATE)) {
                 "Liability entries must be repayments, interest or valuation updates."
+            }
+            require(semanticKind != FinancialEventKind.REPAYMENT ||
+                holding.assetCategory == "LIABILITY") {
+                "Repayments require an enrolled liability holding."
+            }
+            if (semanticKind == FinancialEventKind.SPLIT) {
+                require(history.any { it.kind in setOf(FinancialEventKind.BUY,
+                    FinancialEventKind.OPENING_BALANCE, FinancialEventKind.BONUS) }) {
+                    "A split requires an existing acquisition lot."
+                }
             }
             if (semanticKind in setOf(FinancialEventKind.SPLIT, FinancialEventKind.BONUS)) {
                 require(holding.assetCategory in setOf("EQUITY", "MUTUAL_FUND", "GOLD_SGB", "SPECIALISED")) {
