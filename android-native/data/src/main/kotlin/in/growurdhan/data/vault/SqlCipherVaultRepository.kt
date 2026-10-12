@@ -246,20 +246,40 @@ class SqlCipherVaultRepository(
 
     override suspend fun registerDetailedAsset(
         ownerId: OwnerId, name: String, category: String, subCategory: String,
+        accountId: String?,
     ): Holding = mutate { db ->
         ManualAssetOnboarding.requireCanonicalSubCategory(category, subCategory)
         require(readMembers(db).any { it.id == ownerId }) {
             "Financial asset must belong to an enrolled owner."
         }
+        if (accountId != null) {
+            val account = readAccounts(db).singleOrNull {
+                it.id == accountId && it.ownerId == ownerId
+            } ?: throw IllegalArgumentException("Select an account belonging to this owner.")
+            db.rawQuery(
+                "SELECT closed_on FROM custody_profile WHERE account_id=? AND owner_id=?",
+                arrayOf(account.id, ownerId.raw),
+            ).use { cursor ->
+                if (cursor.moveToFirst()) {
+                    require(cursor.isNull(0)) { "Cannot link an asset to a closed account." }
+                }
+            }
+            // CAS-verified mutual funds must enroll through exact registrar ISIN/folio
+            // workflow, not receive a manual placeholder under CAMS/KFINTECH.
+            require(category != "MUTUAL_FUND" ||
+                account.accountType !in CustodyHoldingOnboarding.registrarTypes) {
+                "Use verified registrar enrollment for a CAMS/KFINTECH mutual fund."
+            }
+        }
         val asset = ManualAssetOnboarding.create(
             ownerId, name, category, HoldingId(UUID.randomUUID().toString()),
             readHoldings(db),
-        )
+        ).copy(accountId = accountId)
         db.execSQL(
             """INSERT INTO holding
                 (id,owner_id,account_id,display_name,asset_category,quantity_scaled,price_scaled)
                 VALUES(?,?,?,?,?,?,?)""",
-            arrayOf(asset.id.raw, ownerId.raw, null, asset.name, asset.assetCategory, 0L, 0L),
+            arrayOf(asset.id.raw, ownerId.raw, accountId, asset.name, asset.assetCategory, 0L, 0L),
         )
         db.execSQL(
             """INSERT INTO holding_profile
@@ -1344,8 +1364,9 @@ class DefaultVaultRepository @Inject constructor(
     }
     override suspend fun registerDetailedAsset(
         ownerId: OwnerId, name: String, category: String, subCategory: String,
+        accountId: String?,
     ): Holding = approvedWrite {
-        delegate.registerDetailedAsset(ownerId, name, category, subCategory)
+        delegate.registerDetailedAsset(ownerId, name, category, subCategory, accountId)
     }
     override suspend fun registerCasHolding(
         ownerId: OwnerId, accountId: String, displayName: String,
