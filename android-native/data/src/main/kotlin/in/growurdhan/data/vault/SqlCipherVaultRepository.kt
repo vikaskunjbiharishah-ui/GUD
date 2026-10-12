@@ -44,6 +44,8 @@ import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 import net.zetetic.database.sqlcipher.SQLiteDatabase
+import org.json.JSONObject
+import java.time.LocalDate
 
 /**
  * Never silently create a database in a read/status operation.
@@ -741,6 +743,147 @@ class SqlCipherVaultRepository(
 
     override suspend fun holdings(): List<Holding> = inspect { db -> readHoldings(db) }
 
+    override suspend fun holdingProfiles(): List<HoldingProfileSnapshot> = inspect { db ->
+        db.rawQuery(
+            """SELECT h.id,h.owner_id,h.display_name,h.asset_category,
+                p.sub_category,p.details_json,p.notes,p.location,p.symbol_or_folio,p.isin,
+                p.acquired_on,p.last_price_updated,p.price_source,
+                p.average_cost_per_unit_scaled,p.cost_unknown,p.extra_json
+                FROM holding h LEFT JOIN holding_profile p
+                ON h.id=p.holding_id AND h.owner_id=p.owner_id
+                ORDER BY h.owner_id,h.id""", null,
+        ).use { cursor ->
+            buildList {
+                fun string(index: Int): String? = if (cursor.isNull(index)) null else cursor.getString(index)
+                while (cursor.moveToNext()) {
+                    val extras = JSONObject(string(15) ?: "{}")
+                    add(HoldingProfileSnapshot(
+                        holdingId = HoldingId(cursor.getString(0)),
+                        ownerId = OwnerId(cursor.getString(1)),
+                        name = cursor.getString(2),
+                        assetCategory = cursor.getString(3),
+                        subCategory = string(4),
+                        detailsJson = string(5) ?: "{}",
+                        notes = string(6),
+                        location = string(7),
+                        symbolOrFolio = string(8),
+                        isin = string(9),
+                        acquiredOn = string(10),
+                        priceAsOf = string(11),
+                        priceSource = string(12),
+                        verifiedCostPerUnit = if (cursor.isNull(13) ||
+                            (!cursor.isNull(14) && cursor.getInt(14) == 1)) null
+                            else MoneyScaled(cursor.getLong(13)),
+                        archived = extras.optBoolean("m27Archived", false),
+                    ))
+                }
+            }
+        }
+    }
+
+    /** A single reversible encrypted metadata edit; never rewrites the ledger. */
+    override suspend fun updateHoldingProfile(edit: HoldingProfileEdit): Unit = mutate { db ->
+        val ownerHolding = readHoldings(db).singleOrNull {
+            it.id == edit.holdingId && it.ownerId == edit.ownerId
+        } ?: throw IllegalArgumentException("Select a recorded holding owned by this member.")
+        val cleanName = edit.name.trim().replace(Regex("\\s+"), " ")
+        require(cleanName.length in 1..200 && cleanName.none { it.isISOControl() }) {
+            "Holding name must contain 1–200 printable characters."
+        }
+        require(edit.subCategory == null || edit.subCategory.length <= 80)
+        require(edit.notes == null || edit.notes.length <= 4_000)
+        require(edit.location == null || edit.location.length <= 300)
+        require(edit.symbolOrFolio == null || edit.symbolOrFolio.length <= 120)
+        require(edit.isin == null || Regex("[A-Z0-9]{12}").matches(edit.isin))
+        fun validDate(value: String?): Boolean = value == null || runCatching {
+            LocalDate.parse(value).let { !it.isAfter(LocalDate.now()) && it.year >= 1900 }
+        }.getOrDefault(false)
+        require(validDate(edit.acquiredOn)) { "Acquisition date is invalid." }
+        require(edit.detailsJson.toByteArray(Charsets.UTF_8).size <= 32_768)
+        val incoming = JSONObject(edit.detailsJson)
+        var original = "{}"
+        var originalExtras = "{}"
+        db.rawQuery(
+            "SELECT details_json,extra_json FROM holding_profile WHERE holding_id=? AND owner_id=?",
+            arrayOf(edit.holdingId.raw, edit.ownerId.raw),
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                original = if (cursor.isNull(0)) "{}" else cursor.getString(0)
+                originalExtras = if (cursor.isNull(1)) "{}" else cursor.getString(1)
+            }
+        }
+        // Merge, rather than replace, so unknown original legacy fields are retained
+        // even when their native form is not yet visible on this Android version.
+        val details = JSONObject(original)
+        val allowed = ReactV9HoldingDetailsContract.fields
+        val submittedKeys = incoming.keys()
+        while (submittedKeys.hasNext()) {
+            val key = submittedKeys.next()
+            require(key in allowed || details.has(key)) {
+                "Unrecognized financial details cannot be added."
+            }
+            val value = incoming.get(key)
+            require(value == JSONObject.NULL || value is String ||
+                value is Number || value is Boolean) {
+                "Financial detail values must be typed scalar fields."
+            }
+            if (value == JSONObject.NULL) details.remove(key)
+            else details.put(key, value)
+        }
+        require(details.toString().toByteArray(Charsets.UTF_8).size <= 65_536)
+        val extras = JSONObject(originalExtras)
+        extras.put("m27Archived", edit.archived)
+        val custom = edit.customPrice
+        require(custom == null || custom.raw >= 0) { "A quoted price cannot be negative." }
+        require(edit.verifiedCostPerUnit == null || edit.verifiedCostPerUnit.raw >= 0) {
+            "Verified acquisition cost cannot be negative."
+        }
+        if (custom != null) {
+            require(validDate(edit.priceAsOf) && edit.priceAsOf != null) {
+                "Explicit prices require a valid as-of date."
+            }
+            require(!edit.priceSource.isNullOrBlank() && edit.priceSource.length <= 120) {
+                "Explicit prices require a recorded source."
+            }
+        }
+        db.execSQL(
+            """INSERT OR IGNORE INTO holding_profile
+                (holding_id,owner_id,details_json,cost_unknown)
+                VALUES(?,?,?,1)""",
+            arrayOf(edit.holdingId.raw,edit.ownerId.raw,"{}"),
+        )
+        db.execSQL(
+            "UPDATE holding SET display_name=? WHERE id=? AND owner_id=?",
+            arrayOf(cleanName,edit.holdingId.raw,edit.ownerId.raw),
+        )
+        // Do not set unknown cost to zero or invent a BUY, even for a new asset.
+        db.execSQL(
+            """UPDATE holding_profile SET sub_category=?,details_json=?,notes=?,
+                location=?,symbol_or_folio=?,isin=?,acquired_on=?,extra_json=?
+                WHERE holding_id=? AND owner_id=?""",
+            arrayOf(edit.subCategory,details.toString(),edit.notes,edit.location,
+                edit.symbolOrFolio,edit.isin,edit.acquiredOn,extras.toString(),
+                edit.holdingId.raw,edit.ownerId.raw),
+        )
+        if (edit.verifiedCostPerUnit != null) db.execSQL(
+            """UPDATE holding_profile SET average_cost_per_unit_scaled=?,cost_unknown=0
+                WHERE holding_id=? AND owner_id=?""",
+            arrayOf(edit.verifiedCostPerUnit.raw,edit.holdingId.raw,edit.ownerId.raw),
+        )
+        if (custom != null) {
+            db.execSQL("UPDATE holding SET price_scaled=? WHERE id=? AND owner_id=?",
+                arrayOf(custom.raw,edit.holdingId.raw,edit.ownerId.raw))
+            db.execSQL(
+                """UPDATE holding_profile SET last_price_updated=?,price_source=?,
+                    is_price_stale=0 WHERE holding_id=? AND owner_id=?""",
+                arrayOf(edit.priceAsOf,edit.priceSource,edit.holdingId.raw,edit.ownerId.raw),
+            )
+        }
+        // Re-read to verify ownership after write; any error rolls back this transaction.
+        require(readHoldings(db).any { it.id == ownerHolding.id && it.ownerId == ownerHolding.ownerId })
+    }
+
+
     private fun readHoldings(db: SQLiteDatabase): List<Holding> {
         return db.rawQuery(
             """SELECT id,owner_id,account_id,display_name,asset_category,quantity_scaled,price_scaled
@@ -1013,6 +1156,11 @@ class DefaultVaultRepository @Inject constructor(
     override suspend fun casIdentities(): List<CasHoldingIdentity> = sessionBound.read { delegate.casIdentities() }
     override suspend fun holdings(): List<Holding> = sessionBound.read { delegate.holdings() }
     override suspend fun events(): List<LedgerEvent> = sessionBound.read { delegate.events() }
+    override suspend fun holdingProfiles(): List<HoldingProfileSnapshot> =
+        sessionBound.read { delegate.holdingProfiles() }
+    override suspend fun updateHoldingProfile(edit: HoldingProfileEdit) {
+        approvedWrite { delegate.updateHoldingProfile(edit) }
+    }
     override suspend fun readBook(): VaultBook = sessionBound.read { delegate.readBook() }
     override suspend fun health(): VaultHealth = sessionBound.read { delegate.health() }
     override suspend fun exportEncryptedBackup(passphrase: CharArray): ByteArray =
