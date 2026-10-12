@@ -48,6 +48,7 @@ def repository_binding_errors(binding: str) -> list[str]:
         "registerCustodyAccount": "approvedWrite { delegate.registerCustodyAccount(",
         "createHolding": "approvedWrite { delegate.createHolding(",
         "registerManualAsset": "approvedWrite { delegate.registerManualAsset(",
+        "registerDetailedAsset": "approvedWrite {",
         "registerCasHolding": "approvedWrite { delegate.registerCasHolding(",
         "appendEvent": "approvedWrite { delegate.appendEvent(",
         "appendFinancialEvents": "approvedWrite { delegate.appendFinancialEvents(",
