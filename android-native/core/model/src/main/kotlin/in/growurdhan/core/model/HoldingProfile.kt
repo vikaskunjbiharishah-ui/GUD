@@ -51,3 +51,7 @@ data class HoldingProfileEdit(
     val closedOn: String? = null,
     /** Original Holding-level financial metadata columns, typed via allowlist. */
 
+    val richMetadataJson: String = "{}",
+    /** Explicitly restore unknown cost without inventing a new ledger event. */
+    val clearVerifiedCost: Boolean = false,
+)
