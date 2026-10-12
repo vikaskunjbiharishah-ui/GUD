@@ -856,6 +856,10 @@ class SqlCipherVaultRepository(
         require(edit.location == null || edit.location.length <= 300)
         require(edit.symbolOrFolio == null || edit.symbolOrFolio.length <= 120)
         require(edit.isin == null || Regex("[A-Z0-9]{12}").matches(edit.isin))
+        val verifiedCas = readCasIdentities(db).firstOrNull { it.holdingId == edit.holdingId }
+        require(verifiedCas == null || edit.isin == null || edit.isin == verifiedCas.isin) {
+            "A registrar-verified CAS identity cannot be edited here."
+        }
         fun validDate(value: String?): Boolean = value == null || runCatching {
             LocalDate.parse(value).let { !it.isAfter(LocalDate.now()) && it.year >= 1900 }
         }.getOrDefault(false)
@@ -864,13 +868,15 @@ class SqlCipherVaultRepository(
         val incoming = JSONObject(edit.detailsJson)
         var original = "{}"
         var originalExtras = "{}"
+        var originalPriceDate: String? = null
         db.rawQuery(
-            "SELECT details_json,extra_json FROM holding_profile WHERE holding_id=? AND owner_id=?",
+            "SELECT details_json,extra_json,last_price_updated FROM holding_profile WHERE holding_id=? AND owner_id=?",
             arrayOf(edit.holdingId.raw, edit.ownerId.raw),
         ).use { cursor ->
             if (cursor.moveToFirst()) {
                 original = if (cursor.isNull(0)) "{}" else cursor.getString(0)
                 originalExtras = if (cursor.isNull(1)) "{}" else cursor.getString(1)
+                originalPriceDate = if (cursor.isNull(2)) null else cursor.getString(2)
             }
         }
         // Merge, rather than replace, so unknown original legacy fields are retained
@@ -889,7 +895,29 @@ class SqlCipherVaultRepository(
                 "Financial detail values must be typed scalar fields."
             }
             if (value == JSONObject.NULL) details.remove(key)
-            else details.put(key, value)
+            else {
+                val numericKeys = setOf("areaSqFt", "ownershipPercent",
+                    "originalTenorMonths", "incomeDay")
+                val moneyStringKeys = setOf("annualContributionMinor",
+                    "faceValueMinor", "commitmentMinor", "capitalCalledMinor",
+                    "monthlyIncomeMinor")
+                when {
+                    key == "tdsApplicable" -> require(value is Boolean)
+                    key in numericKeys -> {
+                        require(value is Number && value.toDouble().isFinite() &&
+                            value.toDouble() >= 0.0)
+                        if (key == "ownershipPercent") require(value.toDouble() <= 100.0)
+                        if (key == "incomeDay") require(value.toInt() in 1..28 &&
+                            value.toDouble() == value.toInt().toDouble())
+                        if (key == "originalTenorMonths") require(
+                            value.toDouble() == value.toInt().toDouble())
+                    }
+                    key in moneyStringKeys -> require(value is String &&
+                        Regex("[0-9]{1,18}").matches(value))
+                    key in allowed -> require(value is String)
+                }
+                details.put(key, value)
+            }
         }
         require(details.toString().toByteArray(Charsets.UTF_8).size <= 65_536)
         val extras = JSONObject(originalExtras)
@@ -923,6 +951,9 @@ class SqlCipherVaultRepository(
         if (custom != null) {
             require(validDate(edit.priceAsOf) && edit.priceAsOf != null) {
                 "Explicit prices require a valid as-of date."
+            }
+            require(originalPriceDate == null || edit.priceAsOf >= originalPriceDate) {
+                "A custom quote cannot replace a newer dated price observation."
             }
             require(!edit.priceSource.isNullOrBlank() && edit.priceSource.length <= 120) {
                 "Explicit prices require a recorded source."
