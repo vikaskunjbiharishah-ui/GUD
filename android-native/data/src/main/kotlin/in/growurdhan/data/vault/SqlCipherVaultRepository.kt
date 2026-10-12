@@ -338,6 +338,20 @@ class SqlCipherVaultRepository(
         draft: ManualTradeDraft, reviewed: ManualTradePlan,
     ) {
         mutate { db ->
+            // Archived and closed positions are kept for audit but are not
+            // eligible for new manual postings until explicitly reactivated.
+            db.rawQuery(
+                "SELECT extra_json FROM holding_profile WHERE holding_id=?",
+                arrayOf(draft.holdingId.raw),
+            ).use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) {
+                    val profileState = JSONObject(cursor.getString(0))
+                    require(!profileState.optBoolean("m27Archived", false) &&
+                        profileState.optString("m27ClosedOn").isBlank()) {
+                        "Reopen or unarchive this holding before entering a transaction."
+                    }
+                }
+            }
             val current = ManualTradePlanner.prepare(
                 readBookInsideTransaction(db), draft, reviewed.event.id,
             )
