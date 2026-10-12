@@ -43,8 +43,8 @@ fun ManualTradeScreen(
     ) {
         Text("Record a transaction", style = MaterialTheme.typography.headlineMedium)
         Text(
-            "Only explicit buys and sells of enrolled assets. Statement snapshots " +
-                "must be imported through the separate reviewed CAS workflow. " +
+            "Explicit transaction, income, split and correction entries use a device-approved " +
+                "append-only ledger. Statement snapshots stay in the CAS workflow. " +
                 "Amounts are recorded to four decimal INR places and units to eight.",
             style = MaterialTheme.typography.bodySmall,
         )
@@ -74,15 +74,18 @@ fun ManualTradeScreen(
                     ) {
                         Text("Confirm the exact transaction", style = MaterialTheme.typography.titleMedium)
                         Text("${plan.event.kind} · ${plan.holdingName} · ${plan.ownerName}")
-                        Text("Trade date: ${plan.event.date}")
+                        Text("Event date: ${plan.event.date}")
+                        plan.event.supersedesEventId?.let { Text("Corrects recorded event: $it") }
                         Text(
-                            "Units: " + BigDecimal.valueOf(plan.quantity, 8)
-                                .stripTrailingZeros().toPlainString(),
+                            "Quantity / split numerator: " +
+                                (if (plan.event.kind.name == "SPLIT") plan.quantity.toString()
+                                    else BigDecimal.valueOf(plan.quantity, 8)
+                                        .stripTrailingZeros().toPlainString()),
                         )
                         Text("Gross: ${plan.gross.rupees().toPlainString()} INR")
                         Text("Charges: ${plan.charges.rupees().toPlainString()} INR")
                         Text(
-                            (if (plan.event.kind.name == "BUY") "Total paid: " else "Net received: ") +
+                            "Reviewed cash or stated amount: " +
                                 plan.cashAmount.rupees().toPlainString() + " INR",
                         )
                         Text(
@@ -100,9 +103,14 @@ fun ManualTradeScreen(
                 }
             }
             is ManualTradeUiState.Ready -> {
+                var search by remember(state.book) { mutableStateOf("") }
+                OutlinedTextField(value = search, onValueChange = { search = it.take(120) },
+                    label = { Text("Search holding or category") },
+                    modifier = Modifier.fillMaxWidth().testTag("ManualHoldingSearch"))
                 val eligible = state.book.holdings.filter {
-                    it.assetCategory != "LIABILITY" &&
-                        state.book.members.any { member -> member.id == it.ownerId }
+                    state.book.members.any { member -> member.id == it.ownerId } &&
+                        (search.isBlank() || it.name.contains(search, ignoreCase = true) ||
+                            it.assetCategory.contains(search, ignoreCase = true))
                 }
                 if (eligible.isEmpty()) {
                     Text("No enrolled asset holding exists. Enrol a family account or fund first.")
@@ -136,12 +144,40 @@ fun ManualTradeScreen(
                         modifier = Modifier.testTag("ManualTradeKindPicker"),
                     ) { Text(kind.name) }
                     DropdownMenu(expanded = showKinds, onDismissRequest = { showKinds = false }) {
-                        ManualTradeKind.entries.forEach { option ->
+                        ManualTradeKind.entries.filter { option ->
+                            selected.assetCategory != "LIABILITY" || option in setOf(
+                                ManualTradeKind.REPAYMENT, ManualTradeKind.INTEREST,
+                                ManualTradeKind.VALUATION_UPDATE, ManualTradeKind.CORRECTION)
+                        }.forEach { option ->
                             DropdownMenuItem(
                                 text = { Text(option.name) },
                                 onClick = { kind = option; showKinds = false },
                             )
                         }
+                    }
+                    var targetId by remember(selected.id, state.book.events) { mutableStateOf<String?>(null) }
+                    var showTargets by remember { mutableStateOf(false) }
+                    if (kind == ManualTradeKind.CORRECTION) {
+                        val correctionTargets = state.book.events.filter { event ->
+                            event.holdingId == selected.id && event.kind.name != "SNAPSHOT_ADJUSTMENT" &&
+                                event.kind.name != "CORRECTION" &&
+                                state.book.events.none { it.supersedesEventId == event.id }
+                        }
+                        Text("Original immutable event to correct")
+                        OutlinedButton(onClick = { showTargets = true },
+                            modifier = Modifier.testTag("ManualCorrectionTarget")) {
+                            Text(correctionTargets.firstOrNull { it.id == targetId }?.let {
+                                "${it.eventDate} · ${it.kind.name} · ${it.id.take(8)}"
+                            } ?: "Choose an original event")
+                        }
+                        DropdownMenu(expanded = showTargets, onDismissRequest = { showTargets = false }) {
+                            correctionTargets.forEach { record -> DropdownMenuItem(
+                                text = { Text("${record.eventDate} · ${record.kind} · ${record.id.take(8)}") },
+                                onClick = { targetId = record.id; showTargets = false },
+                            ) }
+                        }
+                        Text("The replacement takes the original economic event type. " +
+                            "Enter corrected units, price/amount, charges and date.")
                     }
                     OutlinedTextField(
                         value = day, onValueChange = { day = it.take(10) },
@@ -151,13 +187,24 @@ fun ManualTradeScreen(
                     )
                     OutlinedTextField(
                         value = quantity, onValueChange = { quantity = it.take(24) },
-                        label = { Text("Units (up to 8 decimals)") },
+                        label = { Text(when (kind) {
+                            ManualTradeKind.SPLIT -> "Split numerator (whole number)"
+                            ManualTradeKind.DIVIDEND, ManualTradeKind.INTEREST,
+                            ManualTradeKind.REPAYMENT, ManualTradeKind.VALUATION_UPDATE -> "Units (leave blank)"
+                            else -> "Units (up to 8 decimals)"
+                        }) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().testTag("ManualTradeUnits"),
                     )
                     OutlinedTextField(
                         value = price, onValueChange = { price = it.take(24) },
-                        label = { Text("Unit price (INR, up to 4 decimals)") },
+                        label = { Text(when (kind) {
+                            ManualTradeKind.SPLIT -> "Split denominator (whole number)"
+                            ManualTradeKind.DIVIDEND, ManualTradeKind.INTEREST,
+                            ManualTradeKind.REPAYMENT -> "Income / repayment amount (INR)"
+                            ManualTradeKind.VALUATION_UPDATE -> "New quoted unit price (INR)"
+                            else -> "Unit price (INR, up to 4 decimals)"
+                        }) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().testTag("ManualTradePrice"),
                     )
@@ -171,8 +218,9 @@ fun ManualTradeScreen(
                         Text(it, color = MaterialTheme.colorScheme.error)
                     }
                     Text(
-                        "A sale requires a verified acquisition ledger. CAS-only balance " +
-                            "observations cannot prove saleable units or historical cost.",
+                        "Backdated disposals are checked against the complete FIFO lot history. " +
+                            "Corrections supersede but never delete original events. " +
+                            "Registrar snapshot adjustments cannot be manually entered.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Card(modifier = Modifier.fillMaxWidth()) {
@@ -194,7 +242,7 @@ fun ManualTradeScreen(
                                 Text("No transactions have been recorded yet.")
                             } else {
                                 val names = state.book.holdings.associateBy { it.id }
-                                recent.take(20).forEach { event ->
+                                recent.filter { it.holdingId == selected.id }.forEach { event ->
                                     val holdingName = names[event.holdingId]?.name
                                         ?: "Unmapped recorded holding"
                                     Text(
@@ -207,20 +255,15 @@ fun ManualTradeScreen(
                                         style = MaterialTheme.typography.bodySmall,
                                     )
                                 }
-                                if (recent.size > 20) {
-                                    Text(
-                                        "Showing 20 of ${recent.size} events. " +
-                                            "This is a recent-record summary, not a full audit export.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                }
+                                Text("Showing the full recorded timeline for this selected holding.")
                             }
                         }
                     }
                     Button(onClick = {
                         onIntent(ManualTradeIntent.Stage(
                             ManualTradeDraft(selected.id, kind, day.trim(),
-                                quantity.trim(), price.trim(), fees.trim()),
+                                quantity.trim(), price.trim(), fees.trim(),
+                                if (kind == ManualTradeKind.CORRECTION) targetId else null),
                         ))
                     }) { Text("Review recorded transaction") }
                 }
