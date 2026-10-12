@@ -20,6 +20,8 @@ data class HoldingProfileSnapshot(
     val priceSource: String? = null,
     val verifiedCostPerUnit: MoneyScaled? = null,
     val archived: Boolean = false,
+    /** ISO date marking a safely closed zero-position holding. */
+    val closedOn: String? = null,
 )
 
 /** Only the fields explicitly supplied by the user may change. Ownership is immutable. */
@@ -43,4 +45,6 @@ data class HoldingProfileEdit(
     val verifiedCostPerUnit: MoneyScaled? = null,
     /** Archive is a reversible visibility marker, NEVER deletion of a financial row. */
     val archived: Boolean = false,
+    /** ISO date marking a safely closed zero-position holding. */
+    val closedOn: String? = null,
 )
