@@ -28,6 +28,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun priorDeviceCredentialCannotPublishDelayedCustodyBook() = runTest {
         val repo = mockk<VaultRepository>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val pending = CompletableDeferred<VaultBook>()
         coEvery { repo.readBook() } coAnswers { pending.await() }
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
@@ -44,6 +45,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun priorDeviceCredentialCannotPublishDelayedCustodySave() = runTest {
         val repo = mockk<VaultRepository>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         coEvery { repo.readBook() } returns book()
         val pending = CompletableDeferred<CustodyAccount>()
         coEvery { repo.registerCustodyAccount(any(), any(), any()) } coAnswers {
@@ -68,6 +70,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun manualNpsAssetStartsAtZeroAfterSeparateCredentialApproval() = runTest {
         val repo = mockk<VaultRepository>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book()
         val asset = Holding(
@@ -98,6 +101,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun lockedRefreshNeverReadsEncryptedBook() = runTest {
         val repo = mockk<VaultRepository>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val viewModel = CustodyHoldingViewModel(repo, VaultSessionGate(UnitTestPasswordAdmission))
         viewModel.onIntent(CustodyHoldingIntent.Refresh)
         advanceUntilIdle()
@@ -107,6 +111,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun validAccountFormNeedsNewCredentialAfterStaging() = runTest {
         val repo = mockk<VaultRepository>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book()
         val vm = CustodyHoldingViewModel(repo, gate)
@@ -122,6 +127,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun freshCredentialAllowsOneExplicitRegistrarRegistration() = runTest {
         val repo = mockk<VaultRepository>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book()
         coEvery { repo.registerCustodyAccount(owner, "CAMS", "Main") } returns account
@@ -140,6 +146,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun invalidAndCrossOwnerEnrolmentCannotAskForCredential() = runTest {
         val repo = mockk<VaultRepository>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book(listOf(account))
         val vm = CustodyHoldingViewModel(repo, gate)
@@ -158,6 +165,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun approvedHoldingCreatesNoLedgerEventOrAutomaticStatementImport() = runTest {
         val repo = mockk<VaultRepository>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book(listOf(account))
         val enrolled = Holding(
@@ -186,6 +194,7 @@ class CustodyHoldingViewModelTest {
 
     @Test fun lockClearsStagedHoldingCredentialsAndForbidsPostLogoutWrite() = runTest {
         val repo = mockk<VaultRepository>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book(listOf(account))
         val vm = CustodyHoldingViewModel(repo, gate)
