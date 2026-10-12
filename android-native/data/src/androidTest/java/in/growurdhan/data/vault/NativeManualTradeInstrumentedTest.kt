@@ -82,6 +82,37 @@ class NativeManualTradeInstrumentedTest {
         assertEquals(persisted, vault.readBook())
     }
 
+    @Test fun reviewedValuationUpdatesDisplayedQuoteAndSourceInOneTransaction(): Unit = runBlocking {
+        seed()
+        val draft = ManualTradeDraft(
+            holding.id, ManualTradeKind.VALUATION_UPDATE, "2026-10-01", "", "123.5000",
+        )
+        val plan = ManualTradePlanner.prepare(vault.readBook(), draft, "manual-quote", asOf)
+        vault.commitManualTrade(draft, plan)
+        assertEquals(1, vault.events().size)
+        assertEquals(LedgerKind.VALUATION_UPDATE, vault.events().single().kind)
+        assertEquals(1_235_000L, vault.holdings().single().currentUnitPrice.raw)
+        assertEquals("2026-10-01", vault.holdingProfiles().single().priceAsOf)
+        assertEquals("USER_REVIEWED_LEDGER", vault.holdingProfiles().single().priceSource)
+        assertEquals(0, vault.health().foreignKeyViolations)
+    }
+
+    @Test fun archivedManualHoldingRejectsPreviouslyReviewedTrade(): Unit = runBlocking {
+        seed()
+        val draft = ManualTradeDraft(
+            holding.id, ManualTradeKind.BUY, "2026-10-01", "1", "100",
+        )
+        val plan = ManualTradePlanner.prepare(vault.readBook(), draft, "archived-write", asOf)
+        vault.updateHoldingProfile(HoldingProfileEdit(
+            holding.id, owner, holding.name, archived = true,
+        ))
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { vault.commitManualTrade(draft, plan) }
+        }
+        assertTrue(vault.events().isEmpty())
+        assertTrue(vault.holdingProfiles().single().archived)
+    }
+
     @Test fun interveningLedgerWriteCannotMakeOldReviewCommit(): Unit = runBlocking {
         seed()
         val draft = ManualTradeDraft(
