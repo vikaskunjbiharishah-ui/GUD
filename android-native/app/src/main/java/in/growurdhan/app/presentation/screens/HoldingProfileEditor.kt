@@ -40,6 +40,7 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
     var priceSource by remember(profile.holdingId) { mutableStateOf(profile.priceSource.orEmpty()) }
     var cost by remember(profile.holdingId) { mutableStateOf("") }
     var archived by remember(profile.holdingId) { mutableStateOf(profile.archived) }
+    var closedOn by remember(profile.holdingId) { mutableStateOf(profile.closedOn.orEmpty()) }
     var showAll by remember(profile.holdingId) { mutableStateOf(false) }
     var edits by remember(profile.holdingId, profile.detailsJson) {
         mutableStateOf<Map<String, String>>(emptyMap())
@@ -111,6 +112,9 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
             Checkbox(checked = archived, onCheckedChange = { archived = it })
             Text("Archive (reversible; history remains stored)")
         }
+        OutlinedTextField(closedOn, { closedOn = it.take(10) },
+            label = { Text("Close on YYYY-MM-DD (only when position and debt reach zero)") },
+            modifier = Modifier.fillMaxWidth())
         val parsedPrice = runCatching {
             price.takeIf { it.isNotBlank() }?.let { MoneyScaled.fromRupees(BigDecimal(it)) }
         }.getOrNull()
@@ -134,6 +138,7 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                 customPrice = parsedPrice, priceAsOf = priceAsOf.ifBlank { null },
                 priceSource = priceSource.ifBlank { null },
                 verifiedCostPerUnit = parsedCost, archived = archived,
+                closedOn = closedOn.ifBlank { null },
             ))
         }, modifier = Modifier.fillMaxWidth()) { Text("Review holding edits with device lock") }
     }
