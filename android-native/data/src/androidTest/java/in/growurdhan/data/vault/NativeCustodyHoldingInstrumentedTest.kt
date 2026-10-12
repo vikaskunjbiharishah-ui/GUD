@@ -50,15 +50,15 @@ class NativeCustodyHoldingInstrumentedTest {
     @Test fun canonicalSubtypeAndHoldingProfileEditsAreEncryptedAndReversible(): Unit = runBlocking {
         val account = seed()
         val asset = vault.registerDetailedAsset(
-            account.ownerId, "Synthetic SGB", "GOLD_SGB", "SGB",
+            account.ownerId, "Synthetic SGB", "GOLD_SGB", "Sovereign Gold Bond",
         )
         assertEquals(0L, asset.quantity.raw)
         assertTrue(vault.events().isEmpty())
-        assertEquals("SGB", vault.holdingProfiles().single().subCategory)
+        assertEquals("Sovereign Gold Bond", vault.holdingProfiles().single().subCategory)
         assertNull(vault.holdingProfiles().single().verifiedCostPerUnit)
         vault.updateHoldingProfile(HoldingProfileEdit(
             asset.id, account.ownerId, "Synthetic Sovereign Gold Bond",
-            "SGB", """{"goldHoldMode":"DEMAT","goldPurity":"24K"}""",
+            "Sovereign Gold Bond", """{"goldHoldMode":"DEMAT","goldPurity":"24K"}""",
             "synthetic note", "India", "SGB-TEST", null, "2026-08-01",
             MoneyScaled(750_000), "2026-10-10", "USER_ENTERED",
             MoneyScaled(600_000), true,
@@ -76,7 +76,7 @@ class NativeCustodyHoldingInstrumentedTest {
         assertTrue(vault.holdingProfiles().single().archived)
         vault.updateHoldingProfile(HoldingProfileEdit(
             asset.id, account.ownerId, "Synthetic Sovereign Gold Bond",
-            "SGB", "{}", archived = false,
+            "Sovereign Gold Bond", "{}", archived = false,
         ))
         val restored = vault.holdingProfiles().single()
         assertFalse(restored.archived)
