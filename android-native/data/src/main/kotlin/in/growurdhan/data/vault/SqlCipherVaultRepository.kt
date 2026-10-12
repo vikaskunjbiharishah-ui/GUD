@@ -1001,6 +1001,83 @@ class SqlCipherVaultRepository(
                 VALUES(?,?,?,1)""",
             arrayOf(edit.holdingId.raw,edit.ownerId.raw,"{}"),
         )
+        val richInput = edit.richMetadataJson
+        require(richInput.toByteArray(Charsets.UTF_8).size <= 32_768) {
+            "Holding attributes exceed supported size."
+        }
+        val richChanges = JSONObject(richInput)
+        val richNames = richChanges.keys()
+        while (richNames.hasNext()) {
+            val key = richNames.next()
+            require(key in HoldingRichMetadataContract.editableColumns) {
+                "Unsupported holding metadata field."
+            }
+            val value = richChanges.get(key)
+            val storeValue: Any? = when {
+                value == JSONObject.NULL -> null
+                key in HoldingRichMetadataContract.moneyColumns ||
+                    key in HoldingRichMetadataContract.rateColumns ||
+                    key in HoldingRichMetadataContract.countColumns -> {
+                    require(value is Number && Regex("[0-9]{1,18}").matches(value.toString())) {
+                        "Money, rate and count metadata must be nonnegative scaled integers."
+                    }
+                    value.toString().toLong()
+                }
+                key in HoldingRichMetadataContract.dateColumns -> {
+                    require(value is String && Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}").matches(value))
+                    val date = LocalDate.parse(value as String)
+                    require(date.year in 1900..2300) { "Financial event date is outside range." }
+                    value
+                }
+                key in HoldingRichMetadataContract.jsonColumns -> {
+                    require(value is String && value.length <= 8_192)
+                    val list = org.json.JSONArray(value as String)
+                    require(list.length() <= 100) { "Too many tag or allocation entries." }
+                    if (key == "tags_json") {
+                        for (index in 0 until list.length()) {
+                            require(list.opt(index) is String &&
+                                list.getString(index).length in 1..80) {
+                                "Tags must be short descriptions."
+                            }
+                        }
+                    } else {
+                        var percentSum = 0.0
+                        for (index in 0 until list.length()) {
+                            val item = list.getJSONObject(index)
+                            val percent = item.getDouble("percent")
+                            require(percent.isFinite() && percent >= 0.0 && percent <= 100.0)
+                            require(item.getString("exposure").length in 1..80)
+                            percentSum += percent
+                        }
+                        require(list.length() == 0 || kotlin.math.abs(percentSum - 100.0) < 0.00001) {
+                            "Allocation percentages must total 100."
+                        }
+                    }
+                    list.toString()
+                }
+                else -> {
+                    require(value is String && value.length <= 300)
+                    val text = value as String
+                    if (key == "account_number_masked") {
+                        require(text.isBlank() || text.contains("*") || text.contains("•")) {
+                            "Only a masked account identifier may be stored here."
+                        }
+                    }
+                    if (key == "emi_status") {
+                        require(text in setOf("Paying", "Paused", "Stopped")) {
+                            "Choose a supported EMI status."
+                        }
+                    }
+                    text
+                }
+            }
+            // SQL column is selected only from a compile-time constant allowlist.
+            db.execSQL(
+                "UPDATE holding_profile SET " + key + "=? WHERE holding_id=? AND owner_id=?",
+                arrayOf(storeValue, edit.holdingId.raw, edit.ownerId.raw),
+            )
+        }
+
         db.execSQL(
             "UPDATE holding SET display_name=? WHERE id=? AND owner_id=?",
             arrayOf(cleanName,edit.holdingId.raw,edit.ownerId.raw),
