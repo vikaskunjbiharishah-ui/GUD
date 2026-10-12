@@ -243,6 +243,32 @@ class SqlCipherVaultRepository(
         asset
     }
 
+    override suspend fun registerDetailedAsset(
+        ownerId: OwnerId, name: String, category: String, subCategory: String,
+    ): Holding = mutate { db ->
+        ManualAssetOnboarding.requireCanonicalSubCategory(category, subCategory)
+        require(readMembers(db).any { it.id == ownerId }) {
+            "Financial asset must belong to an enrolled owner."
+        }
+        val asset = ManualAssetOnboarding.create(
+            ownerId, name, category, HoldingId(UUID.randomUUID().toString()),
+            readHoldings(db),
+        )
+        db.execSQL(
+            """INSERT INTO holding
+                (id,owner_id,account_id,display_name,asset_category,quantity_scaled,price_scaled)
+                VALUES(?,?,?,?,?,?,?)""",
+            arrayOf(asset.id.raw, ownerId.raw, null, asset.name, asset.assetCategory, 0L, 0L),
+        )
+        db.execSQL(
+            """INSERT INTO holding_profile
+                (holding_id,owner_id,sub_category,details_json,cost_unknown)
+                VALUES(?,?,?,?,1)""",
+            arrayOf(asset.id.raw,ownerId.raw,subCategory,"{}"),
+        )
+        asset
+    }
+
     /**
      * Two rows, one transaction. FKs and the insert trigger independently
      * enforce that the enrolled ISIN/folio belongs to its owner/account.
@@ -1114,6 +1140,11 @@ class DefaultVaultRepository @Inject constructor(
         ownerId: OwnerId, name: String, category: String,
     ): Holding {
         return approvedWrite { delegate.registerManualAsset(ownerId, name, category) }
+    }
+    override suspend fun registerDetailedAsset(
+        ownerId: OwnerId, name: String, category: String, subCategory: String,
+    ): Holding = approvedWrite {
+        delegate.registerDetailedAsset(ownerId, name, category, subCategory)
     }
     override suspend fun registerCasHolding(
         ownerId: OwnerId, accountId: String, displayName: String,
