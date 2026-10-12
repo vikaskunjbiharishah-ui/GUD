@@ -22,6 +22,8 @@ data class HoldingProfileSnapshot(
     val archived: Boolean = false,
     /** ISO date marking a safely closed zero-position holding. */
     val closedOn: String? = null,
+    /** Original Holding-level financial metadata columns, typed via allowlist. */
+    val richMetadataJson: String = "{}",
 )
 
 /** Only the fields explicitly supplied by the user may change. Ownership is immutable. */
@@ -47,4 +49,6 @@ data class HoldingProfileEdit(
     val archived: Boolean = false,
     /** ISO date marking a safely closed zero-position holding. */
     val closedOn: String? = null,
+    /** Original Holding-level financial metadata columns, typed via allowlist. */
+    val richMetadataJson: String = "{}",
 )
