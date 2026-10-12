@@ -138,7 +138,7 @@ class LocalAppPasswordStore private constructor(
         } finally {
             derived.fill(0)
         }
-        val emailTag = accountEmail?.let { hashEmail(it) }
+        val emailTag = accountEmail?.let { emailMac(it) }
         val editor = prefs.edit()
             .putString("salt", encode(salt))
             .putString("tag", encode(tag))
