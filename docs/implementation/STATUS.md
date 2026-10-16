@@ -45,3 +45,8 @@ See [M27 specialist form / debt checkpoint](../native-migration/27-M27-FORM-AND-
 ## 2026-10-16 M27 source safety/cached security picker checkpoint
 
 The newest main-only source increment adds typed offline cached official-security candidate search (real authenticated NSE/BSE/AMFI loader NOT connected, remains M30), exact created-holding-ID into independently device-reviewed OPENING_BALANCE, prevents account-only Saved routes, prevents same-owner duplicate ISIN, resets drafts on trade-kind/holding changes, improves event type allowlists and adds backup metadata tests. See [audit](../native-migration/27-M27-SECURITY-IDENTITY-PARITY-AUDIT.md). 12 authored tests; source lexical checks passed; isolated exact-blob Kotlin catalog test passed seven assertions with model stub only. Android compilation/Gradle/emulator/CI all NOT RUN. M27 remains OPEN, M25/M26 OPEN. D-006 parity deviation NOT APPROVED. No GitHub Actions authorization.
+
+
+## 2026-10-16 M27 — AMFI public market-data gateway and financial INR entry
+
+Source increment from 74178c356ff72524ba9791b457e1f29960abf298 adds opt-in HTTPS AMFI NAV refresh with bounded strict parser, app-private atomic cache, offline picker injection, and exact rupee-to-integer minor-string conversions for original amount details. Five source tests authored, **not executed**. The official old AMFI text endpoint may be discontinued, real current format not verified; NSE/BSE adapters not implemented. See [checkpoint](../native-migration/27-M27-AMFI-MARKET-AND-FINANCIAL-INPUT-CHECKPOINT.md). **M27 OPEN (P09–P15), M25 OPEN, M26 OPEN.** D-006 remains owner-PROPOSED. No paid Actions, Android Gradle, emulator or device tests run.

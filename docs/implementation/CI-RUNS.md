@@ -30,3 +30,8 @@ Starting source SHA bf4ecf3f358fad807deb808064c02e27dd2888e1. New-source exact t
 ## 2026-10-16 M27 cached-security and opening-handoff source checkpoint
 
 Starting main SHA 3ef250021d44170e8f2b7c7e23f153a76b5016a2. Twelve new JVM/Compose/SQLCipher test methods AUTHORED but NOT EXECUTED. Full Gradle/JUnit/Android/SQLCipher/APK/AAB NOT RUN. GitHub Actions not dispatched; current-source tested SHA NONE. Exact Git blob catalog and official quote policies compiled locally under kotlinc with stub MoneyScaled; seven standalone offline-provenance assertions PASS. This is not an Android app or project regression. Earlier Build #18 FAILURE remains unchanged. See [combined exact-SHA plan](M25-M26-M27-EXACT-SHA-REGRESSION-CHECKLIST.md). Owner authorization required before any paid regression.
+
+
+## 2026-10-16 M27 AMFI gateway / INR field source increment
+
+Starting commit 74178c356ff72524ba9791b457e1f29960abf298. **No GitHub Actions run authorized or dispatched. Exact tested project source SHA: NONE.** Five JVM/Android/Compose synthetic test methods authored but not run. Available source scan only (8 Kotlin files balanced and required API/provenance assertions). **No checked-in Kotlin build, Gradle/JUnit, SQLCipher, emulator, AAB, or device proof.** Current AMFI legacy report availability not verified. Preserve Build #18 FAIL above. Next permitted run requires owner approval and exact new main SHA; compare [combined checklist](M25-M26-M27-EXACT-SHA-REGRESSION-CHECKLIST.md).

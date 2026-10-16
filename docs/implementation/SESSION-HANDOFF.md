@@ -1,13 +1,20 @@
-# GrowUrDhan session handoff — mandatory reread each user prompt
-Date: 2026-10-16. Repo vikaskunjbiharishah-ui/GUD, main ONLY. Last starting HEAD 3ef250021d44170e8f2b7c7e23f153a76b5016a2. Resolve live final main HEAD from GitHub after this checkpoint; do not trust an embedded SHA.
+# Mandatory GrowUrDhan session handoff (read after AGENTS.md on EVERY user prompt)
 
-## Work done
-Read AGENTS.md, full Grok v1.2 spec, status, decisions, CI history, 57-row parity register, M27 contract, original AddHoldingModal/HoldingDetailModal/AddRecordModal and current native Kotlin. Implemented shared category-safe transaction kind allowlist, old category alias support, draft reset on holding/kind change; createdHoldingId Saved handoff to preselected OPENING_BALANCE, account-only Saved guard; same-owner duplicate-ISIN checks on UI/VM/encrypted SQLCipher; typed offline official cached security picker with date, source, stale/future and most-recent duplicate policy (NO REAL M30 catalog loader); instrument metadata backup roundtrip fixture.
+**Date:** 2026-10-16. **Repo:** vikaskunjbiharishah-ui/GUD, **branch main only**. **Starting SHA:** 74178c356ff72524ba9791b457e1f29960abf298. After publication verify actual 40-char HEAD from GitHub.
 
-12 new synthetic test methods authored. 12 staged Kotlin files balanced; 2 exact GitHub Kotlin domain source blobs (local catalog and official quote policy) compiled with a minimal MoneyScaled stub, 7 isolated smoke assertions passed. Not a full Android compile. No Gradle, JUnit, Android SDK emulator, APK/AAB, real device or full AppSec run. No paid CI dispatched. Frozen original React/Tauri, approved logo and CASPARSER unchanged.
+## Latest source increment
 
-## Outstanding
-M27 issue #5 stays OPEN: authenticated NSE/BSE/AMFI data downloader and cache NOT connected (M30 dependency), D-006 one-step original opening vs native second OS-device approval requires owner choice, full product-specific 1495-line wizard and HoldingDetail/AddRecord behavior not all accepted, 36 keys/balances/owner/backup/UI still need exact current SHA Android instrumentation, 200% large-font TalkBack and screenshots.
-M25 issue #3 and M26 issue #4 OPEN. Historical Build #18 older SHA FAILED; do not claim tested current code. Physical ARM64 validation deferred to M34.
+- Re-read root AGENTS.md, full authoritative 149,544-character v1.2 spec and its M27/6A/17 contracts, STATUS, handoff, CI-RUNS, DECISION-LOG, parity register, original TS add/detail/record modals, exact GitHub issues #3/#4/#5 and native Kotlin.
+- Implemented AMFI public NAVAll.txt fixed official HTTPS origin user-initiated refresh only (new INTERNET permission, cleartext=false), bounded/typed fail-closed parser, 8 MB no-backup atomic cache, latest provenance/date/stale offline NAV search injected into existing Compose editor. Zero holdings or credentials in request. Actual Android endpoint success NOT VERIFIED; official old format may have been superseded.
+- Corrected original HoldingDetails money minor fields in Compose: display INR but stage exact 1e4 integer string, avoiding ₹/minor-unit confusion. Added 5 synthetic source test methods (3 parser JVM, 1 app offline cache instrumentation, 1 INR field Compose). Tests NOT EXECUTED.
+- Original React/Tauri, CASPARSER sources, approved logo, SQLCipher ledger and old native GitHub workflow files unchanged. No paid Actions dispatched. Local file-backed repo checkout unavailable, exact source build and full Kotlin/Android verification NOT RUN.
 
-Next: reread all durable instructions and [M27 audit](../native-migration/27-M27-SECURITY-IDENTITY-PARITY-AUDIT.md), [combined regression plan](M25-M26-M27-EXACT-SHA-REGRESSION-CHECKLIST.md); verify main, inspect source for Kotlin compile bugs; finish remaining original parity and owner approval, then request express permission before manually dispatching native-android.yml exact source_sha. Capture all per-gate terminal failures and fixes; update STATUS, CI-RUNS, parity and handoff and return 21-field A–U report with copyable next prompt.
+## Remaining exact blockers
+
+- M27 issue #5 OPEN. Missing NSE/BSE official catalog ingestion and current AMFI new format/endpoint verification. No claim full market/quote parity. Original 1495-line wizard and rich conditional required fields, transaction detail, one-step funded creation and linked owner acceptance pending. D-006 two-stage OPENING_BALANCE remains PROPOSED; owner has not accepted it.
+- M25 #3 and M26 #4 OPEN. Historical Build #18 FAILED on old SHA 3e41b7c4ac04261953beb75e79a57c6bdea3e6a3. Corrected login code and new source never retested with full exact-SHA combined regression.
+- UI Material 3 visual G14 snapshots / 200% fonts / TalkBack and physical ARM64 / independent MASVS under M34 NOT VERIFIED.
+
+## Mandatory next session action
+
+Read all permanent files again, print startup receipt and resolve live GitHub HEAD. Review new AMFI source and tests for actual Kotlin/Android compile errors, inspect endorsed AMFI 2026 text-format change, implement NSE/BSE genuine official file adapters and remaining M27 conditional forms, write exact golden/rollback owner tests. With explicit owner authorization ONLY, dispatch native-android.yml manually with source_sha=<current full main SHA>; monitor, fix on main and retest newer SHA. Update STATUS, SESSION-HANDOFF, CI-RUNS and parity register, return 21-field A–U report and copy/paste next prompt.

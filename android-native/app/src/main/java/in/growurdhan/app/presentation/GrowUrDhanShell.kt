@@ -36,6 +36,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
@@ -47,6 +52,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.core.model.HoldingId
+import `in`.growurdhan.app.market.OfficialAmfiCatalogGateway
+import `in`.growurdhan.domain.market.CachedListedSecurity
 import `in`.growurdhan.app.presentation.screens.PortableRecoveryIntent
 import `in`.growurdhan.app.presentation.screens.PortableRecoveryScreen
 import `in`.growurdhan.app.presentation.screens.CustodyHoldingScreen
@@ -128,6 +135,17 @@ fun GrowUrDhanShell(
     val currentBackStackEntry by controller.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route ?: MainDestination.HOME.route
     val snackbars = remember { SnackbarHostState() }
+    val appContext = LocalContext.current.applicationContext
+    val catalogGateway = remember(appContext) { OfficialAmfiCatalogGateway(appContext) }
+    val catalogScope = rememberCoroutineScope()
+    var officialCatalog by remember { mutableStateOf<List<CachedListedSecurity>>(emptyList()) }
+    var catalogLoading by remember { mutableStateOf(false) }
+    var catalogMessage by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == CUSTODY_ROUTE) {
+            officialCatalog = withContext(Dispatchers.IO) { catalogGateway.cached() }
+        }
+    }
     // One presentation selection shared across Home, Holdings, Accounts, Goals
     // and CAS documents. Never persisted in preferences or SavedStateHandle.
     var selectedOwner by remember { mutableStateOf<OwnerId?>(null) }
@@ -367,6 +385,31 @@ fun GrowUrDhanShell(
                         }
                         CustodyHoldingScreen(
                             state = custodyState,
+                            verifiedOfficialCatalog = officialCatalog,
+                            officialCatalogLoading = catalogLoading,
+                            officialCatalogMessage = catalogMessage,
+                            onRefreshOfficialCatalog = {
+                                if (!catalogLoading) {
+                                    catalogLoading = true
+                                    catalogMessage = null
+                                    catalogScope.launch {
+                                        try {
+                                            val rows = withContext(Dispatchers.IO) {
+                                                catalogGateway.refresh()
+                                            }
+                                            officialCatalog = rows
+                                            catalogMessage = "AMFI public NAV cache updated: " +
+                                                rows.size + " dated fund identities."
+                                        } catch (_: Exception) {
+                                            // Fail closed and preserve the previously validated cache.
+                                            catalogMessage = "AMFI report unavailable or format changed. " +
+                                                "Previously validated offline data remains unchanged."
+                                        } finally {
+                                            catalogLoading = false
+                                        }
+                                    }
+                                }
+                            },
                             onIntent = onCustodyIntent,
                             onBackToVault = {
                                 onCustodyIntent(CustodyHoldingIntent.Cancel)

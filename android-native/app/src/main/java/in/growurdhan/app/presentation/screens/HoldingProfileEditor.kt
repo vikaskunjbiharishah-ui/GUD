@@ -97,6 +97,11 @@ fun HoldingProfileEditor(
     }
     val sourceInstrumentFields = listOf("amc", "rta", "amfiCode", "advisor",
         "schemeType", "ucc", "exchange", "dpName", "nextEmiDate")
+    val detailMoneyKeys = setOf(
+        "annualContributionMinor", "faceValueMinor", "commitmentMinor",
+        "capitalCalledMinor", "monthlyIncomeMinor",
+    )
+    val inrPattern = Regex("[0-9]{1,12}(\\.[0-9]{1,4})?")
     val enumSelections = mapOf(
         "goldHoldMode" to setOf("DEMAT","CERTIFICATE"),
         "goldPurity" to setOf("24K","22K","999"),
@@ -231,8 +236,13 @@ fun HoldingProfileEditor(
         ReactV9HoldingDetailsContract.fields.sorted().filter {
             showAll || original.has(it) || it in preferred
         }.forEach { key ->
-            val initial = if (original.has(key) && !original.isNull(key)) original.opt(key).toString()
-                else ""
+            val initial = if (original.has(key) && !original.isNull(key)) {
+                val stored = original.opt(key).toString()
+                if (key in detailMoneyKeys)
+                    runCatching { BigDecimal(stored).movePointLeft(4).toPlainString() }
+                        .getOrDefault(stored)
+                else stored
+            } else ""
             if (key == "linkedHoldingId" && linkedAlternatives.isNotEmpty()) {
                 OutlinedButton(onClick = { linkedMenuOpen = true }) {
                     Text("Linked " +
@@ -257,9 +267,11 @@ fun HoldingProfileEditor(
                 OutlinedTextField(
                     value = edits[key] ?: initial,
                     onValueChange = { edits = edits + (key to it.take(300)) },
-                    label = { Text(key + (enumSelections[key]?.let { values ->
+                    label = { Text((if (key in detailMoneyKeys) key + " (INR)"
+                        else key) + (enumSelections[key]?.let { values ->
                         " (" + values.joinToString(" / ") + ")"
-                    } ?: "")) }, modifier = Modifier.fillMaxWidth(),
+                    } ?: "")) }, modifier = Modifier.fillMaxWidth()
+                        .testTag("HoldingDetails_" + key),
                 )
             }
         }
@@ -388,8 +400,9 @@ fun HoldingProfileEditor(
         val supportedMoney = Regex("[0-9]{1,12}(\\.[0-9]{1,4})?")
         val detailInputsValid = edits.all { (key, value) -> when {
             value.isBlank() -> true
-            key in setOf("annualContributionMinor","faceValueMinor","commitmentMinor",
-                "capitalCalledMinor","monthlyIncomeMinor") -> Regex("[0-9]{1,18}").matches(value)
+            key in detailMoneyKeys -> inrPattern.matches(value) &&
+                runCatching { MoneyScaled.fromRupees(BigDecimal(value)).raw >= 0L }
+                    .getOrDefault(false)
             key in setOf("earlyExitDate", "contributionOn", "incomeStart", "incomeEnd") ->
                 runCatching { java.time.LocalDate.parse(value).year in 1900..2300 }
                     .getOrDefault(false)
@@ -488,6 +501,8 @@ fun HoldingProfileEditor(
                         value.toDoubleOrNull() ?: JSONObject.NULL
                     key in setOf("originalTenorMonths", "incomeDay") ->
                         value.toIntOrNull() ?: JSONObject.NULL
+                    key in detailMoneyKeys ->
+                        MoneyScaled.fromRupees(BigDecimal(value)).raw.toString()
                     else -> value
                 }
                 delta.put(key, typed)

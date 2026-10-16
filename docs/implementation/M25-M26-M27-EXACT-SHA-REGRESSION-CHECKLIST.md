@@ -23,3 +23,12 @@ Owner acceptance: D-006 native two-stage initial balance vs original one-submit 
 2. Manually dispatch native-android.yml with input source_sha = newest main SHA. Monitor until each required job ends; capture full tested SHA log line, actual run URL, JUnit XML, screenshot and artifact pointers.
 3. A failed/skipped/queued job is NOT PASS. Diagnose stacktrace, create focused correction on main, locally retest, commit and request or use explicit approved CI re-run budget. Test NEW SHA, keep original FAIL in CI-RUNS.
 4. Record per-gate PASS/FAIL/BLOCKED/NOT RUN, exact tested SHA, owner decision references, and next prompt in durable handoff. Never claim background monitoring or physical hardware from emulator.
+
+
+## AMFI / financial-minor extension (2026-10-16; all NOT RUN)
+
+- P10/P26: Exact-sourced AMFI parser JVM tests (valid scheme, negative/future/stale/N.A./HTML/invalid ISIN), explicit user refresh privacy test, bounded 8-MB HTTPS-only URL, no redirects and error preserves last cached data. Check AMFI new format compatibility, record actual source date and endpoint response; do not assume obsolete NAVAll.txt works.
+- P10/P26: App instrumentation offline app-private cache load; zero outbound requests when viewing the Holdings screen; no PAN/email/folio/holding identifiers in network requests. NSE/BSE adapters remain missing and must not be marked PASS.
+- P11/P12: AIF commitment/annual contributions/property monthly income shown in INR, converted exactly to scaled integer strings, preserved across SQLCipher encrypt/reopen and portable backup; reject overflow/overprecision and verify old stored minor strings display correctly.
+- P13/P14: Holding opening balances still require separately reviewed event and fresh OS device credential; D-006 remains owner decision pending.
+- Only after source completion and **explicit user authorization**, manually dispatch existing native-android.yml with source_sha equal to newest exact main SHA. Monitor terminal jobs and reports. No Actions in this source session.

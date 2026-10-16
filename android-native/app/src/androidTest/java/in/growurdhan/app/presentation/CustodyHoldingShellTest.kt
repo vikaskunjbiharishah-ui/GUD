@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import `in`.growurdhan.app.presentation.theme.GrowUrDhanTheme
+import `in`.growurdhan.app.presentation.screens.HoldingProfileEditor
 import `in`.growurdhan.core.model.*
 import `in`.growurdhan.domain.market.CachedListedSecurity
 import `in`.growurdhan.domain.market.OfficialMarketSource
@@ -307,5 +308,32 @@ class CustodyHoldingShellTest {
         }
         compose.onNodeWithText("Record opening balance or debt")
             .assertDoesNotExist()
+    }
+
+    @Test fun aifCommitmentRupeesAreSavedAsExactScaledIntegerString() {
+        var staged: HoldingProfileEdit? = null
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings()) {
+                HoldingProfileEditor(
+                    profile = HoldingProfileSnapshot(
+                        HoldingId("draft-aif"), owner, "Synthetic AIF",
+                        "SPECIALISED", "AIF",
+                    ),
+                    creating = true,
+                    onStage = { staged = it },
+                )
+            }
+        }
+        compose.onNodeWithTag("HoldingDetails_aifCategory")
+            .performScrollTo().performTextInput("II")
+        compose.onNodeWithTag("HoldingDetails_commitmentMinor")
+            .performScrollTo().performTextInput("12500.1234")
+        compose.onNodeWithText("Review and register complete holding")
+            .performScrollTo().performClick()
+        compose.runOnIdle {
+            val json = org.json.JSONObject(staged!!.detailsJson)
+            assertEquals("II", json.getString("aifCategory"))
+            assertEquals("125001234", json.getString("commitmentMinor"))
+        }
     }
 }

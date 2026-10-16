@@ -47,3 +47,8 @@ Existing `native-android.yml` was inspected: owner can use **workflow_dispatch**
 
 ## 2026-10-16 acceptance checklist
 Detailed owner-controlled combined run plan: [M25-M26-M27-EXACT-SHA-REGRESSION-CHECKLIST.md](M25-M26-M27-EXACT-SHA-REGRESSION-CHECKLIST.md). No new G00–G14 Actions YAML was created. No paid Actions run triggered. Authenticated official NSE/BSE/AMFI cache M30 and G14 visual QA remain unverified.
+
+
+## M27 official catalog gateway gate — 2026-10-16
+
+Actual AMFI public report path added in source only, with a strict old-format decoder and failure-safe cache. The HTTPS report's production response and new format need Android acceptance; NSE/BSE adapters not ready. No new GitHub workflow YAML and no scheduled download jobs. See M25-M26-M27-EXACT-SHA-REGRESSION-CHECKLIST.md. User approval required before paid CI.

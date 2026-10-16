@@ -48,6 +48,9 @@ fun CustodyHoldingScreen(
     onContinueToStatements: () -> Unit,
     onRecordOpeningBalance: (HoldingId?) -> Unit = {},
     verifiedOfficialCatalog: List<CachedListedSecurity> = emptyList(),
+    officialCatalogLoading: Boolean = false,
+    officialCatalogMessage: String? = null,
+    onRefreshOfficialCatalog: () -> Unit = {},
     selectedFamilyOwner: OwnerId? = null,
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
@@ -276,6 +279,27 @@ fun CustodyHoldingScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Text("3. Add manually tracked asset", style = MaterialTheme.typography.titleMedium)
+                            Text("Official AMFI fund NAV: download only if you request it. " +
+                                "The app does not send holdings, PAN, folio or identity data. " +
+                                "NSE/BSE official report adapters remain pending.",
+                                style = MaterialTheme.typography.bodySmall)
+                            Button(
+                                onClick = onRefreshOfficialCatalog,
+                                enabled = !officialCatalogLoading,
+                                modifier = Modifier.fillMaxWidth().testTag("RefreshOfficialAmfi"),
+                            ) {
+                                Text(if (officialCatalogLoading) "Refreshing AMFI public NAV…"
+                                    else "Refresh AMFI NAV catalog")
+                            }
+                            officialCatalogMessage?.let { Text(it,
+                                style = MaterialTheme.typography.bodySmall) }
+                            if (verifiedOfficialCatalog.isNotEmpty()) {
+                                val newest = verifiedOfficialCatalog.maxOf { it.closeDate }
+                                Text("Offline official report rows: " +
+                                    verifiedOfficialCatalog.size + "; latest dated " + newest +
+                                    ". Confirm the date before treating NAV as current.",
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
                             Text(
                                 "For NPS, PPF, EPF, deposits, gold, shares or property. " +
                                     "This is not a verified statement import. The new asset " +
