@@ -1,0 +1,15 @@
+# GrowUrDhan — Owner decisions and deviations (append only)
+
+**Rules:** Only an express user/owner decision is APPROVED. Proposals and technical ideas are NOT approvals. Preserve date, requirement IDs, rationale, implications and required tests. Do not silently override the original product or weaken security.
+
+| ID | Date | Status | Decision / source of authorization | Requirements and consequences | Required verification |
+|---|---|---|---|---|---|
+| D-001 | 2026-10-16 | **APPROVED — THIS GUD REPO ONLY** | Owner asked ChatGPT to adopt the same Grok specification/instructions **within `vikaskunjbiharishah-ui/GUD`**. Older explicit owner direction is to develop **directly on `main`**, not new milestone branches | Overrides Grok-only G01 repository/branch instructions for this repo. Reuse full P01–P39/E01–E18 and G02–G15 while retaining existing Kotlin source. **Never touch Grok's independent branch or original reference.** No architecture downgrade | Verify GitHub owner/repo, main SHA and diff before writes; do not trigger on-commit paid CI |
+| D-002 | 2026-10-16 | **APPROVED PROCESS** | Owner directed every prompt to reread complete spec and return next suggested prompt; adopt same persistent handoff protocol | Root `AGENTS.md`; full spec; `STATUS`, `SESSION-HANDOFF`, `CI-RUNS`, `DECISION-LOG`, 57-ID parity register; startup receipt and 21-field A–U report on substantial work | Actual readback of committed files, count and status consistency |
+| D-003 | 2026-10-11 | **APPROVED — SCOPE OF DEVICE TESTING** | Owner specifically deferred physical phone verification until development milestones are finished | M25–M33 automated milestone tests still required; **M34** retains mandatory actual ARM64/multiple-device AppSec/recovery/owner signoff, no early commercial release | Actual hardware evidence at M34 |
+| D-004 | 2026-10-10 | **APPROVED CI BUDGET POLICY** | Owner preferred source changes be developed/committed before deliberately authorized paid GitHub regression | Existing manual `native-android.yml` workflow remains; do not auto-dispatch on docs/small source commits. G00–G14 from Grok spec are **future contract**, not automatically implemented workflow names | Exact source SHA and terminal jobs verified after explicit owner dispatch approval |
+| D-005 | 2026-10-16 | **PENDING OWNER AS NEEDED** | Existing native M25 secure recovery chooses offline recovery-code+device lock over lower-entropy original questions-only reset | Deliberate security-driven UX parity delta; preserve questions for legacy identity verification; do not silently weaken recovery | Written owner acceptance of final UX/security difference and security regression review |
+
+## Future decision format
+
+`D-xxx | YYYY-MM-DD | PROPOSED/APPROVED/REJECTED | exact owner instruction/link | P/E/G identifiers; rationale, alternatives and migration impact | specific test/run/approval gates`.
