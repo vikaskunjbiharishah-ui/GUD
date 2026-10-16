@@ -407,4 +407,100 @@ class NativeCustodyHoldingInstrumentedTest {
         assertEquals("Old synthetic fund", vault.holdings().single().name)
         assertEquals(0, vault.health().foreignKeyViolations)
     }
+
+    @Test fun fullyDetailedAssetAndOwnerGoalAreInsertedInOneEncryptedTransaction(): Unit = runBlocking {
+        val registrar = seed()
+        vault.applyFamilyAdministration(FamilyAdminChange.Goal(
+            id = null, ownerId = registrar.ownerId, name = "Synthetic retirement",
+            target = null, targetDate = null, priority = null,
+        ))
+        val goal = vault.familyAdministration().goals.single()
+        val details = JSONObject()
+            .put("npsTier", "I").put("npsCra", "CAMS")
+            .put("npsPfm", "Synthetic Pension Manager")
+            .put("annualContributionMinor", "1250000")
+        val instruments = JSONObject().put("amc", "Synthetic AMC")
+            .put("rta", "Synthetic RTA").put("amfiCode", "123")
+            .put("advisor", "Synthetic advisor").put("schemeType", "HYBRID")
+            .put("ucc", "MASKED").put("exchange", "NSE")
+            .put("dpName", "Synthetic Depository")
+        val registered = vault.registerDetailedAsset(
+            registrar.ownerId, "Synthetic NPS", "FIXED_INCOME", "NPS",
+            initialProfile = HoldingProfileEdit(
+                holdingId = HoldingId("draft"), ownerId = registrar.ownerId,
+                name = "Synthetic NPS", subCategory = "NPS",
+                detailsJson = details.toString(),
+                instrumentMetadataJson = instruments.toString(),
+                notes = "No fabricated purchase", acquiredOn = "2025-04-01",
+            ),
+            goalIds = listOf(goal.id),
+        )
+        assertTrue(vault.events().isEmpty())
+        assertEquals(0L, registered.quantity.raw)
+        val saved = vault.holdingProfiles().single { it.holdingId == registered.id }
+        assertEquals("NPS", saved.subCategory)
+        assertEquals("I", JSONObject(saved.detailsJson).getString("npsTier"))
+        assertEquals("Synthetic Depository",
+            JSONObject(saved.instrumentMetadataJson).getString("dpName"))
+        assertTrue(vault.familyAdministration().goals.single().holdingIds.contains(registered.id))
+        vault.close()
+        vault.openOrCreate()
+        val reopened = vault.holdingProfiles().single { it.holdingId == registered.id }
+        assertEquals(JSONObject(saved.detailsJson).toString(), JSONObject(reopened.detailsJson).toString())
+        assertEquals(instruments.toString(), JSONObject(reopened.instrumentMetadataJson).toString())
+        assertTrue(vault.familyAdministration().goals.single().holdingIds.contains(registered.id))
+        assertEquals(0, vault.health().foreignKeyViolations)
+    }
+
+    @Test fun invalidGoalOrInstrumentFieldAbortsEntireAssetCreation(): Unit = runBlocking {
+        val account = seed()
+        vault.applyFamilyAdministration(FamilyAdminChange.Goal(
+            id = null, ownerId = account.ownerId, name = "Synthetic goal",
+            target = null, targetDate = null, priority = null,
+        ))
+        val baselineHoldings = vault.holdings().size
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking {
+                vault.registerDetailedAsset(
+                    account.ownerId, "Should rollback goal", "EQUITY", "Large cap",
+                    goalIds = listOf("unknown-goal"),
+                )
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking {
+                vault.registerDetailedAsset(
+                    account.ownerId, "Should rollback field", "EQUITY", "Large cap",
+                    initialProfile = HoldingProfileEdit(
+                        HoldingId("draft"), account.ownerId, "Should rollback field",
+                        instrumentMetadataJson = "{\"unsupportedSensitiveField\":\"bad\"}",
+                    ),
+                )
+            }
+        }
+        assertEquals(baselineHoldings, vault.holdings().size)
+        assertTrue(vault.holdingProfiles().isEmpty())
+        assertTrue(vault.events().isEmpty())
+        assertEquals(0, vault.health().foreignKeyViolations)
+    }
+
+    @Test fun instrumentEditMergesAndDoesNotDeleteOriginalFields(): Unit = runBlocking {
+        val account = seed()
+        val registered = vault.registerDetailedAsset(account.ownerId,
+            "Synthetic market holding", "EQUITY", "Large cap",
+            initialProfile = HoldingProfileEdit(
+                HoldingId("draft"), account.ownerId, "Synthetic market holding",
+                instrumentMetadataJson = "{\"amc\":\"First\",\"rta\":\"Original\"}",
+            ),
+        )
+        vault.updateHoldingProfile(HoldingProfileEdit(
+            registered.id, account.ownerId, registered.name,
+            subCategory = "Large cap",
+            instrumentMetadataJson = "{\"amc\":\"Second\"}",
+        ))
+        val metadata = JSONObject(vault.holdingProfiles().single().instrumentMetadataJson)
+        assertEquals("Second", metadata.getString("amc"))
+        assertEquals("Original", metadata.getString("rta"))
+        assertTrue(vault.events().isEmpty())
+    }
 }

@@ -32,6 +32,8 @@ interface VaultRepository {
     suspend fun registerDetailedAsset(
         ownerId: OwnerId, name: String, category: String, subCategory: String,
         accountId: String? = null,
+        initialProfile: HoldingProfileEdit? = null,
+        goalIds: List<String> = emptyList(),
     ): Holding
     /** Atomically add a zero-unit holding and its exact CAS ISIN/folio identity. */
     suspend fun registerCasHolding(

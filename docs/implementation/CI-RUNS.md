@@ -16,3 +16,8 @@ This file records **observed historical run results**. The original issues and r
 - **No workflow was launched by the 2026-10-16 documentation initialization.** No current-source passing CI is claimed. Do not count successful historic sub-jobs as full Build #18 success.
 - Existing workflow filenames: `native-android.yml`, `native-device-matrix.yml`, `native-signed-aab.yml`, plus historical `ci.yml`, `android-aab.yml`, `android-apk.yml`, `android-enhancements.yml`, and `marketing.yml`. Details and requested future G00–G14 gate mapping in [WORKFLOW-GATES.md](WORKFLOW-GATES.md).
 - On next authorized run append **run ID, URL, full tested SHA, terminal job states, artifact references, failing tests, fix commit and replacement run**. Running/queued status is `RUNNING—NOT VERIFIED`. Synthetic tests are not physical device acceptance.
+
+
+## 2026-10-16 — M27 source-only extension; no run
+
+Starting HEAD: `66d1cb7db9b6b0ada2d96e58df85f88854b45839`. This later source/documentation commit adds M27 advanced forms, atomic goal/profile creation, instrument metadata, archive list status and regression tests, **but GitHub Actions NOT DISPATCHED and no Gradle/JVM/Android tests executed**. Exact source SHA for this increment is the GitHub commit containing this note; **tested source SHA = NONE**. Build #18 and all preceding failures remain unchanged above. Next run requires explicit owner authorization and must test that final SHA, not this earlier baseline.

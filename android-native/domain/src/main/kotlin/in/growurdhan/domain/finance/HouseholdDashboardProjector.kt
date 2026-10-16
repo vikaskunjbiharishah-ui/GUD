@@ -2,6 +2,7 @@ package `in`.growurdhan.domain.finance
 
 import `in`.growurdhan.core.model.MoneyScaled
 import `in`.growurdhan.core.model.OwnerId
+import `in`.growurdhan.core.model.HoldingProfileSnapshot
 import java.time.LocalDate
 
 /**
@@ -57,6 +58,9 @@ data class RecordedHoldingDashboard(
     val unrealisedGain: MoneyScaled?,
     val unknownHistoricalCost: Boolean,
     val isLiability: Boolean,
+    /** Archive hides from quick lists, never from household financial totals. */
+    val archived: Boolean = false,
+    val closedOn: String? = null,
 )
 
 /**
@@ -64,7 +68,12 @@ data class RecordedHoldingDashboard(
  * Unknown cost and book-integrity warnings remain visible to the presentation.
  */
 object HouseholdDashboardProjector {
-    fun from(report: PortfolioReport, memberNames: Map<OwnerId, String> = emptyMap()): HouseholdDashboard {
+    fun from(
+        report: PortfolioReport,
+        memberNames: Map<OwnerId, String> = emptyMap(),
+        profiles: List<HoldingProfileSnapshot> = emptyList(),
+    ): HouseholdDashboard {
+        val profileById = profiles.associateBy { it.holdingId }
         val memberRows = report.members.map { member ->
             MemberDashboard(
                 ownerId = member.ownerId,
@@ -94,6 +103,8 @@ object HouseholdDashboardProjector {
                     unrealisedGain = if (liability) null else position.unrealisedGain,
                     unknownHistoricalCost = !liability && position.position.unknownInvestedCost,
                     isLiability = liability,
+                    archived = profileById[position.holding.holdingId]?.archived == true,
+                    closedOn = profileById[position.holding.holdingId]?.closedOn,
                 )
             }
         }.sortedWith(compareBy<RecordedHoldingDashboard>({ it.isLiability }, { it.category },

@@ -16,3 +16,7 @@ Date: 12 October 2026. Repository: `vikaskunjbiharishah-ui/GUD`, target `main` o
 
 ## Guardrails
 The frozen original React reference and CASPARSER were not modified. The native regression trigger marker was not touched or dispatched. All changes target `main`, no feature PR or branch, and no issue closure is authorized by this checkpoint.
+
+
+## 2026-10-16 continuation
+See [M27 source extension](27-M27-SOURCE-EXTENSION-2026-10-16.md). The previous source checkpoint above remains historically accurate but is expanded by initial rich creation, goal picker, instrument metadata and app-wide inactive-list visibility. **M27 is still OPEN and current-source CI has NOT RUN.**

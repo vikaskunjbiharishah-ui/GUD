@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -255,6 +256,8 @@ fun CustodyHoldingScreen(
                     var manualAccountId by remember(selectedOwner) { mutableStateOf<String?>(null) }
                     var manualAccountExpanded by remember { mutableStateOf(false) }
                     var categoryExpanded by remember { mutableStateOf(false) }
+                    var advancedCreate by remember(selectedOwner) { mutableStateOf(false) }
+                    var chosenGoalIds by remember(selectedOwner) { mutableStateOf(setOf<String>()) }
                     Card(Modifier.fillMaxWidth()) {
                         Column(
                             Modifier.padding(16.dp),
@@ -338,16 +341,65 @@ fun CustodyHoldingScreen(
                                     contentDescription = "Manual asset nickname input"
                                 },
                             )
-                            Button(
-                                enabled = manualName.trim().isNotEmpty(),
-                                onClick = {
-                                    onIntent(CustodyHoldingIntent.StageAsset(
-                                        selectedOwner, manualName, manualCategory,
-                                        manualSubCategory, manualAccountId,
-                                    ))
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) { Text("Register manual asset securely") }
+                            val matchingGoals = state.goals.filter { goal ->
+                                goal.ownerId == null || goal.ownerId == selectedOwner
+                            }
+                            if (matchingGoals.isNotEmpty()) {
+                                Text("Link financial goals", style = MaterialTheme.typography.titleSmall)
+                                matchingGoals.forEach { goal ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = goal.id in chosenGoalIds,
+                                            onCheckedChange = { selected ->
+                                                chosenGoalIds = if (selected) chosenGoalIds + goal.id
+                                                    else chosenGoalIds - goal.id
+                                            },
+                                        )
+                                        Text(goal.name, style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = advancedCreate,
+                                    onCheckedChange = { advancedCreate = it },
+                                    modifier = Modifier.testTag("AdvancedHoldingCreateToggle"),
+                                )
+                                Text("Enter all financial and instrument fields before saving")
+                            }
+                            if (advancedCreate && manualName.isNotBlank()) {
+                                val draft = `in`.growurdhan.core.model.HoldingProfileSnapshot(
+                                    holdingId = HoldingId("new:" + selectedOwner.raw + ":" +
+                                        manualCategory + ":" + manualSubCategory + ":" + manualName),
+                                    ownerId = selectedOwner,
+                                    name = manualName,
+                                    assetCategory = manualCategory,
+                                    subCategory = manualSubCategory,
+                                )
+                                HoldingProfileEditor(
+                                    profile = draft,
+                                    creating = true,
+                                    onStage = { edit ->
+                                        onIntent(CustodyHoldingIntent.StageAsset(
+                                            selectedOwner, edit.name, manualCategory,
+                                            manualSubCategory, manualAccountId,
+                                            edit, chosenGoalIds.toList(),
+                                        ))
+                                    },
+                                )
+                            } else {
+                                Button(
+                                    enabled = manualName.trim().isNotEmpty(),
+                                    onClick = {
+                                        onIntent(CustodyHoldingIntent.StageAsset(
+                                            selectedOwner, manualName, manualCategory,
+                                            manualSubCategory, manualAccountId,
+                                            goalIds = chosenGoalIds.toList(),
+                                        ))
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) { Text("Register manual asset securely") }
+                            }
                         }
                     }
 
@@ -402,6 +454,8 @@ fun CustodyHoldingScreen(
                     var holdingQuery by remember(selectedOwner) { mutableStateOf("") }
                     var categoryFilter by remember(selectedOwner) { mutableStateOf("ALL") }
                     var categoryMenu by remember { mutableStateOf(false) }
+                    var accountFilter by remember(selectedOwner) { mutableStateOf<String?>(null) }
+                    var accountFilterMenu by remember { mutableStateOf(false) }
                     var includeArchived by remember(selectedOwner) { mutableStateOf(false) }
                     var includeClosed by remember(selectedOwner) { mutableStateOf(false) }
                     var expandedHolding by remember(selectedOwner) { mutableStateOf<HoldingId?>(null) }
@@ -420,6 +474,20 @@ fun CustodyHoldingScreen(
                                 onClick = { categoryFilter = cat; categoryMenu = false })
                         }
                     }
+                    OutlinedButton(onClick = { accountFilterMenu = true }) {
+                        Text("Account: " + (accounts.firstOrNull { it.id == accountFilter }
+                            ?.identifierMasked ?: "All owned accounts"))
+                    }
+                    DropdownMenu(expanded = accountFilterMenu,
+                        onDismissRequest = { accountFilterMenu = false }) {
+                        DropdownMenuItem(text = { Text("All owned accounts") },
+                            onClick = { accountFilter = null; accountFilterMenu = false })
+                        accounts.forEach { account ->
+                            DropdownMenuItem(
+                                text = { Text(account.accountType + " · " + account.identifierMasked) },
+                                onClick = { accountFilter = account.id; accountFilterMenu = false })
+                        }
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = includeArchived,
                             onCheckedChange = { includeArchived = it })
@@ -435,6 +503,7 @@ fun CustodyHoldingScreen(
                             (includeArchived || profile?.archived != true) &&
                             (includeClosed || profile?.closedOn == null) &&
                             (categoryFilter == "ALL" || holding.assetCategory == categoryFilter) &&
+                            (accountFilter == null || holding.accountId == accountFilter) &&
                             (holdingQuery.isBlank() ||
                                 holding.name.contains(holdingQuery, ignoreCase = true) ||
                                 holding.assetCategory.contains(holdingQuery, ignoreCase = true) ||
@@ -482,9 +551,18 @@ fun CustodyHoldingScreen(
                                             Text("Supersedes original event " + it)
                                         }
                                     }
-                                    if (profile != null) HoldingProfileEditor(profile) { edit ->
-                                        onIntent(CustodyHoldingIntent.StageProfile(edit))
-                                    }
+                                    if (profile != null) HoldingProfileEditor(
+                                        profile = profile,
+                                        goals = state.goals,
+                                        onStage = { edit ->
+                                            onIntent(CustodyHoldingIntent.StageProfile(edit))
+                                        },
+                                        onStageGoal = { goalId, attached ->
+                                            onIntent(CustodyHoldingIntent.StageGoalTag(
+                                                holding.ownerId, holding.id, goalId, attached,
+                                            ))
+                                        },
+                                    )
                                 }
                             }
                         }

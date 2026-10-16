@@ -60,6 +60,8 @@ class HouseholdDashboardViewModel @Inject constructor(
                 check(session.isCurrentSession(originalRevision))
                 val book = repository.readBook()
                 check(session.isCurrentSession(originalRevision))
+                val holdingProfiles = repository.holdingProfiles()
+                check(session.isCurrentSession(originalRevision))
                 val report = PortfolioEngine.derive(
                     holdings = book.holdings.map { it.toFinancialHolding() },
                     events = book.events.map { it.toFinancialEvent() },
@@ -74,6 +76,7 @@ class HouseholdDashboardViewModel @Inject constructor(
                 }
                 val dashboard = HouseholdDashboardProjector.from(
                     report, book.members.associate { it.id to it.displayName },
+                    profiles = holdingProfiles,
                 )
                 if (request != generation) return@launch
                 if (session.isCurrentSession(originalRevision)) {

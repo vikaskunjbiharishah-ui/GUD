@@ -38,3 +38,8 @@ Legacy/repository workflows `ci.yml`, `android-aab.yml`, `android-apk.yml`, `and
 4. G14 must run on UI-bearing milestones once implemented, with accurate light/dark/small/large/font200/landscape screenshot and accessibility evidence; cannot fabricate owner design acceptance.
 5. G12 requires owner credentials, exact approved SHA, external signing proofs and separate manual approval. No release upload without explicit instruction.
 6. Do not add or launch new paid Actions in this documentation-only checkpoint.
+
+
+## Proposed M25+M26+M27 integration checkpoint (2026-10-16)
+
+Existing `native-android.yml` was inspected: owner can use **workflow_dispatch** with `source_sha` full 40-character SHA; `main` ordinary commits do not trigger CI. It already runs `validate_schema.py`, Python unittest security regression, `security_preflight.py`, JVM `:domain:test :app:testDebugUnitTest`, debug/test APKs, disposable-key minified release bundle, and API35 `:data:connectedDebugAndroidTest :app:connectedDebugAndroidTest`. Use it for **one combined checkpoint after source completion**, monitor terminal jobs and reports and correct failures on `main`; no current CI PASS. The separate `native-device-matrix.yml` covers 26/30/36 but requires manual approval. G14 visual/large-font/accessibility gate is still not a confirmed dedicated CI job.

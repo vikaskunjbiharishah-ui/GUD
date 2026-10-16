@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -28,7 +31,11 @@ private const val PAGE_SIZE = 30
 internal fun RecordedHoldingsSection(holdings: List<RecordedHoldingDashboard>) {
     var query by remember { mutableStateOf("") }
     var shown by remember { mutableIntStateOf(PAGE_SIZE) }
-    val matches = matchingRecordedHoldings(holdings, query)
+    var includeInactive by remember { mutableStateOf(false) }
+    val filteredByStatus = if (includeInactive) holdings else holdings.filter {
+        !it.archived && it.closedOn == null
+    }
+    val matches = matchingRecordedHoldings(filteredByStatus, query)
     val visible = matches.take(shown)
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -39,6 +46,14 @@ internal fun RecordedHoldingsSection(holdings: List<RecordedHoldingDashboard>) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = includeInactive, onCheckedChange = {
+                    includeInactive = it
+                    shown = PAGE_SIZE
+                })
+                Text("Show archived and closed holdings",
+                    style = MaterialTheme.typography.bodyMedium)
+            }
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it.take(80); shown = PAGE_SIZE },
@@ -55,6 +70,10 @@ internal fun RecordedHoldingsSection(holdings: List<RecordedHoldingDashboard>) {
             visible.forEach { holding ->
                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(holding.name, style = MaterialTheme.typography.titleSmall)
+                    if (holding.archived) Text("Archived · history retained",
+                        style = MaterialTheme.typography.bodySmall)
+                    holding.closedOn?.let { Text("Closed on $it",
+                        style = MaterialTheme.typography.bodySmall) }
                     Text(
                         holding.category.replace('_', ' ') +
                             (holding.ownerName?.let { " · " + it } ?: ""),

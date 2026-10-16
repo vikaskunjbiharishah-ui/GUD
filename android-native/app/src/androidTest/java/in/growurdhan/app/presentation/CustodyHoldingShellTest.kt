@@ -3,6 +3,7 @@ package `in`.growurdhan.app.presentation
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -117,5 +118,65 @@ class CustodyHoldingShellTest {
         compose.onNodeWithText("Enrol your first CAS holding").assertIsDisplayed()
         compose.onNodeWithText("Add account and holding").performClick()
         compose.onNodeWithText("Accounts & holdings").assertIsDisplayed()
+    }
+
+    @Test fun fullyDetailedCreateStagesOneDraftWithoutWritingAnyLedgerRow() {
+        var action: CustodyHoldingIntent? = null
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings()) {
+                CustodyHoldingScreen(
+                    state = CustodyHoldingUiState.Ready(book()),
+                    onIntent = { action = it },
+                    onBackToVault = {},
+                    onContinueToStatements = {},
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Manual asset nickname input")
+            .performScrollTo().performTextInput("Synthetic Holdings")
+        compose.onNodeWithTag("AdvancedHoldingCreateToggle")
+            .performScrollTo().performClick()
+        compose.onNodeWithText("Holding details").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Review and register complete holding")
+            .performScrollTo().performClick()
+        compose.runOnIdle {
+            val draft = action as? CustodyHoldingIntent.StageAsset
+            assertEquals("Synthetic Holdings", draft?.name)
+            assertEquals("EQUITY", draft?.category)
+            assertEquals("Large cap", draft?.subCategory)
+            assertEquals(draft?.ownerId, draft?.initialProfile?.ownerId)
+        }
+    }
+
+    @Test fun holdingGoalPickerStagesOwnerScopedAssociationOnly() {
+        var action: CustodyHoldingIntent? = null
+        val held = Holding(HoldingId("holding-for-goal"), owner, null, "Synthetic equity",
+            "EQUITY", QuantityScaled(0), MoneyScaled(0))
+        val goal = FamilyGoalProfile(
+            "g1", owner, "Education", null, null, null, emptyList(), MoneyScaled(0),
+        )
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings()) {
+                CustodyHoldingScreen(
+                    state = CustodyHoldingUiState.Ready(
+                        book().copy(holdings = listOf(held)),
+                        profiles = listOf(HoldingProfileSnapshot(
+                            held.id, owner, held.name, "EQUITY", subCategory = "Large cap",
+                        )),
+                        goals = listOf(goal),
+                    ),
+                    onIntent = { action = it },
+                    onBackToVault = {},
+                    onContinueToStatements = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Details / edit").performScrollTo().performClick()
+        compose.onNodeWithTag("HoldingGoal_g1").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(CustodyHoldingIntent.StageGoalTag(
+                owner, held.id, goal.id, true,
+            ), action)
+        }
     }
 }

@@ -247,6 +247,8 @@ class SqlCipherVaultRepository(
     override suspend fun registerDetailedAsset(
         ownerId: OwnerId, name: String, category: String, subCategory: String,
         accountId: String?,
+        initialProfile: HoldingProfileEdit?,
+        goalIds: List<String>,
     ): Holding = mutate { db ->
         ManualAssetOnboarding.requireCanonicalSubCategory(category, subCategory)
         require(readMembers(db).any { it.id == ownerId }) {
@@ -287,6 +289,23 @@ class SqlCipherVaultRepository(
                 VALUES(?,?,?,?,1)""",
             arrayOf(asset.id.raw,ownerId.raw,subCategory,"{}"),
         )
+        if (initialProfile != null) {
+            require(initialProfile.ownerId == ownerId &&
+                initialProfile.closedOn == null && !initialProfile.archived) {
+                "New assets cannot be born closed, archived or owned by another member."
+            }
+            applyHoldingProfileEdit(db, initialProfile.copy(
+                holdingId = asset.id, ownerId = ownerId, name = asset.name,
+                subCategory = subCategory,
+            ))
+        }
+        require(goalIds.size <= 30 && goalIds.size == goalIds.distinct().size) {
+            "Choose no more than 30 distinct goals."
+        }
+        goalIds.forEach { goal ->
+            FamilyAdministrationSql.apply(db,
+                FamilyAdminChange.TagHolding(goal, asset.id, ownerId, attach = true))
+        }
         asset
     }
 
@@ -886,6 +905,8 @@ class SqlCipherVaultRepository(
                         archived = extras.optBoolean("m27Archived", false),
                         closedOn = extras.optString("m27ClosedOn").ifBlank { null },
                         richMetadataJson = financialFacts.toString(),
+                        instrumentMetadataJson =
+                            extras.optJSONObject("m27InstrumentMetadata")?.toString() ?: "{}",
                     ))
                 }
             }
@@ -894,6 +915,11 @@ class SqlCipherVaultRepository(
 
     /** A single reversible encrypted metadata edit; never rewrites the ledger. */
     override suspend fun updateHoldingProfile(edit: HoldingProfileEdit): Unit = mutate { db ->
+        applyHoldingProfileEdit(db, edit)
+    }
+
+    /** Also called during canonical asset creation inside its existing transaction. */
+    private fun applyHoldingProfileEdit(db: SQLiteDatabase, edit: HoldingProfileEdit) {
         val ownerHolding = readHoldings(db).singleOrNull {
             it.id == edit.holdingId && it.ownerId == edit.ownerId
         } ?: throw IllegalArgumentException("Select a recorded holding owned by this member.")
@@ -988,6 +1014,26 @@ class SqlCipherVaultRepository(
         }
         require(details.toString().toByteArray(Charsets.UTF_8).size <= 65_536)
         val extras = JSONObject(originalExtras)
+        require(edit.instrumentMetadataJson.toByteArray(Charsets.UTF_8).size <= 16_384) {
+            "Instrument metadata exceeds supported size."
+        }
+        val sourceInstrument = JSONObject(edit.instrumentMetadataJson)
+        val supportedInstrumentFields = setOf(
+            "amc", "rta", "amfiCode", "advisor", "schemeType", "ucc",
+            "exchange", "dpName",
+        )
+        val instrument = extras.optJSONObject("m27InstrumentMetadata") ?: JSONObject()
+        val sourceNames = sourceInstrument.keys()
+        while (sourceNames.hasNext()) {
+            val key = sourceNames.next()
+            require(key in supportedInstrumentFields) { "Unsupported instrument detail." }
+            val value = sourceInstrument.get(key)
+            require(value == JSONObject.NULL || (value is String && value.length <= 200 &&
+                value.none { it.isISOControl() })) { "Invalid instrument description." }
+            if (value == JSONObject.NULL) instrument.remove(key)
+            else instrument.put(key, value)
+        }
+        extras.put("m27InstrumentMetadata", instrument)
         extras.put("m27Archived", edit.archived)
         if (edit.closedOn == null) extras.remove("m27ClosedOn")
         else {
@@ -1387,8 +1433,11 @@ class DefaultVaultRepository @Inject constructor(
     override suspend fun registerDetailedAsset(
         ownerId: OwnerId, name: String, category: String, subCategory: String,
         accountId: String?,
+        initialProfile: HoldingProfileEdit?,
+        goalIds: List<String>,
     ): Holding = approvedWrite {
-        delegate.registerDetailedAsset(ownerId, name, category, subCategory, accountId)
+        delegate.registerDetailedAsset(ownerId, name, category, subCategory, accountId,
+            initialProfile, goalIds)
     }
     override suspend fun registerCasHolding(
         ownerId: OwnerId, accountId: String, displayName: String,

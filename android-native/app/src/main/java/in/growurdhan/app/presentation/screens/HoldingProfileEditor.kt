@@ -16,9 +16,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.core.model.HoldingProfileEdit
+import `in`.growurdhan.core.model.FamilyGoalProfile
 import `in`.growurdhan.core.model.HoldingProfileSnapshot
 import `in`.growurdhan.core.model.MoneyScaled
 import `in`.growurdhan.core.model.ReactV9HoldingDetailsContract
@@ -28,7 +30,13 @@ import org.json.JSONObject
 
 /** Source-preserving owner-scoped edit. No synthetic opening transaction. */
 @Composable
-fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfileEdit) -> Unit) {
+fun HoldingProfileEditor(
+    profile: HoldingProfileSnapshot,
+    onStage: (HoldingProfileEdit) -> Unit,
+    goals: List<FamilyGoalProfile> = emptyList(),
+    onStageGoal: (String, Boolean) -> Unit = { _, _ -> },
+    creating: Boolean = false,
+) {
     var name by remember(profile.holdingId) { mutableStateOf(profile.name) }
     var subCategory by remember(profile.holdingId) { mutableStateOf(profile.subCategory.orEmpty()) }
     var notes by remember(profile.holdingId) { mutableStateOf(profile.notes.orEmpty()) }
@@ -54,6 +62,29 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
         mutableStateOf<Map<String, String>>(emptyMap())
     }
     var richExpanded by remember(profile.holdingId) { mutableStateOf(false) }
+    val sourceInstrument = remember(profile.holdingId, profile.instrumentMetadataJson) {
+        JSONObject(profile.instrumentMetadataJson)
+    }
+    var instrumentEdits by remember(profile.holdingId, profile.instrumentMetadataJson) {
+        mutableStateOf<Map<String, String>>(emptyMap())
+    }
+    val sourceInstrumentFields = listOf("amc", "rta", "amfiCode", "advisor",
+        "schemeType", "ucc", "exchange", "dpName")
+    val enumSelections = mapOf(
+        "goldHoldMode" to setOf("DEMAT","CERTIFICATE"),
+        "goldPurity" to setOf("24K","22K","999"),
+        "compounding" to setOf("MONTHLY","QUARTERLY","HALF_YEARLY","YEARLY","CUMULATIVE"),
+        "npsTier" to setOf("I","II"),
+        "npsCra" to setOf("PROT","CAMS","KFIN"),
+        "aifCategory" to setOf("I","II","III"),
+        "ownership" to setOf("SELF","JOINT","HUF","SPOUSE"),
+        "rateType" to setOf("FLOATING","FIXED"),
+        "mfPlan" to setOf("DIRECT","REGULAR"),
+        "mfOption" to setOf("GROWTH","IDCW"),
+        "mfHeldAs" to setOf("FOLIO","DEMAT"),
+        "depository" to setOf("NSDL","CDSL"),
+        "altHoldMode" to setOf("DEMAT","LUMPSUM"),
+    )
     val relevantRich = when (profile.assetCategory) {
         "GOLD_SGB" -> setOf("benchmark_price_scaled", "issue_price_scaled",
             "coupon_rate_bps", "next_coupon_date", "maturity_date", "tag", "tags_json")
@@ -73,8 +104,10 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
         "MUTUAL_FUND" -> setOf("mfPlan", "mfOption", "mfHeldAs", "dpId", "clientId", "boId")
         "GOLD_SGB" -> setOf("goldHoldMode", "goldPurity", "goldHallmark", "earlyExitDate", "faceValueMinor")
         "FIXED_INCOME", "PPF", "EPF", "FIXED_DEPOSIT", "BOND" ->
-            setOf("annualContributionMinor", "compounding", "tdsApplicable", "rateType",
-                "originalTenorMonths", "contributionOn")
+            if (profile.subCategory == "NPS")
+                setOf("npsTier","npsCra","npsPfm","annualContributionMinor")
+            else setOf("annualContributionMinor", "compounding", "tdsApplicable",
+                "rateType", "originalTenorMonths", "contributionOn")
         "REAL_ESTATE" -> setOf("areaSqFt", "ownership", "ownershipPercent", "linkedHoldingId",
             "monthlyIncomeMinor", "incomeDay", "incomeStart", "incomeEnd")
         "SPECIALISED", "NPS" -> setOf("npsTier", "npsCra", "npsPfm",
@@ -113,7 +146,9 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
             OutlinedTextField(
                 value = edits[key] ?: initial,
                 onValueChange = { edits = edits + (key to it.take(300)) },
-                label = { Text(key) }, modifier = Modifier.fillMaxWidth(),
+                label = { Text(key + (enumSelections[key]?.let { values ->
+                    " (" + values.joinToString(" / ") + ")"
+                } ?: "")) }, modifier = Modifier.fillMaxWidth(),
             )
         }
 
@@ -148,6 +183,37 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                 label = { Text(label) }, modifier = Modifier.fillMaxWidth(),
             )
         }
+        Text("Original instrument and registrar fields",
+            style = MaterialTheme.typography.titleSmall)
+        Text("These are owner-private recorded metadata, not verified issuer connections.",
+            style = MaterialTheme.typography.bodySmall)
+        sourceInstrumentFields.filter { key ->
+            key in setOf("amc", "rta", "amfiCode", "schemeType", "exchange") ||
+                sourceInstrument.has(key) || richExpanded
+        }.forEach { key ->
+            OutlinedTextField(
+                value = instrumentEdits[key] ?: sourceInstrument.optString(key),
+                onValueChange = { value ->
+                    instrumentEdits = instrumentEdits + (key to value.take(200))
+                },
+                label = { Text(key) }, modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (!creating && goals.isNotEmpty()) {
+            Text("Related family goals", style = MaterialTheme.typography.titleSmall)
+            Text("Each association is reviewed and approved with a fresh device lock.",
+                style = MaterialTheme.typography.bodySmall)
+            goals.filter { it.ownerId == null || it.ownerId == profile.ownerId }
+                .forEach { goal ->
+                    val selected = profile.holdingId in goal.holdingIds
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = selected,
+                            onCheckedChange = { checked -> onStageGoal(goal.id, checked) },
+                            modifier = Modifier.testTag("HoldingGoal_" + goal.id))
+                        Text(goal.name, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+        }
         Text("Recorded cost basis: " +
             (profile.verifiedCostPerUnit?.rupees()?.toPlainString() ?: "UNKNOWN"))
         OutlinedTextField(cost, { cost = it.take(24) },
@@ -165,13 +231,16 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
             label = { Text("Custom price as-of YYYY-MM-DD") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(priceSource, { priceSource = it.take(120) },
             label = { Text("Custom price source") }, modifier = Modifier.fillMaxWidth())
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = archived, onCheckedChange = { archived = it })
-            Text("Archive (reversible; history remains stored)")
-        }
-        OutlinedTextField(closedOn, { closedOn = it.take(10) },
-            label = { Text("Close on YYYY-MM-DD (only when position and debt reach zero)") },
-            modifier = Modifier.fillMaxWidth())
+        if (!creating) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = archived, onCheckedChange = { archived = it })
+                Text("Archive (reversible; history remains stored)")
+            }
+            OutlinedTextField(closedOn, { closedOn = it.take(10) },
+                label = { Text("Close on YYYY-MM-DD (only when position and debt reach zero)") },
+                modifier = Modifier.fillMaxWidth())
+        } else Text("New holdings start open, unarchived and with no invented transaction.",
+            style = MaterialTheme.typography.bodySmall)
         val parsedPrice = runCatching {
             price.takeIf { it.isNotBlank() }?.let { MoneyScaled.fromRupees(BigDecimal(it)) }
         }.getOrNull()
@@ -181,12 +250,18 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
         val supportedMoney = Regex("[0-9]{1,12}(\\.[0-9]{1,4})?")
         val detailInputsValid = edits.all { (key, value) -> when {
             value.isBlank() -> true
+            key in setOf("annualContributionMinor","faceValueMinor","commitmentMinor",
+                "capitalCalledMinor","monthlyIncomeMinor") -> Regex("[0-9]{1,18}").matches(value)
+            key in setOf("earlyExitDate", "contributionOn", "incomeStart", "incomeEnd") ->
+                runCatching { java.time.LocalDate.parse(value).year in 1900..2300 }
+                    .getOrDefault(false)
             key == "tdsApplicable" -> value.equals("true", true) || value.equals("false", true)
             key == "incomeDay" -> (value.toIntOrNull() ?: -1) in 1..28
             key == "originalTenorMonths" -> (value.toIntOrNull() ?: -1) >= 0
             key in setOf("areaSqFt", "ownershipPercent") ->
                 value.toDoubleOrNull()?.let { it.isFinite() && it >= 0 &&
                     (key != "ownershipPercent" || it <= 100) } ?: false
+            key in enumSelections -> value in enumSelections.getValue(key)
             else -> true
         } }
 
@@ -202,10 +277,27 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                     value.toLongOrNull()?.let { it >= 0 } ?: false
                 key in HoldingRichMetadataContract.jsonColumns ->
                     runCatching { org.json.JSONArray(value); true }.getOrDefault(false)
+                key in HoldingRichMetadataContract.dateColumns ->
+                    runCatching { java.time.LocalDate.parse(value).year in 1900..2300 }
+                        .getOrDefault(false)
+                key == "emi_status" -> value in setOf("Paying","Paused","Stopped")
+                key == "account_number_masked" ->
+                    value.contains("*") || value.contains("•")
                 else -> value.length <= 300
             }
         }
-        val valid = name.trim().isNotBlank() && ! (resetCost && cost.isNotBlank()) &&
+        val instrumentValid = instrumentEdits.all { (_, value) ->
+            value.length <= 200 && value.none { it.isISOControl() }
+        }
+        val priceProvenanceValid = price.isBlank() ||
+            (priceSource.isNotBlank() && runCatching {
+                java.time.LocalDate.parse(priceAsOf).let {
+                    !it.isAfter(java.time.LocalDate.now()) && it.year >= 1900
+                }
+            }.getOrDefault(false))
+        val valid = name.trim().isNotBlank() && instrumentValid &&
+            priceProvenanceValid &&
+            ! (resetCost && cost.isNotBlank()) &&
             detailInputsValid && richValid &&
             (price.isBlank() || supportedMoney.matches(price)) &&
             (cost.isBlank() || supportedMoney.matches(cost)) &&
@@ -226,6 +318,10 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                 delta.put(key, typed)
             }
 
+            val instrumentDelta = JSONObject()
+            instrumentEdits.forEach { (key, value) ->
+                instrumentDelta.put(key, if (value.isBlank()) JSONObject.NULL else value)
+            }
             val richDelta = JSONObject()
             richEdits.forEach { (key, value) ->
                 val typed: Any = when {
@@ -251,7 +347,11 @@ fun HoldingProfileEditor(profile: HoldingProfileSnapshot, onStage: (HoldingProfi
                 clearVerifiedCost = resetCost,
                 closedOn = closedOn.ifBlank { null },
                 richMetadataJson = richDelta.toString(),
+                instrumentMetadataJson = instrumentDelta.toString(),
             ))
-        }, modifier = Modifier.fillMaxWidth()) { Text("Review holding edits with device lock") }
+        }, modifier = Modifier.fillMaxWidth()) {
+            Text(if (creating) "Review and register complete holding" else
+                "Review holding edits with device lock")
+        }
     }
 }

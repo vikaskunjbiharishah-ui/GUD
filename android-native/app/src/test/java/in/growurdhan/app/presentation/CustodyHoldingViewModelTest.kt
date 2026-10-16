@@ -29,6 +29,9 @@ class CustodyHoldingViewModelTest {
     @Test fun priorDeviceCredentialCannotPublishDelayedCustodyBook() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.holdingProfiles() } returns emptyList()
+        coEvery { repo.familyAdministration() } returns FamilyAdministrationSnapshot(
+            family = emptyList(), accounts = emptyList(), goals = emptyList(), holdings = emptyList(),
+        )
         val pending = CompletableDeferred<VaultBook>()
         coEvery { repo.readBook() } coAnswers { pending.await() }
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
@@ -46,6 +49,9 @@ class CustodyHoldingViewModelTest {
     @Test fun priorDeviceCredentialCannotPublishDelayedCustodySave() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.holdingProfiles() } returns emptyList()
+        coEvery { repo.familyAdministration() } returns FamilyAdministrationSnapshot(
+            family = emptyList(), accounts = emptyList(), goals = emptyList(), holdings = emptyList(),
+        )
         coEvery { repo.readBook() } returns book()
         val pending = CompletableDeferred<CustodyAccount>()
         coEvery { repo.registerCustodyAccount(any(), any(), any()) } coAnswers {
@@ -71,6 +77,9 @@ class CustodyHoldingViewModelTest {
     @Test fun manualNpsAssetStartsAtZeroAfterSeparateCredentialApproval() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.holdingProfiles() } returns emptyList()
+        coEvery { repo.familyAdministration() } returns FamilyAdministrationSnapshot(
+            family = emptyList(), accounts = emptyList(), goals = emptyList(), holdings = emptyList(),
+        )
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book()
         val asset = Holding(
@@ -102,6 +111,9 @@ class CustodyHoldingViewModelTest {
     @Test fun lockedRefreshNeverReadsEncryptedBook() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.holdingProfiles() } returns emptyList()
+        coEvery { repo.familyAdministration() } returns FamilyAdministrationSnapshot(
+            family = emptyList(), accounts = emptyList(), goals = emptyList(), holdings = emptyList(),
+        )
         val viewModel = CustodyHoldingViewModel(repo, VaultSessionGate(UnitTestPasswordAdmission))
         viewModel.onIntent(CustodyHoldingIntent.Refresh)
         advanceUntilIdle()
@@ -112,6 +124,9 @@ class CustodyHoldingViewModelTest {
     @Test fun validAccountFormNeedsNewCredentialAfterStaging() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.holdingProfiles() } returns emptyList()
+        coEvery { repo.familyAdministration() } returns FamilyAdministrationSnapshot(
+            family = emptyList(), accounts = emptyList(), goals = emptyList(), holdings = emptyList(),
+        )
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book()
         val vm = CustodyHoldingViewModel(repo, gate)
@@ -128,6 +143,9 @@ class CustodyHoldingViewModelTest {
     @Test fun freshCredentialAllowsOneExplicitRegistrarRegistration() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.holdingProfiles() } returns emptyList()
+        coEvery { repo.familyAdministration() } returns FamilyAdministrationSnapshot(
+            family = emptyList(), accounts = emptyList(), goals = emptyList(), holdings = emptyList(),
+        )
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book()
         coEvery { repo.registerCustodyAccount(owner, "CAMS", "Main") } returns account
@@ -147,6 +165,9 @@ class CustodyHoldingViewModelTest {
     @Test fun invalidAndCrossOwnerEnrolmentCannotAskForCredential() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.holdingProfiles() } returns emptyList()
+        coEvery { repo.familyAdministration() } returns FamilyAdministrationSnapshot(
+            family = emptyList(), accounts = emptyList(), goals = emptyList(), holdings = emptyList(),
+        )
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book(listOf(account))
         val vm = CustodyHoldingViewModel(repo, gate)
@@ -166,6 +187,9 @@ class CustodyHoldingViewModelTest {
     @Test fun approvedHoldingCreatesNoLedgerEventOrAutomaticStatementImport() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.holdingProfiles() } returns emptyList()
+        coEvery { repo.familyAdministration() } returns FamilyAdministrationSnapshot(
+            family = emptyList(), accounts = emptyList(), goals = emptyList(), holdings = emptyList(),
+        )
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book(listOf(account))
         val enrolled = Holding(
@@ -195,6 +219,9 @@ class CustodyHoldingViewModelTest {
     @Test fun lockClearsStagedHoldingCredentialsAndForbidsPostLogoutWrite() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.holdingProfiles() } returns emptyList()
+        coEvery { repo.familyAdministration() } returns FamilyAdministrationSnapshot(
+            family = emptyList(), accounts = emptyList(), goals = emptyList(), holdings = emptyList(),
+        )
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         coEvery { repo.readBook() } returns book(listOf(account))
         val vm = CustodyHoldingViewModel(repo, gate)
@@ -210,5 +237,71 @@ class CustodyHoldingViewModelTest {
         advanceUntilIdle()
         assertEquals(CustodyHoldingUiState.Locked, vm.state.value)
         coVerify(exactly = 0) { repo.registerCasHolding(any(), any(), any(), any(), any()) }
+    }
+
+    @Test fun stagedGoalLinkRequiresFreshCredentialAndNeverMutatesLedger() = runTest {
+        val repo = mockk<VaultRepository>()
+        val asset = Holding(
+            HoldingId("asset-one"), owner, null, "Synthetic property", "REAL_ESTATE",
+            QuantityScaled(0), MoneyScaled(0),
+        )
+        val familyGoal = FamilyGoalProfile(
+            id = "goal-one", ownerId = owner, name = "Synthetic retirement",
+            target = null, targetDate = null, priority = null,
+            holdingIds = emptyList(), taggedExposure = MoneyScaled(0),
+        )
+        coEvery { repo.readBook() } returns book().copy(holdings = listOf(asset))
+        coEvery { repo.holdingProfiles() } returns emptyList()
+        coEvery { repo.familyAdministration() } returns FamilyAdministrationSnapshot(
+            family = emptyList(), accounts = emptyList(),
+            goals = listOf(familyGoal), holdings = listOf(asset),
+        )
+        coEvery { repo.applyFamilyAdministration(any()) } returns Unit
+        val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
+        val vm = CustodyHoldingViewModel(repo, gate)
+        vm.onIntent(CustodyHoldingIntent.Refresh)
+        advanceUntilIdle()
+        vm.onIntent(CustodyHoldingIntent.StageGoalTag(owner, asset.id, familyGoal.id, true))
+        assertTrue(vm.state.value is CustodyHoldingUiState.AwaitingCredential)
+        vm.onIntent(CustodyHoldingIntent.SaveAfterCredential)
+        advanceUntilIdle()
+        coVerify(exactly = 0) { repo.applyFamilyAdministration(any()) }
+        assertEquals(CustodyHoldingUiState.Locked, vm.state.value)
+
+        vm.onIntent(CustodyHoldingIntent.Refresh)
+        advanceUntilIdle()
+        vm.onIntent(CustodyHoldingIntent.StageGoalTag(owner, asset.id, familyGoal.id, true))
+        gate.grantDeviceCredential()
+        vm.onIntent(CustodyHoldingIntent.SaveAfterCredential)
+        advanceUntilIdle()
+        coVerify(exactly = 1) {
+            repo.applyFamilyAdministration(FamilyAdminChange.TagHolding(
+                familyGoal.id, asset.id, owner, true,
+            ))
+        }
+        assertTrue(vm.state.value is CustodyHoldingUiState.Saved)
+        coVerify(exactly = 0) { repo.appendFinancialEvents(any()) }
+    }
+
+    @Test fun crossOwnerGoalsNeverStageProtectedWrites() = runTest {
+        val repo = mockk<VaultRepository>()
+        val asset = Holding(HoldingId("owned"), owner, null, "Synthetic", "EQUITY",
+            QuantityScaled(0), MoneyScaled(0))
+        coEvery { repo.readBook() } returns book().copy(holdings = listOf(asset))
+        coEvery { repo.holdingProfiles() } returns emptyList()
+        coEvery { repo.familyAdministration() } returns FamilyAdministrationSnapshot(
+            family = emptyList(), accounts = emptyList(),
+            goals = listOf(FamilyGoalProfile(
+                "other-goal", OwnerId("other"), "Other member goal",
+                null, null, null, emptyList(), MoneyScaled(0),
+            )), holdings = listOf(asset),
+        )
+        val vm = CustodyHoldingViewModel(repo,
+            VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() })
+        vm.onIntent(CustodyHoldingIntent.Refresh)
+        advanceUntilIdle()
+        vm.onIntent(CustodyHoldingIntent.StageGoalTag(owner, asset.id, "other-goal", true))
+        assertTrue(vm.state.value is CustodyHoldingUiState.Ready)
+        coVerify(exactly = 0) { repo.applyFamilyAdministration(any()) }
     }
 }

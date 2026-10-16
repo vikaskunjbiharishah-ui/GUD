@@ -1,21 +1,22 @@
 # GrowUrDhan — Session handoff (read after AGENTS.md on EVERY prompt)
 
-**Date:** 2026-10-16 (UTC calendar date; precise time not asserted). **Repository:** https://github.com/vikaskunjbiharishah-ui/GUD. **Branch:** `main`. **Verified pre-documentation HEAD:** `33c3ffb43b62baa969184f67dfbef67d0d4354d4`. This handoff is committed with the initial continuity-document changes; **resolve the actual new main HEAD live after the commit**. **Working-tree status:** UNVERIFIED by GitHub connector (no local checkout). No hidden background work.
+**Date:** 2026-10-16. Repository: `vikaskunjbiharishah-ui/GUD`; branch: **`main` only**. Verify live HEAD SHA; starting SHA for this source increment was `66d1cb7db9b6b0ada2d96e58df85f88854b45839`. **Last tested full regression** remains Build #18 (FAILED, older source). GitHub connector has no local checkout.
 
-## This session — initial continuity install only
+## Completed in the session leading to this handoff
 
-- Read user-uploaded **Grok full redevelopment specification v1.2, 1,120 source lines**, G01–G15, P01–P39, E01–E18, Section 6A and 17.
-- Read current GitHub root/docs/workflow inventory; original [M27 implementation checkpoint](../native-migration/27-M27-HOLDINGS-LEDGER-IMPLEMENTATION-CHECKPOINT.md) and scoped [M24–M26 audit](../native-migration/24-26-PRE-M27-ACCEPTANCE-AUDIT.md).
-- Prepared **one documentation-only atomic commit** containing a byte-faithful spec copy, root instructions, status, CI history, decisions, parity CSV, source inventory and workflow gate map. **No Kotlin, CASPARSER, React, Gradle, signing, CI marker or workflow YAML modifications**.
-- Local tests: **NOT RUN** (no application source changes); document integrity, count and GitHub readback are the only verification possible for this initialization.
-- GitHub workflow dispatched: **NO**. Last known failure: Build #18 source `3e41b7c4ac04261953beb75e79a57c6bdea3e6a3`, URL in [CI-RUNS.md](CI-RUNS.md). No green CI evidence for corrected M25/M26 or M27 current source.
+- Re-read `AGENTS.md`, full authoritative specification v1.2, STATUS, this handoff, CI-RUNS, DECISION-LOG, parity register and M27 acceptance contract; inspected current original-v9 and native source references.
+- Implemented a single M27 source change set (see [detailed source extension](../native-migration/27-M27-SOURCE-EXTENSION-2026-10-16.md)): optional full advanced create profile, 8 original instrument metadata attributes in encrypted extra JSON, atomic profile+owner-scoped goals during creation, protected goal toggles, account filter, Home/Portfolio archive status, and client-side validations.
+- Added synthetic Android SQLCipher atomic creation/rollback/metadata tests, JVM VM goal-credential tests, Compose advanced create / goal test, and pure dashboard archive projection test. All staged code underwent a static balanced-token scan and source-guard assertions. **No actual Kotlin Gradle/JVM/Android instrumentation tests ran.**
+- Did not modify legacy original, CASPARSER, signing workflow, existing Actions YAML or paid CI trigger; no GitHub Actions run requested or dispatched.
+- Updated requirement P09–P15 crosswalk; continued M24 scoped-CLOSED and M25/M26 OPEN; kept Build #18 FAIL in CI ledger.
 
-## Open blockers and next safe action
+## Next active work (must not skip)
 
-1. **M27 #5 OPEN:** finish specialist creation/edit form parity, source original `Holding` instrument metadata, holding-goal picker, app-wide archive/close semantics and Compose/accessibility; check for Kotlin compile defects before paid CI. Cross-reference original `src/components/modals/AddHoldingModal.tsx` and `src/types.ts`.
-2. **M25 #3 and M26 #4 OPEN:** after correcting/documenting current-source gaps, deliberately run one owner-approved combined exact-main-SHA regression, check test artifacts, record all failures and fixes.
-3. No current-GUD source SHA after this documentation commit has been Gradle/emulator/security signoff tested. Physical ARM64 testing is deferred to M34; Google Cloud/Play Billing integration awaits owner external actions.
-4. **Immediate next step:** owner to instruct: “Complete M27 remaining features on `main`, audit original vs Kotlin field parity, run nonpaid static/unit checks, commit, and report exact next deliberate CI proposal.” Do **not** automatically trigger paid CI.
-5. On any subsequent prompt: **reopen `AGENTS.md`, full spec, this handoff, STATUS, CI-RUNS, DECISION-LOG, parity register; print G15 receipt before source changes; finish with A–U report and reusable next prompt.**
+1. **Re-read `AGENTS.md` and full spec, print startup receipt, resolve HEAD and inspect source.** Before any acceptance/closure, run applicable available code compilation/static checks; environment cannot run Android Gradle without SDK, so request owner's authorization for one exact-source-sha regression when ready.
+2. Audit and finish M27's remaining legacy `AddHoldingModal.tsx` conditional product-specific validation/details UX and original v9 Holding profile behavior, particularly source enum/conditional masking, cost and price semantics, and historical metadata. Fix any source-level mistakes found in the new Kotlin files before CI.
+3. Provide M27 verification plan covering all ten allowed manual ledger types, source exact account/owner, fresh device password reauth, goal sharing rules, archive/close, insured backup and test screenshots with 200% font, TalkBack, offline/empty states.
+4. Retain M25/M26 combined acceptance blockers: [Build #18](https://github.com/vikaskunjbiharishah-ui/GUD/actions/runs/38237260337) red on `3e41b7c...`, one app login Compose selector test corrected in later code but not retested; 66 data cases passed historically and must pass again. Don't claim prior source green. M25 legacy format/credential, M26 HUF/family/goal coverage required.
+5. **No paid GitHub Actions without explicit owner approval.** Proposed eventual single run: `.github/workflows/native-android.yml` `workflow_dispatch` with explicit `source_sha=<approved main SHA>`. CI may fail on Kotlin/test mistakes; diagnose terminal logs, fix on main and rerun corrected SHA only with approval or within already approved repair-run budget.
+6. At end update `STATUS.md`, `SESSION-HANDOFF.md`, `CI-RUNS.md` accurately; return Section 17 21-field A–U report and exact next prompt. Physical device acceptance remains **M34**, not a made-up emulator result.
 
-**Owner decisions required now:** NONE for documentation; owner approval required before paid GitHub Actions or changes to joint legal ownership, external integrations, release rules, or security recovery equivalence.
+**Status:** M27 SOURCE EXPANDED but **OPEN / UNCOMPILED / CI PENDING**. No owner issue closure or production readiness claim.

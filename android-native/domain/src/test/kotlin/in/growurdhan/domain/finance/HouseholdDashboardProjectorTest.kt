@@ -294,4 +294,27 @@ class HouseholdDashboardProjectorTest {
         assertEquals(0L, dashboard.assets.raw)
         assertEquals(0, dashboard.holdingCount)
     }
+
+    @Test fun archiveAndCloseStateAreTaggedWithoutRemovingHoldingsFromFamilyTotals() {
+        val holding = FinancialHolding(
+            HoldingId("active-source-holding"), owner, "Synthetic family shares", "EQUITY",
+            MoneyScaled(240_000), QUANTITY_SCALE,
+        )
+        val report = PortfolioEngine.derive(
+            listOf(holding), emptyList(), LocalDate.parse("2026-10-09"),
+            listOf(owner),
+        )
+        val profile = `in`.growurdhan.core.model.HoldingProfileSnapshot(
+            holdingId = holding.holdingId, ownerId = owner, name = holding.name,
+            assetCategory = "EQUITY", archived = true, closedOn = "2026-10-09",
+        )
+        val dashboard = HouseholdDashboardProjector.from(
+            report, mapOf(owner to "Synthetic"), profiles = listOf(profile),
+        )
+        val row = dashboard.recordedHoldings.single()
+        assertTrue(row.archived)
+        assertEquals("2026-10-09", row.closedOn)
+        assertEquals(240_000L, dashboard.assets.raw)
+        assertEquals(1, dashboard.holdingCount)
+    }
 }

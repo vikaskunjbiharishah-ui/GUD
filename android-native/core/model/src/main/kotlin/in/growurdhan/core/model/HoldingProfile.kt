@@ -24,6 +24,8 @@ data class HoldingProfileSnapshot(
     val closedOn: String? = null,
     /** Original Holding-level financial metadata columns, typed via allowlist. */
     val richMetadataJson: String = "{}",
+    /** Original importer/registrar instrument attributes, owner-local and losslessly merged. */
+    val instrumentMetadataJson: String = "{}",
 )
 
 /** Only the fields explicitly supplied by the user may change. Ownership is immutable. */
@@ -54,4 +56,6 @@ data class HoldingProfileEdit(
     val richMetadataJson: String = "{}",
     /** Explicitly restore unknown cost without inventing a new ledger event. */
     val clearVerifiedCost: Boolean = false,
+    /** Source Holding instrument fields (AMC, RTA, AMFI code, advisor, UCC etc). */
+    val instrumentMetadataJson: String = "{}",
 )

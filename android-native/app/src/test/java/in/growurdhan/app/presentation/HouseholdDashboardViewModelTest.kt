@@ -48,6 +48,7 @@ class HouseholdDashboardViewModelTest {
     @Test fun reauthenticationDuringReadCannotExposeOlderHouseholdSnapshot() = runTest {
         val repo = mockk<VaultRepository>()
         val pending = CompletableDeferred<VaultBook>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         coEvery { repo.readBook() } coAnswers { pending.await() }
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = HouseholdDashboardViewModel(repo, gate)
@@ -78,6 +79,7 @@ class HouseholdDashboardViewModelTest {
     @Test fun unlockedRefreshUsesOneBookSnapshotAndShowsRecordedValues() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.readBook() } returns book()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = HouseholdDashboardViewModel(repo, gate)
 
@@ -97,6 +99,7 @@ class HouseholdDashboardViewModelTest {
     @Test fun lockingClearsPreviouslyDisplayedFamilyNamesAndTotals() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.readBook() } returns book()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = HouseholdDashboardViewModel(repo, gate)
         vm.refresh()
@@ -113,7 +116,8 @@ class HouseholdDashboardViewModelTest {
 
     @Test fun missingFamilyRegistryNeverCreatesSyntheticDashboardOwners() = runTest {
         val repo = mockk<VaultRepository>()
-        coEvery { repo.readBook() } returns book().copy(members = emptyList())
+        coEvery { repo.readBook() } returns book()
+        coEvery { repo.holdingProfiles() } returns emptyList().copy(members = emptyList())
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = HouseholdDashboardViewModel(repo, gate)
 
@@ -131,6 +135,7 @@ class HouseholdDashboardViewModelTest {
     @Test fun lockCancelsSuspendedReadAndPreventsStaleFinancialState() = runTest {
         val repo = mockk<VaultRepository>()
         val delayed = CompletableDeferred<VaultBook>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         coEvery { repo.readBook() } coAnswers { delayed.await() }
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = HouseholdDashboardViewModel(repo, gate)
@@ -153,6 +158,7 @@ class HouseholdDashboardViewModelTest {
         val repo = mockk<VaultRepository>()
         val earlier = CompletableDeferred<VaultBook>()
         var reads = 0
+        coEvery { repo.holdingProfiles() } returns emptyList()
         coEvery { repo.readBook() } coAnswers {
             reads++
             if (reads == 1) earlier.await() else book(240_000L)
@@ -176,6 +182,7 @@ class HouseholdDashboardViewModelTest {
     @Test fun retryAfterTemporaryReadFailureRecoversWithoutReopeningVault() = runTest {
         val repo = mockk<VaultRepository>()
         var attempts = 0
+        coEvery { repo.holdingProfiles() } returns emptyList()
         coEvery { repo.readBook() } coAnswers {
             attempts++
             if (attempts == 1) error("temporary synthetic database error")
@@ -198,6 +205,7 @@ class HouseholdDashboardViewModelTest {
     @Test fun sessionRevokedDuringSuspendedReadFailsClosedWithoutExplicitUiLock() = runTest {
         val repo = mockk<VaultRepository>()
         val delayed = CompletableDeferred<VaultBook>()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         coEvery { repo.readBook() } coAnswers { delayed.await() }
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = HouseholdDashboardViewModel(repo, gate)
@@ -214,6 +222,7 @@ class HouseholdDashboardViewModelTest {
     @Test fun refreshAfterLockNeverReadsBookOrRestoresPrivateNames() = runTest {
         val repo = mockk<VaultRepository>()
         coEvery { repo.readBook() } returns book()
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = HouseholdDashboardViewModel(repo, gate)
         vm.refresh()

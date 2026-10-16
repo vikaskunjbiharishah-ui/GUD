@@ -8,6 +8,8 @@ import `in`.growurdhan.core.model.HoldingId
 import `in`.growurdhan.core.model.VaultBook
 import `in`.growurdhan.core.model.HoldingProfileSnapshot
 import `in`.growurdhan.core.model.HoldingProfileEdit
+import `in`.growurdhan.core.model.FamilyGoalProfile
+import `in`.growurdhan.core.model.FamilyAdminChange
 import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
 import `in`.growurdhan.domain.vault.ManualAssetOnboarding
 import `in`.growurdhan.domain.vault.VaultRepository
@@ -25,6 +27,7 @@ sealed interface CustodyHoldingUiState {
     data class Ready(
         val book: VaultBook, val error: String? = null,
         val profiles: List<HoldingProfileSnapshot> = emptyList(),
+        val goals: List<FamilyGoalProfile> = emptyList(),
     ) : CustodyHoldingUiState
     /** Volatile request requiring OS-confirmed credential AFTER this request was staged. */
     data class AwaitingCredential(
@@ -42,6 +45,12 @@ sealed interface CustodyRegistration {
         val ownerId: OwnerId, val name: String, val category: String,
         val subCategory: String? = null,
         val accountId: String? = null,
+        val initialProfile: HoldingProfileEdit? = null,
+        val goalIds: List<String> = emptyList(),
+    ) : CustodyRegistration
+    data class GoalTag(
+        val ownerId: OwnerId, val holdingId: HoldingId,
+        val goalId: String, val attach: Boolean,
     ) : CustodyRegistration
     data class Account(
         val ownerId: OwnerId, val type: String, val label: String,
@@ -54,11 +63,17 @@ sealed interface CustodyRegistration {
 
 sealed interface CustodyHoldingIntent {
     data class StageProfile(val edit: HoldingProfileEdit) : CustodyHoldingIntent
+    data class StageGoalTag(
+        val ownerId: OwnerId, val holdingId: HoldingId,
+        val goalId: String, val attach: Boolean,
+    ) : CustodyHoldingIntent
     data object Refresh : CustodyHoldingIntent
     data class StageAsset(
         val ownerId: OwnerId, val name: String, val category: String,
         val subCategory: String? = null,
         val accountId: String? = null,
+        val initialProfile: HoldingProfileEdit? = null,
+        val goalIds: List<String> = emptyList(),
     ) : CustodyHoldingIntent
     data class StageAccount(
         val ownerId: OwnerId, val type: String, val label: String,
@@ -94,6 +109,7 @@ class CustodyHoldingViewModel @Inject constructor(
             is CustodyHoldingIntent.StageAsset -> stageAsset(intent)
             is CustodyHoldingIntent.StageHolding -> stageHolding(intent)
             is CustodyHoldingIntent.StageProfile -> stageProfile(intent.edit)
+            is CustodyHoldingIntent.StageGoalTag -> stageGoalTag(intent)
             CustodyHoldingIntent.SaveAfterCredential -> saveAfterCredential()
             CustodyHoldingIntent.Cancel -> clearSensitiveState()
         }
@@ -112,10 +128,11 @@ class CustodyHoldingViewModel @Inject constructor(
             try {
                 val book = vault.readBook()
                 val profiles = vault.holdingProfiles()
+                val goals = vault.familyAdministration().goals
                 if (expectedGeneration == generation) {
                     if (session.isCurrentSession(originalRevision)) {
                         mutableState.value = CustodyHoldingUiState.Ready(
-                            book, profiles = profiles,
+                            book, profiles = profiles, goals = goals,
                         )
                     } else {
                         clearSensitiveState()
@@ -165,13 +182,26 @@ class CustodyHoldingViewModel @Inject constructor(
                     "Use CAS enrollment for a registrar mutual fund."
                 }
             }
+            require(intent.goalIds.size <= 30 &&
+                intent.goalIds.size == intent.goalIds.distinct().size &&
+                intent.goalIds.all { goalId -> ready.goals.any {
+                    it.id == goalId && (it.ownerId == null || it.ownerId == intent.ownerId)
+                } }) { "Only owner-compatible goals can be linked." }
+            intent.initialProfile?.let { edit ->
+                require(edit.ownerId == intent.ownerId && !edit.archived &&
+                    edit.closedOn == null && edit.name.trim() == intent.name.trim()) {
+                    "New holding fields must match the selected family owner and asset."
+                }
+                require(intent.subCategory != null && edit.subCategory == intent.subCategory)
+            }
             val asset = ManualAssetOnboarding.create(
                 intent.ownerId, intent.name, intent.category,
                 HoldingId(UUID.randomUUID().toString()), ready.book.holdings,
             )
             mutableState.value = CustodyHoldingUiState.AwaitingCredential(
                 CustodyRegistration.Asset(asset.ownerId, asset.name, asset.assetCategory,
-                    intent.subCategory, intent.accountId),
+                    intent.subCategory, intent.accountId,
+                    intent.initialProfile, intent.goalIds),
                 session.credentialEpoch(),
             )
         } catch (_: Exception) {
@@ -221,6 +251,24 @@ class CustodyHoldingViewModel @Inject constructor(
         }
     }
 
+    private fun stageGoalTag(intent: CustodyHoldingIntent.StageGoalTag) {
+        val ready = mutableState.value as? CustodyHoldingUiState.Ready ?: return
+        if (!session.isUnlocked()) { clearSensitiveState(); return }
+        val owned = ready.book.holdings.any {
+            it.id == intent.holdingId && it.ownerId == intent.ownerId
+        }
+        val goal = ready.goals.firstOrNull { it.id == intent.goalId }
+        if (!owned || goal == null ||
+            (goal.ownerId != null && goal.ownerId != intent.ownerId)) {
+            mutableState.value = ready.copy(error = "Choose a goal and holding owned by the same family.")
+            return
+        }
+        mutableState.value = CustodyHoldingUiState.AwaitingCredential(
+            CustodyRegistration.GoalTag(intent.ownerId, intent.holdingId,
+                intent.goalId, intent.attach), session.credentialEpoch(),
+        )
+    }
+
     private fun saveAfterCredential() {
         val pending = mutableState.value as? CustodyHoldingUiState.AwaitingCredential ?: return
         if (!session.canCommitFinancialChanges() ||
@@ -240,12 +288,20 @@ class CustodyHoldingViewModel @Inject constructor(
                         vault.updateHoldingProfile(request.edit)
                         "Holding details saved. Original ledger history and unknown source fields remain intact."
                     }
+                    is CustodyRegistration.GoalTag -> {
+                        vault.applyFamilyAdministration(FamilyAdminChange.TagHolding(
+                            request.goalId, request.holdingId, request.ownerId,
+                            request.attach,
+                        ))
+                        "Goal association updated without changing the ledger."
+                    }
                     is CustodyRegistration.Asset -> {
                         if (request.subCategory == null) {
                             vault.registerManualAsset(request.ownerId, request.name, request.category)
                         } else {
                             vault.registerDetailedAsset(request.ownerId, request.name,
-                                request.category, request.subCategory, request.accountId)
+                                request.category, request.subCategory, request.accountId,
+                                request.initialProfile, request.goalIds)
                         }
                         "Asset tracked with zero units and zero recorded value. Add a " +
                             "separately reviewed transaction to record an acquisition."
