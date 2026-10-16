@@ -1,5 +1,6 @@
 package `in`.growurdhan.app.presentation
 
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -12,6 +13,8 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import `in`.growurdhan.app.presentation.theme.GrowUrDhanTheme
 import `in`.growurdhan.core.model.*
+import `in`.growurdhan.domain.market.CachedListedSecurity
+import `in`.growurdhan.domain.market.OfficialMarketSource
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -185,7 +188,8 @@ class CustodyHoldingShellTest {
         compose.setContent {
             GrowUrDhanTheme(AppearanceSettings()) {
                 CustodyHoldingScreen(
-                    state = CustodyHoldingUiState.Saved("Synthetic holding registered."),
+                    state = CustodyHoldingUiState.Saved(
+                        "Synthetic holding registered.", HoldingId("created-stub")),
                     onIntent = {}, onBackToVault = {},
                     onContinueToStatements = {},
                     onRecordOpeningBalance = { opened = true },
@@ -195,5 +199,113 @@ class CustodyHoldingShellTest {
         compose.onNodeWithText("Record opening balance or debt")
             .performScrollTo().performClick()
         compose.runOnIdle { org.junit.Assert.assertTrue(opened) }
+    }
+
+    @Test fun savedHoldingRouteCarriesExactNewHoldingIdWithoutWritingLedger() {
+        val created = HoldingId("synthetic-new-id")
+        var routed: HoldingId? = null
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings()) {
+                CustodyHoldingScreen(
+                    state = CustodyHoldingUiState.Saved(
+                        "Synthetic newly enrolled asset", createdHoldingId = created),
+                    onIntent = {}, onBackToVault = {},
+                    onContinueToStatements = {},
+                    onRecordOpeningBalance = { routed = it },
+                )
+            }
+        }
+        compose.onNodeWithText("Record opening balance or debt")
+            .performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(created, routed) }
+    }
+
+    @Test fun verifiedDatedOfflineSecurityChoiceStagesIdentityAndProvenance() {
+        val priceDay = java.time.LocalDate.now().minusDays(1)
+        val cached = CachedListedSecurity(
+            "INE000000001", "Synthetic Market Share", "EQUITY",
+            OfficialMarketSource.NSE, priceDay, MoneyScaled(1_230_000),
+            symbol = "SYNTH",
+        )
+        var action: CustodyHoldingIntent? = null
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings()) {
+                CustodyHoldingScreen(
+                    state = CustodyHoldingUiState.Ready(book()),
+                    onIntent = { action = it }, onBackToVault = {},
+                    onContinueToStatements = {},
+                    verifiedOfficialCatalog = listOf(cached),
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Manual asset nickname input")
+            .performScrollTo().performTextInput("Temporary nickname")
+        compose.onNodeWithTag("AdvancedHoldingCreateToggle")
+            .performScrollTo().performClick()
+        compose.onNodeWithTag("OfficialSecuritySearch")
+            .performScrollTo().performTextInput("Synthetic Market")
+        compose.onNodeWithText("Synthetic Market Share", substring = true)
+            .performScrollTo().performClick()
+        compose.onNodeWithText("Review and register complete holding")
+            .performScrollTo().performClick()
+        compose.runOnIdle {
+            val staged = action as CustodyHoldingIntent.StageAsset
+            assertEquals(cached.name, staged.name)
+            assertEquals(cached.isin, staged.initialProfile?.isin)
+            assertEquals(priceDay.toString(), staged.initialProfile?.priceAsOf)
+            assertEquals("NSE_OFFICIAL_CLOSE", staged.initialProfile?.priceSource)
+        }
+    }
+
+    @Test fun staleOfflineSecurityChoiceCopiesIdentityButNotPrice() {
+        val cached = CachedListedSecurity(
+            "INE000000001", "Synthetic Stale Share", "EQUITY",
+            OfficialMarketSource.BSE, java.time.LocalDate.now().minusDays(60),
+            MoneyScaled(1_230_000),
+        )
+        var action: CustodyHoldingIntent? = null
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings()) {
+                CustodyHoldingScreen(
+                    state = CustodyHoldingUiState.Ready(book()),
+                    onIntent = { action = it }, onBackToVault = {},
+                    onContinueToStatements = {},
+                    verifiedOfficialCatalog = listOf(cached),
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Manual asset nickname input")
+            .performScrollTo().performTextInput("Temporary nickname")
+        compose.onNodeWithTag("AdvancedHoldingCreateToggle")
+            .performScrollTo().performClick()
+        compose.onNodeWithTag("OfficialSecuritySearch")
+            .performScrollTo().performTextInput("Synthetic Stale")
+        compose.onNodeWithText("stale, price not used", substring = true)
+            .performScrollTo().performClick()
+        compose.onNodeWithText("Review and register complete holding")
+            .performScrollTo().performClick()
+        compose.runOnIdle {
+            val staged = action as CustodyHoldingIntent.StageAsset
+            assertEquals(cached.isin, staged.initialProfile?.isin)
+            assertEquals(null, staged.initialProfile?.customPrice)
+            assertEquals(null, staged.initialProfile?.priceSource)
+        }
+    }
+
+    @Test fun savedAccountNeverRoutesIntoUnrelatedHoldingOpening() {
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings()) {
+                CustodyHoldingScreen(
+                    state = CustodyHoldingUiState.Saved("Account saved, no asset yet."),
+                    onIntent = {}, onBackToVault = {},
+                    onContinueToStatements = {},
+                    onRecordOpeningBalance = {
+                        throw AssertionError("No holding exists to record a balance.")
+                    },
+                )
+            }
+        }
+        compose.onNodeWithText("Record opening balance or debt")
+            .assertDoesNotExist()
     }
 }

@@ -37,6 +37,7 @@ import `in`.growurdhan.app.presentation.CustodyHoldingIntent
 import `in`.growurdhan.app.presentation.CustodyHoldingUiState
 import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
 import `in`.growurdhan.domain.vault.ManualAssetOnboarding
+import `in`.growurdhan.domain.market.CachedListedSecurity
 
 /** Protected CAS enrolment: only registrar names, not PAN or passwords. */
 @Composable
@@ -45,7 +46,8 @@ fun CustodyHoldingScreen(
     onIntent: (CustodyHoldingIntent) -> Unit,
     onBackToVault: () -> Unit,
     onContinueToStatements: () -> Unit,
-    onRecordOpeningBalance: () -> Unit = {},
+    onRecordOpeningBalance: (HoldingId?) -> Unit = {},
+    verifiedOfficialCatalog: List<CachedListedSecurity> = emptyList(),
     selectedFamilyOwner: OwnerId? = null,
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
@@ -100,13 +102,15 @@ fun CustodyHoldingScreen(
                         Text("No purchase transaction or historical cost was invented.")
                     }
                 }
-                Text("To add documented starting units, deposits or outstanding debt, " +
-                    "record a separately reviewed OPENING_BALANCE. Registration never " +
-                    "invents a purchase or interest accrual.")
-                Button(
-                    onClick = onRecordOpeningBalance,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Record opening balance or debt") }
+                if (state.createdHoldingId != null) {
+                    Text("To add documented starting units, deposits or outstanding debt, " +
+                        "record a separately reviewed OPENING_BALANCE. Registration never " +
+                        "invents a purchase or interest accrual.")
+                    Button(
+                        onClick = { onRecordOpeningBalance(state.createdHoldingId) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Record opening balance or debt") }
+                }
                 Button(
                     onClick = { onIntent(CustodyHoldingIntent.Refresh) },
                     modifier = Modifier.fillMaxWidth(),
@@ -388,6 +392,8 @@ fun CustodyHoldingScreen(
                                     profile = draft,
                                     creating = true,
                                     ownedHoldings = book.holdings,
+                                    ownedProfiles = state.profiles,
+                                    verifiedOfficialCatalog = verifiedOfficialCatalog,
                                     onStage = { edit ->
                                         onIntent(CustodyHoldingIntent.StageAsset(
                                             selectedOwner, edit.name, manualCategory,
@@ -564,6 +570,8 @@ fun CustodyHoldingScreen(
                                         profile = profile,
                                         goals = state.goals,
                                         ownedHoldings = book.holdings,
+                                        ownedProfiles = state.profiles,
+                                        verifiedOfficialCatalog = verifiedOfficialCatalog,
                                         onStage = { edit ->
                                             onIntent(CustodyHoldingIntent.StageProfile(edit))
                                         },

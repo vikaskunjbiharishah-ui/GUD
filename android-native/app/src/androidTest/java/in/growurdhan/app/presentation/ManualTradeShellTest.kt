@@ -1,5 +1,6 @@
 package `in`.growurdhan.app.presentation
 
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -94,5 +95,54 @@ class ManualTradeShellTest {
         compose.onNodeWithText("OPENING_BALANCE").performClick()
         compose.onNodeWithText("To establish an existing loan", substring = true)
             .performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun newlyCreatedHoldingIsPreselectedForExplicitOpeningBalance() {
+        val newHolding = Holding(HoldingId("newly-created"), owner, null,
+            "Synthetic newly enrolled bond", "FIXED_INCOME",
+            QuantityScaled(0), MoneyScaled(0))
+        val joined = book.copy(holdings = listOf(holding, newHolding))
+        var intent: ManualTradeIntent? = null
+        compose.setContent {
+            ManualTradeScreen(
+                ManualTradeUiState.Ready(joined),
+                onIntent = { intent = it }, onReturn = {},
+                preselectedHoldingId = newHolding.id,
+            )
+        }
+        compose.onNodeWithTag("ManualTradeHoldingPicker")
+            .performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(newHolding.name).assertIsDisplayed()
+        compose.onNodeWithText("OPENING_BALANCE").assertIsDisplayed()
+        compose.onNodeWithTag("ManualTradeUnits").performScrollTo().performTextInput("1")
+        compose.onNodeWithTag("ManualTradePrice").performScrollTo().performTextInput("2500")
+        compose.onNodeWithText("Review recorded transaction")
+            .performScrollTo().performClick()
+        compose.runOnIdle {
+            val staged = intent as ManualTradeIntent.Stage
+            assertEquals(newHolding.id, staged.draft.holdingId)
+            assertEquals(ManualTradeKind.OPENING_BALANCE, staged.draft.kind)
+        }
+    }
+
+    @Test fun switchingToLiabilityDiscardsPreviouslyTypedEquityPrice() {
+        val loan = holding.copy(id = HoldingId("liability"), name = "Synthetic debt",
+            assetCategory = "LIABILITY")
+        val mixed = book.copy(holdings = listOf(holding, loan))
+        compose.setContent {
+            ManualTradeScreen(ManualTradeUiState.Ready(mixed), {}, {})
+        }
+        compose.onNodeWithTag("ManualTradeUnits").performScrollTo()
+            .performTextInput("37")
+        compose.onNodeWithTag("ManualTradePrice").performScrollTo()
+            .performTextInput("9876")
+        compose.onNodeWithTag("ManualTradeHoldingPicker").performScrollTo().performClick()
+        compose.onNodeWithText(loan.name).performClick()
+        compose.onNodeWithTag("ManualTradeUnits").assertIsDisplayed()
+        compose.onNodeWithTag("ManualTradePrice").assertIsDisplayed()
+        compose.onNodeWithText("OPENING_BALANCE").assertIsDisplayed()
+        compose.onNodeWithTag("ManualTradeKindPicker").performScrollTo().performClick()
+        compose.onNodeWithText("BUY").assertDoesNotExist()
+        compose.onNodeWithText("SELL").assertDoesNotExist()
     }
 }

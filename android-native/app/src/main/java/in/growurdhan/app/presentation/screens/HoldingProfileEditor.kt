@@ -26,6 +26,9 @@ import `in`.growurdhan.core.model.HoldingProfileEdit
 import `in`.growurdhan.core.model.FamilyGoalProfile
 import `in`.growurdhan.core.model.Holding
 import `in`.growurdhan.domain.vault.OriginalHoldingFormPolicy
+import `in`.growurdhan.domain.market.CachedListedSecurity
+import `in`.growurdhan.domain.market.LocalOfficialSecurityCatalog
+import `in`.growurdhan.domain.market.QuoteCondition
 import `in`.growurdhan.core.model.HoldingProfileSnapshot
 import `in`.growurdhan.core.model.MoneyScaled
 import `in`.growurdhan.core.model.ReactV9HoldingDetailsContract
@@ -42,12 +45,15 @@ fun HoldingProfileEditor(
     onStageGoal: (String, Boolean) -> Unit = { _, _ -> },
     creating: Boolean = false,
     ownedHoldings: List<Holding> = emptyList(),
+    ownedProfiles: List<HoldingProfileSnapshot> = emptyList(),
+    verifiedOfficialCatalog: List<CachedListedSecurity> = emptyList(),
 ) {
     var name by remember(profile.holdingId) { mutableStateOf(profile.name) }
     var subCategory by remember(profile.holdingId) { mutableStateOf(profile.subCategory.orEmpty()) }
     var notes by remember(profile.holdingId) { mutableStateOf(profile.notes.orEmpty()) }
     var location by remember(profile.holdingId) { mutableStateOf(profile.location.orEmpty()) }
     var isin by remember(profile.holdingId) { mutableStateOf(profile.isin.orEmpty()) }
+    var securityQuery by remember(profile.holdingId) { mutableStateOf("") }
     var symbol by remember(profile.holdingId) { mutableStateOf(profile.symbolOrFolio.orEmpty()) }
     var acquired by remember(profile.holdingId) { mutableStateOf(profile.acquiredOn.orEmpty()) }
     var price by remember(profile.holdingId) { mutableStateOf("") }
@@ -153,6 +159,58 @@ fun HoldingProfileEditor(
         Text("All changes require a new device lock approval. Original ledger entries are immutable.")
         OutlinedTextField(name, { name = it.take(200) }, label = { Text("Holding name") },
             modifier = Modifier.fillMaxWidth())
+        if (creating && profile.assetCategory in setOf("EQUITY", "MUTUAL_FUND")) {
+            Text("Official NSE/BSE/AMFI close/NAV lookup (cached and offline)",
+                style = MaterialTheme.typography.titleSmall)
+            if (verifiedOfficialCatalog.isEmpty()) {
+                Text("No verified local official catalog is available on this device. " +
+                    "You may record a manually identified security, but no exchange/NAV " +
+                    "quote will be invented. Official catalog downloads belong to M30.",
+                    style = MaterialTheme.typography.bodySmall)
+            } else {
+                OutlinedTextField(
+                    value = securityQuery,
+                    onValueChange = { securityQuery = it.take(100) },
+                    label = { Text("Search verified securities by name, ISIN or symbol") },
+                    modifier = Modifier.fillMaxWidth().testTag("OfficialSecuritySearch"),
+                )
+                LocalOfficialSecurityCatalog.search(
+                    verifiedOfficialCatalog, profile.assetCategory, securityQuery,
+                    java.time.LocalDate.now(),
+                ).forEach { row ->
+                    val condition = row.condition(java.time.LocalDate.now())
+                    OutlinedButton(
+                        onClick = {
+                            name = row.name
+                            isin = row.isin
+                            symbol = row.symbol.orEmpty()
+                            instrumentEdits = instrumentEdits + mapOf(
+                                "amfiCode" to row.amfiCode.orEmpty(),
+                                "exchange" to if (row.source.name in setOf("NSE", "BSE"))
+                                    row.source.name else "",
+                            )
+                            if (condition == QuoteCondition.CURRENT) {
+                                price = row.closePrice.rupees().toPlainString()
+                                priceAsOf = row.closeDate.toString()
+                                priceSource = row.source.name +
+                                    (if (row.source.name == "AMFI") "_OFFICIAL_NAV"
+                                        else "_OFFICIAL_CLOSE")
+                            } else {
+                                price = ""
+                                priceAsOf = ""
+                                priceSource = ""
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(row.name + " · " + row.isin + " · " + row.source.name +
+                            " · " + row.closeDate.toString() +
+                            if (condition == QuoteCondition.STALE) " (stale, price not used)"
+                            else " (dated close/NAV)")
+                    }
+                }
+            }
+        }
         OutlinedTextField(subCategory, { subCategory = it.take(80) },
             label = { Text("Subcategory (NPS, SSY, REIT, SGB, FD, etc.)") },
             modifier = Modifier.fillMaxWidth())
@@ -398,7 +456,20 @@ fun HoldingProfileEditor(
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall)
         }
-        val valid = missingAdvanced.isEmpty() &&
+        val duplicateRecordedIsin = if (creating && isin.isNotBlank()) {
+            ownedProfiles.firstOrNull { it.ownerId == profile.ownerId &&
+                it.isin.equals(isin.trim(), ignoreCase = true) &&
+                it.holdingId != profile.holdingId }
+        } else null
+        if (duplicateRecordedIsin != null) {
+            Text("This security is already recorded for the selected family member: " +
+                duplicateRecordedIsin.name + ". Open its transaction history " +
+                "and record another BUY instead of creating a second holding.",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall)
+        }
+        val valid = duplicateRecordedIsin == null &&
+            missingAdvanced.isEmpty() &&
             name.trim().isNotBlank() && instrumentValid &&
             priceProvenanceValid &&
             ! (resetCost && cost.isNotBlank()) &&

@@ -40,3 +40,8 @@ Native `main` now contains an **unverified source-only M27 expansion**: atomic i
 
 ## 2026-10-16 M27 original-form and opening-debt continuation
 See [M27 specialist form / debt checkpoint](../native-migration/27-M27-FORM-AND-OPENING-DEBT-CHECKPOINT.md). Additional source and 10 authored synthetic JVM/Android tests extend funded NPS/FD/AIF/SGB/MF/loan forms, verified opening debt and safe closing; **M27 OPEN, NOT ANDROID-COMPILED OR CI-ACCEPTED**. M25/M26 OPEN. Isolated policy compilation with six stubbed assertions passed only; expensive GitHub Actions not authorized or dispatched. Two-stage original opening UX D-006 proposed, not owner accepted.
+
+
+## 2026-10-16 M27 source safety/cached security picker checkpoint
+
+The newest main-only source increment adds typed offline cached official-security candidate search (real authenticated NSE/BSE/AMFI loader NOT connected, remains M30), exact created-holding-ID into independently device-reviewed OPENING_BALANCE, prevents account-only Saved routes, prevents same-owner duplicate ISIN, resets drafts on trade-kind/holding changes, improves event type allowlists and adds backup metadata tests. See [audit](../native-migration/27-M27-SECURITY-IDENTITY-PARITY-AUDIT.md). 12 authored tests; source lexical checks passed; isolated exact-blob Kotlin catalog test passed seven assertions with model stub only. Android compilation/Gradle/emulator/CI all NOT RUN. M27 remains OPEN, M25/M26 OPEN. D-006 parity deviation NOT APPROVED. No GitHub Actions authorization.

@@ -27,6 +27,8 @@ import `in`.growurdhan.app.presentation.ManualTradeIntent
 import `in`.growurdhan.app.presentation.ManualTradeUiState
 import `in`.growurdhan.domain.finance.ManualTradeDraft
 import `in`.growurdhan.domain.finance.ManualTradeKind
+import `in`.growurdhan.domain.finance.ManualTradePlanner
+import `in`.growurdhan.core.model.HoldingId
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -36,6 +38,7 @@ fun ManualTradeScreen(
     state: ManualTradeUiState,
     onIntent: (ManualTradeIntent) -> Unit,
     onReturn: () -> Unit,
+    preselectedHoldingId: HoldingId? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -116,15 +119,24 @@ fun ManualTradeScreen(
                     Text("No enrolled asset holding exists. Enrol a family account or fund first.")
                     OutlinedButton(onClick = onReturn) { Text("Return to portfolio") }
                 } else {
-                    var selectedId by remember(state.book) { mutableStateOf(eligible.first().id) }
-                    var kind by remember(state.book) { mutableStateOf(ManualTradeKind.BUY) }
-                    var day by remember(state.book) { mutableStateOf(LocalDate.now().toString()) }
-                    var quantity by remember(state.book) { mutableStateOf("") }
-                    var price by remember(state.book) { mutableStateOf("") }
-                    var fees by remember(state.book) { mutableStateOf("0") }
+                    var selectedId by remember(state.book, preselectedHoldingId) {
+                        mutableStateOf(eligible.firstOrNull { it.id == preselectedHoldingId }?.id
+                            ?: eligible.first().id)
+                    }
+                    val selected = eligible.firstOrNull { it.id == selectedId } ?: eligible.first()
+                    val validKinds = ManualTradePlanner.allowedKindsFor(selected.assetCategory)
+                    var kind by remember(selected.id, preselectedHoldingId) {
+                        mutableStateOf(if (selected.id == preselectedHoldingId)
+                            ManualTradeKind.OPENING_BALANCE
+                            else if (ManualTradeKind.BUY in validKinds)
+                                ManualTradeKind.BUY else ManualTradeKind.OPENING_BALANCE)
+                    }
+                    var day by remember(selected.id) { mutableStateOf(LocalDate.now().toString()) }
+                    var quantity by remember(selected.id, kind) { mutableStateOf("") }
+                    var price by remember(selected.id, kind) { mutableStateOf("") }
+                    var fees by remember(selected.id, kind) { mutableStateOf("0") }
                     var showHoldings by remember { mutableStateOf(false) }
                     var showKinds by remember { mutableStateOf(false) }
-                    val selected = eligible.firstOrNull { it.id == selectedId } ?: eligible.first()
                     Text("Enrolled asset", style = MaterialTheme.typography.titleSmall)
                     OutlinedButton(
                         onClick = { showHoldings = true },
@@ -144,12 +156,8 @@ fun ManualTradeScreen(
                         modifier = Modifier.testTag("ManualTradeKindPicker"),
                     ) { Text(kind.name) }
                     DropdownMenu(expanded = showKinds, onDismissRequest = { showKinds = false }) {
-                        ManualTradeKind.entries.filter { option ->
-                            selected.assetCategory != "LIABILITY" || option in setOf(
-                                ManualTradeKind.OPENING_BALANCE, ManualTradeKind.REPAYMENT,
-                                ManualTradeKind.INTEREST, ManualTradeKind.VALUATION_UPDATE,
-                                ManualTradeKind.CORRECTION)
-                        }.forEach { option ->
+                        ManualTradeKind.entries.filter { it in validKinds }
+                            .forEach { option ->
                             DropdownMenuItem(
                                 text = { Text(option.name) },
                                 onClick = { kind = option; showKinds = false },

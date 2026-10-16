@@ -47,6 +47,30 @@ data class ManualTradePlan(
  * original-credential revalidation and SQLCipher transaction guards are separate.
  */
 object ManualTradePlanner {
+    /** Category-level UI + domain allowlist. Never exposes registrar-only snapshots. */
+    fun allowedKindsFor(category: String): Set<ManualTradeKind> = when (category) {
+        "LIABILITY" -> setOf(ManualTradeKind.OPENING_BALANCE,
+            ManualTradeKind.INTEREST, ManualTradeKind.REPAYMENT,
+            ManualTradeKind.VALUATION_UPDATE, ManualTradeKind.CORRECTION)
+        "EQUITY", "MUTUAL_FUND", "GOLD_SGB", "SPECIALISED" ->
+            ManualTradeKind.entries.filterNot {
+                it == ManualTradeKind.REPAYMENT
+            }.toSet()
+        "REAL_ESTATE" -> setOf(ManualTradeKind.BUY, ManualTradeKind.SELL,
+            ManualTradeKind.OPENING_BALANCE, ManualTradeKind.DIVIDEND,
+            ManualTradeKind.INTEREST, ManualTradeKind.VALUATION_UPDATE,
+            ManualTradeKind.CORRECTION)
+        // Old native/v9 alias rows remain operable, without inventing a
+        // subcategory migration or allowing unsupported bonus/split events.
+        "FIXED_INCOME", "CASH_BANK", "NPS", "PPF", "EPF",
+        "FIXED_DEPOSIT", "BOND", "GOLD", "CASH", "OTHER" ->
+            setOf(ManualTradeKind.BUY,
+            ManualTradeKind.SELL, ManualTradeKind.OPENING_BALANCE,
+            ManualTradeKind.INTEREST, ManualTradeKind.VALUATION_UPDATE,
+            ManualTradeKind.CORRECTION)
+        else -> emptySet()
+    }
+
     private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
         .withResolverStyle(ResolverStyle.STRICT)
     private val quantityPattern = Regex("[0-9]{1,12}(\\.[0-9]{1,8})?")
@@ -106,11 +130,9 @@ object ManualTradePlanner {
             ?: throw IllegalArgumentException("Select an enrolled holding.")
         val owner = book.members.singleOrNull { it.id == holding.ownerId }
             ?: throw IllegalArgumentException("Holding owner is no longer enrolled.")
-        require(holding.assetCategory != "LIABILITY" || draft.kind in setOf(
-            ManualTradeKind.OPENING_BALANCE, ManualTradeKind.INTEREST,
-            ManualTradeKind.REPAYMENT, ManualTradeKind.VALUATION_UPDATE,
-            ManualTradeKind.CORRECTION,
-        )) { "Buy and sell transactions cannot be entered for liabilities." }
+        require(draft.kind in allowedKindsFor(holding.assetCategory)) {
+            "This financial event type is not appropriate for the selected asset category."
+        }
         require(eventId.isNotBlank() && eventId.length <= 128)
         require(Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}").matches(draft.tradeDate))
         val day = LocalDate.parse(draft.tradeDate, dateFormatter)

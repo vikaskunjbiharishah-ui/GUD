@@ -290,4 +290,47 @@ class ManualTradePlannerTest {
                     .copy(supersedesEventId = original.id), "bad-loan-correction", today)
         }
     }
+
+    @Test fun categoryEventChoicesExcludeInappropriateAndRegistrarOnlyEvents() {
+        val equity = ManualTradePlanner.allowedKindsFor("EQUITY")
+        val bank = ManualTradePlanner.allowedKindsFor("CASH_BANK")
+        val loan = ManualTradePlanner.allowedKindsFor("LIABILITY")
+        val reit = ManualTradePlanner.allowedKindsFor("REAL_ESTATE")
+        assertEquals(9, equity.size)
+        assertTrue(ManualTradeKind.SPLIT in equity)
+        assertFalse(ManualTradeKind.REPAYMENT in equity)
+        assertFalse(ManualTradeKind.BONUS in bank)
+        assertFalse(ManualTradeKind.SPLIT in reit)
+        assertTrue(ManualTradeKind.REPAYMENT in loan)
+        assertFalse(ManualTradeKind.BUY in loan)
+        assertFalse(ManualTradeKind.SELL in loan)
+        assertTrue(ManualTradePlanner.allowedKindsFor("INVALID").isEmpty())
+        for (legacy in listOf("NPS", "PPF", "EPF", "FIXED_DEPOSIT",
+            "BOND", "GOLD", "CASH", "OTHER")) {
+            assertTrue(ManualTradeKind.OPENING_BALANCE in
+                ManualTradePlanner.allowedKindsFor(legacy))
+            assertFalse(ManualTradeKind.REPAYMENT in
+                ManualTradePlanner.allowedKindsFor(legacy))
+        }
+        assertEquals(10, ManualTradeKind.entries.size)
+        assertFalse(ManualTradeKind.entries.any { it.name == "SNAPSHOT_ADJUSTMENT" })
+    }
+
+    @Test fun inappropriateCashAndPropertyEventsCannotBeStaged() {
+        val cash = holding.copy(assetCategory = "CASH_BANK")
+        val property = holding.copy(assetCategory = "REAL_ESTATE")
+        for ((position, kind) in listOf(
+            cash to ManualTradeKind.SPLIT,
+            cash to ManualTradeKind.BONUS,
+            property to ManualTradeKind.BONUS,
+            property to ManualTradeKind.REPAYMENT,
+        )) {
+            assertThrows(IllegalArgumentException::class.java) {
+                ManualTradePlanner.prepare(
+                    book().copy(holdings = listOf(position)),
+                    draft(kind = kind), "bad-kind-${kind.name}", today,
+                )
+            }
+        }
+    }
 }

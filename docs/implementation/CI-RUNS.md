@@ -25,3 +25,8 @@ Starting HEAD: `66d1cb7db9b6b0ada2d96e58df85f88854b45839`. This later source/doc
 
 ## 2026-10-16 M27 form and loan opening source follow-up
 Starting source SHA bf4ecf3f358fad807deb808064c02e27dd2888e1. New-source exact tested SHA: NONE. GitHub Actions: NOT RUN, NOT AUTHORIZED. Isolated local policy rehearsal (stubbed taxonomy) 6 checks PASS; no full Gradle/JUnit/SQLCipher/Compose/Android proof. Retain failed Build #18 history. Next combined M25/M26/M27 run only after owner approval, with exact new main source_sha and terminal job/artifact evidence.
+
+
+## 2026-10-16 M27 cached-security and opening-handoff source checkpoint
+
+Starting main SHA 3ef250021d44170e8f2b7c7e23f153a76b5016a2. Twelve new JVM/Compose/SQLCipher test methods AUTHORED but NOT EXECUTED. Full Gradle/JUnit/Android/SQLCipher/APK/AAB NOT RUN. GitHub Actions not dispatched; current-source tested SHA NONE. Exact Git blob catalog and official quote policies compiled locally under kotlinc with stub MoneyScaled; seven standalone offline-provenance assertions PASS. This is not an Android app or project regression. Earlier Build #18 FAILURE remains unchanged. See [combined exact-SHA plan](M25-M26-M27-EXACT-SHA-REGRESSION-CHECKLIST.md). Owner authorization required before any paid regression.

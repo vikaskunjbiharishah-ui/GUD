@@ -37,7 +37,7 @@ sealed interface CustodyHoldingUiState {
         val stagedEpoch: Long,
     ) : CustodyHoldingUiState
     data object Saving : CustodyHoldingUiState
-    data class Saved(val message: String) : CustodyHoldingUiState
+    data class Saved(val message: String, val createdHoldingId: HoldingId? = null) : CustodyHoldingUiState
     data class Error(val message: String) : CustodyHoldingUiState
 }
 
@@ -190,6 +190,14 @@ class CustodyHoldingViewModel @Inject constructor(
                     it.id == goalId && (it.ownerId == null || it.ownerId == intent.ownerId)
                 } }) { "Only owner-compatible goals can be linked." }
             intent.initialProfile?.let { edit ->
+                val identity = edit.isin?.trim()?.uppercase()
+                if (!identity.isNullOrEmpty()) {
+                    require(ready.profiles.none {
+                        it.ownerId == intent.ownerId && it.isin.equals(identity, true)
+                    } && ready.book.casIdentities.none {
+                        it.ownerId == intent.ownerId && it.isin.equals(identity, true)
+                    }) { "Choose existing tracked security to add a purchase instead." }
+                }
                 require(edit.ownerId == intent.ownerId && !edit.archived &&
                     edit.closedOn == null && edit.name.trim() == intent.name.trim()) {
                     "New holding fields must match the selected family owner and asset."
@@ -299,6 +307,7 @@ class CustodyHoldingViewModel @Inject constructor(
         mutableState.value = CustodyHoldingUiState.Saving
         operation = viewModelScope.launch {
             try {
+                var createdHoldingId: HoldingId? = null
                 val notice = when (val request = pending.request) {
                     is CustodyRegistration.Profile -> {
                         vault.updateHoldingProfile(request.edit)
@@ -312,13 +321,14 @@ class CustodyHoldingViewModel @Inject constructor(
                         "Goal association updated without changing the ledger."
                     }
                     is CustodyRegistration.Asset -> {
-                        if (request.subCategory == null) {
+                        val registered = if (request.subCategory == null) {
                             vault.registerManualAsset(request.ownerId, request.name, request.category)
                         } else {
                             vault.registerDetailedAsset(request.ownerId, request.name,
                                 request.category, request.subCategory, request.accountId,
                                 request.initialProfile, request.goalIds)
                         }
+                        createdHoldingId = registered.id
                         "Asset tracked with zero units and zero recorded value. Add a " +
                             "separately reviewed transaction to record an acquisition."
                     }
@@ -336,7 +346,7 @@ class CustodyHoldingViewModel @Inject constructor(
                 }
                 if (expectedGeneration == generation) {
                     if (session.isCurrentSession(originalRevision)) {
-                        mutableState.value = CustodyHoldingUiState.Saved(notice)
+                        mutableState.value = CustodyHoldingUiState.Saved(notice, createdHoldingId)
                     } else {
                         clearSensitiveState()
                     }

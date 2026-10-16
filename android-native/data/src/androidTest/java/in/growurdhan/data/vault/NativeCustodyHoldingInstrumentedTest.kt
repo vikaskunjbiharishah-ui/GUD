@@ -149,6 +149,7 @@ class NativeCustodyHoldingInstrumentedTest {
             name = "Updated synthetic property", subCategory = "Residential",
             detailsJson = """{"ownershipPercent":50,"areaSqFt":1000}""",
             notes = "Synthetic fixture", location = "India",
+            instrumentMetadataJson = """{"advisor":"Synthetic property consultant","exchange":"BSE"}""",
             richMetadataJson = """{"benchmark_price_scaled":50000000,"tags_json":"[\"House\"]"}""",
             archived = true,
         ))
@@ -582,6 +583,35 @@ class NativeCustodyHoldingInstrumentedTest {
                 reit.id, account.ownerId, reit.name, subCategory = "REIT",
                 detailsJson = JSONObject().put("linkedHoldingId", loan.id.raw).toString())) }
         }
+        assertEquals(0, vault.health().foreignKeyViolations)
+    }
+
+    @Test fun duplicateIsinForSameOwnerCannotCreateSecondFinancialHolding(): Unit = runBlocking {
+        val account = seed()
+        val first = vault.registerDetailedAsset(
+            account.ownerId, "Synthetic listed security", "EQUITY", "Large cap",
+            initialProfile = HoldingProfileEdit(
+                HoldingId("draft-a"), account.ownerId, "Synthetic listed security",
+                subCategory = "Large cap", isin = "INE000000001",
+            ),
+        )
+        val baseline = vault.holdings().size
+        val existing = vault.holdingProfiles().single { it.holdingId == first.id }
+        assertEquals("INE000000001", existing.isin)
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking {
+                vault.registerDetailedAsset(
+                    account.ownerId, "Synthetic duplicate listed security", "EQUITY",
+                    "Large cap", initialProfile = HoldingProfileEdit(
+                        HoldingId("draft-b"), account.ownerId,
+                        "Synthetic duplicate listed security",
+                        subCategory = "Large cap", isin = "INE000000001",
+                    ),
+                )
+            }
+        }
+        assertEquals(baseline, vault.holdings().size)
+        assertTrue(vault.events().isEmpty())
         assertEquals(0, vault.health().foreignKeyViolations)
     }
 }

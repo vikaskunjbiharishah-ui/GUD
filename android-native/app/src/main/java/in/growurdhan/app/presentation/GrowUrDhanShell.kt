@@ -46,6 +46,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import `in`.growurdhan.core.model.OwnerId
+import `in`.growurdhan.core.model.HoldingId
 import `in`.growurdhan.app.presentation.screens.PortableRecoveryIntent
 import `in`.growurdhan.app.presentation.screens.PortableRecoveryScreen
 import `in`.growurdhan.app.presentation.screens.CustodyHoldingScreen
@@ -130,6 +131,8 @@ fun GrowUrDhanShell(
     // One presentation selection shared across Home, Holdings, Accounts, Goals
     // and CAS documents. Never persisted in preferences or SavedStateHandle.
     var selectedOwner by remember { mutableStateOf<OwnerId?>(null) }
+    // Ephemeral, owner-approved creation handoff. Never saved across lock/restart.
+    var pendingOpeningHoldingId by remember { mutableStateOf<HoldingId?>(null) }
     val visibleMembers = (dashboardState as? HouseholdDashboardUiState.Ready)
         ?.dashboard?.byMember.orEmpty()
     LaunchedEffect(dashboardState) {
@@ -243,7 +246,10 @@ fun GrowUrDhanShell(
                             onOpenVault = { navigate(VAULT_ROUTE) },
                             onRefresh = onDashboardRefresh,
                             onManageHoldings = { navigate(CUSTODY_ROUTE) },
-                            onRecordTrade = { navigate(MANUAL_TRADE_ROUTE) },
+                            onRecordTrade = {
+                                pendingOpeningHoldingId = null
+                                navigate(MANUAL_TRADE_ROUTE)
+                            },
                             selectedFamilyOwner = selectedOwner,
                             onSelectFamilyOwner = { selectedOwner = it },
                         )
@@ -371,7 +377,8 @@ fun GrowUrDhanShell(
                                 onReviewIntent(StatementReviewIntent.LoadOwners)
                                 navigate(MainDestination.REVIEW.route)
                             },
-                            onRecordOpeningBalance = {
+                            onRecordOpeningBalance = { newlyRegistered ->
+                                pendingOpeningHoldingId = newlyRegistered
                                 onCustodyIntent(CustodyHoldingIntent.Cancel)
                                 onManualTradeIntent(ManualTradeIntent.Refresh)
                                 navigate(MANUAL_TRADE_ROUTE)
@@ -387,7 +394,9 @@ fun GrowUrDhanShell(
                         ManualTradeScreen(
                             state = manualTradeState,
                             onIntent = onManualTradeIntent,
+                            preselectedHoldingId = pendingOpeningHoldingId,
                             onReturn = {
+                                pendingOpeningHoldingId = null
                                 onManualTradeIntent(ManualTradeIntent.Cancel)
                                 onDashboardRefresh()
                                 navigate(MainDestination.PORTFOLIO.route)
