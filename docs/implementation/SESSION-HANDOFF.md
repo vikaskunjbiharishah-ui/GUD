@@ -1,22 +1,12 @@
-# GrowUrDhan — Session handoff (read after AGENTS.md on EVERY prompt)
+# GrowUrDhan continuation handoff — mandatory per AGENTS.md
+Date: 2026-10-16. Repository vikaskunjbiharishah-ui/GUD, branch main. Starting SHA for this increment: bf4ecf3f358fad807deb808064c02e27dd2888e1. Resolve NEW full HEAD live after commit.
 
-**Date:** 2026-10-16. Repository: `vikaskunjbiharishah-ui/GUD`; branch: **`main` only**. Verify live HEAD SHA; starting SHA for this source increment was `66d1cb7db9b6b0ada2d96e58df85f88854b45839`. **Last tested full regression** remains Build #18 (FAILED, older source). GitHub connector has no local checkout.
+Read AGENTS.md, full spec v1.2, STATUS, CI-RUNS, DECISION-LOG, parity-register.csv, M27 contract and checkpoint before next action. Print startup compliance receipt. Neither chat memory nor this static SHA supersedes live GitHub.
 
-## Completed in the session leading to this handoff
+This session: audited original AddHoldingModal/HoldingDetailModal/AddRecordModal/types.ts; staged OriginalHoldingFormPolicy enforced in advanced Compose, VM and SQLCipher for loan EMI due date, FD, NPS, AIF, SGB, MF, REIT/InvIT, added source-exact defaults, same-owner linked property/loan picker, validated original enums/NSDL/CDSL identifiers. Added explicit saved-holding -> reviewed opening balance navigation. Implemented one-unit liability OPENING_BALANCE with owner device approval, quoted debt, separate reviewed zero valuation for payoff and strict ledger/provenance close checks, corrected liability opening. Added 10 JVM/Android/Compose source tests.
 
-- Re-read `AGENTS.md`, full authoritative specification v1.2, STATUS, this handoff, CI-RUNS, DECISION-LOG, parity register and M27 acceptance contract; inspected current original-v9 and native source references.
-- Implemented a single M27 source change set (see [detailed source extension](../native-migration/27-M27-SOURCE-EXTENSION-2026-10-16.md)): optional full advanced create profile, 8 original instrument metadata attributes in encrypted extra JSON, atomic profile+owner-scoped goals during creation, protected goal toggles, account filter, Home/Portfolio archive status, and client-side validations.
-- Added synthetic Android SQLCipher atomic creation/rollback/metadata tests, JVM VM goal-credential tests, Compose advanced create / goal test, and pure dashboard archive projection test. All staged code underwent a static balanced-token scan and source-guard assertions. **No actual Kotlin Gradle/JVM/Android instrumentation tests ran.**
-- Did not modify legacy original, CASPARSER, signing workflow, existing Actions YAML or paid CI trigger; no GitHub Actions run requested or dispatched.
-- Updated requirement P09–P15 crosswalk; continued M24 scoped-CLOSED and M25/M26 OPEN; kept Build #18 FAIL in CI ledger.
+Verification: 13/13 staged Kotlin files balanced; isolated policy plus stub taxonomy compiled with kotlinc and six checks PASSED. Production Gradle, Kotlin Android modules, SQLCipher, Compose, emulator, JVM suite, APK/AAB, exact-SHA CI, AppSec and device tests NOT RUN. No Actions dispatched. Original src/ and frozen CASPARSER unchanged.
 
-## Next active work (must not skip)
+M27 #5 OPEN. Remaining: literal full 1495-line specialised conditional UI/security picker/one-submit funded start parity; day-change/review data preservation policies, exact financial behavior & UI accessibility, owner decision D-006, actual Gradle exact-SHA test. M25 #3 and M26 #4 OPEN; previous Build #18 FAIL on older source (see CI-RUNS). Physical device deferred to M34.
 
-1. **Re-read `AGENTS.md` and full spec, print startup receipt, resolve HEAD and inspect source.** Before any acceptance/closure, run applicable available code compilation/static checks; environment cannot run Android Gradle without SDK, so request owner's authorization for one exact-source-sha regression when ready.
-2. Audit and finish M27's remaining legacy `AddHoldingModal.tsx` conditional product-specific validation/details UX and original v9 Holding profile behavior, particularly source enum/conditional masking, cost and price semantics, and historical metadata. Fix any source-level mistakes found in the new Kotlin files before CI.
-3. Provide M27 verification plan covering all ten allowed manual ledger types, source exact account/owner, fresh device password reauth, goal sharing rules, archive/close, insured backup and test screenshots with 200% font, TalkBack, offline/empty states.
-4. Retain M25/M26 combined acceptance blockers: [Build #18](https://github.com/vikaskunjbiharishah-ui/GUD/actions/runs/38237260337) red on `3e41b7c...`, one app login Compose selector test corrected in later code but not retested; 66 data cases passed historically and must pass again. Don't claim prior source green. M25 legacy format/credential, M26 HUF/family/goal coverage required.
-5. **No paid GitHub Actions without explicit owner approval.** Proposed eventual single run: `.github/workflows/native-android.yml` `workflow_dispatch` with explicit `source_sha=<approved main SHA>`. CI may fail on Kotlin/test mistakes; diagnose terminal logs, fix on main and rerun corrected SHA only with approval or within already approved repair-run budget.
-6. At end update `STATUS.md`, `SESSION-HANDOFF.md`, `CI-RUNS.md` accurately; return Section 17 21-field A–U report and exact next prompt. Physical device acceptance remains **M34**, not a made-up emulator result.
-
-**Status:** M27 SOURCE EXPANDED but **OPEN / UNCOMPILED / CI PENDING**. No owner issue closure or production readiness claim.
+Next: re-read all files and compare current actual SHA, repair any Kotlin build/test mistakes found, finish original v9 form parity and obtain owner approval before invoking native-android.yml source_sha=<actual 40-hex HEAD>; return 21-field A–U report and copyable next prompt. Do not close M27 before exact-SHA green regression.

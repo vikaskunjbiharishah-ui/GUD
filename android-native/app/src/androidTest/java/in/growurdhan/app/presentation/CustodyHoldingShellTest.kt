@@ -179,4 +179,21 @@ class CustodyHoldingShellTest {
             ), action)
         }
     }
+
+    @Test fun newlySavedRegistrationOffersExplicitOpeningBalanceRoute() {
+        var opened = false
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings()) {
+                CustodyHoldingScreen(
+                    state = CustodyHoldingUiState.Saved("Synthetic holding registered."),
+                    onIntent = {}, onBackToVault = {},
+                    onContinueToStatements = {},
+                    onRecordOpeningBalance = { opened = true },
+                )
+            }
+        }
+        compose.onNodeWithText("Record opening balance or debt")
+            .performScrollTo().performClick()
+        compose.runOnIdle { org.junit.Assert.assertTrue(opened) }
+    }
 }

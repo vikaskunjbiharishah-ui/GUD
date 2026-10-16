@@ -146,8 +146,9 @@ fun ManualTradeScreen(
                     DropdownMenu(expanded = showKinds, onDismissRequest = { showKinds = false }) {
                         ManualTradeKind.entries.filter { option ->
                             selected.assetCategory != "LIABILITY" || option in setOf(
-                                ManualTradeKind.REPAYMENT, ManualTradeKind.INTEREST,
-                                ManualTradeKind.VALUATION_UPDATE, ManualTradeKind.CORRECTION)
+                                ManualTradeKind.OPENING_BALANCE, ManualTradeKind.REPAYMENT,
+                                ManualTradeKind.INTEREST, ManualTradeKind.VALUATION_UPDATE,
+                                ManualTradeKind.CORRECTION)
                         }.forEach { option ->
                             DropdownMenuItem(
                                 text = { Text(option.name) },
@@ -178,6 +179,18 @@ fun ManualTradeScreen(
                         }
                         Text("The replacement takes the original economic event type. " +
                             "Enter corrected units, price/amount, charges and date.")
+                    }
+                    if (selected.assetCategory == "LIABILITY") {
+                        Text("For an existing loan, choose OPENING_BALANCE, enter exactly 1 " +
+                            "unit and the documented outstanding debt as unit price. " +
+                            "Later REPAYMENT records cash flow but does not infer principal; " +
+                            "use a separate dated VALUATION_UPDATE for the lender-confirmed " +
+                            "outstanding balance.", style = MaterialTheme.typography.bodySmall)
+                    } else if (kind == ManualTradeKind.OPENING_BALANCE) {
+                        Text("Record only the documented starting units and historical unit " +
+                            "cost. Enter zero cost only when genuinely verified; a statement " +
+                            "snapshot is not automatically an acquisition.",
+                            style = MaterialTheme.typography.bodySmall)
                     }
                     OutlinedTextField(
                         value = day, onValueChange = { day = it.take(10) },

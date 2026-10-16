@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -21,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.core.model.HoldingProfileEdit
 import `in`.growurdhan.core.model.FamilyGoalProfile
+import `in`.growurdhan.core.model.Holding
+import `in`.growurdhan.domain.vault.OriginalHoldingFormPolicy
 import `in`.growurdhan.core.model.HoldingProfileSnapshot
 import `in`.growurdhan.core.model.MoneyScaled
 import `in`.growurdhan.core.model.ReactV9HoldingDetailsContract
@@ -36,6 +41,7 @@ fun HoldingProfileEditor(
     goals: List<FamilyGoalProfile> = emptyList(),
     onStageGoal: (String, Boolean) -> Unit = { _, _ -> },
     creating: Boolean = false,
+    ownedHoldings: List<Holding> = emptyList(),
 ) {
     var name by remember(profile.holdingId) { mutableStateOf(profile.name) }
     var subCategory by remember(profile.holdingId) { mutableStateOf(profile.subCategory.orEmpty()) }
@@ -53,7 +59,22 @@ fun HoldingProfileEditor(
     var closedOn by remember(profile.holdingId) { mutableStateOf(profile.closedOn.orEmpty()) }
     var showAll by remember(profile.holdingId) { mutableStateOf(false) }
     var edits by remember(profile.holdingId, profile.detailsJson) {
-        mutableStateOf<Map<String, String>>(emptyMap())
+        mutableStateOf<Map<String, String>>(if (creating) when {
+            profile.assetCategory == "FIXED_INCOME" && profile.subCategory == "Bank FD" ->
+                mapOf("compounding" to "CUMULATIVE")
+            profile.assetCategory == "FIXED_INCOME" && profile.subCategory == "NPS" ->
+                mapOf("npsTier" to "I")
+            profile.assetCategory == "GOLD_SGB" &&
+                profile.subCategory == "Physical gold (24K)" ->
+                mapOf("goldPurity" to "24K")
+            profile.assetCategory == "SPECIALISED" && profile.subCategory == "AIF" ->
+                mapOf("altHoldMode" to "LUMPSUM")
+            profile.assetCategory == "REAL_ESTATE" &&
+                profile.subCategory in setOf("REIT", "InvIT") ->
+                mapOf("altHoldMode" to "DEMAT")
+            profile.assetCategory == "MUTUAL_FUND" -> mapOf("mfHeldAs" to "FOLIO")
+            else -> emptyMap()
+        } else emptyMap())
     }
     val richOriginal = remember(profile.holdingId, profile.richMetadataJson) {
         JSONObject(profile.richMetadataJson)
@@ -69,7 +90,7 @@ fun HoldingProfileEditor(
         mutableStateOf<Map<String, String>>(emptyMap())
     }
     val sourceInstrumentFields = listOf("amc", "rta", "amfiCode", "advisor",
-        "schemeType", "ucc", "exchange", "dpName")
+        "schemeType", "ucc", "exchange", "dpName", "nextEmiDate")
     val enumSelections = mapOf(
         "goldHoldMode" to setOf("DEMAT","CERTIFICATE"),
         "goldPurity" to setOf("24K","22K","999"),
@@ -93,9 +114,20 @@ fun HoldingProfileEditor(
         "REAL_ESTATE" -> setOf("institution_name", "fmv_31jan2018_scaled",
             "exposure_node", "tag", "tags_json")
         "LIABILITY" -> setOf("interest_rate_bps", "monthly_emi_scaled",
-            "remaining_emi_count", "emi_status", "institution_name", "tag")
+            "remaining_emi_count", "emi_status", "institution_name",
+            "account_number_masked", "tag")
         else -> setOf("exposure_node", "l2_node", "wrapper",
             "allocation_split_json", "tag", "tags_json")
+    }
+    var linkedMenuOpen by remember(profile.holdingId) { mutableStateOf(false) }
+    val linkedAlternatives = ownedHoldings.filter {
+        it.ownerId == profile.ownerId && it.id != profile.holdingId &&
+            when (profile.assetCategory) {
+                "LIABILITY" -> it.assetCategory == "REAL_ESTATE"
+                "REAL_ESTATE" -> profile.subCategory !in setOf("REIT", "InvIT") &&
+                    it.assetCategory == "LIABILITY"
+                else -> false
+            }
     }
     val original = remember(profile.holdingId, profile.detailsJson) {
         JSONObject(profile.detailsJson)
@@ -109,7 +141,7 @@ fun HoldingProfileEditor(
             else setOf("annualContributionMinor", "compounding", "tdsApplicable",
                 "rateType", "originalTenorMonths", "contributionOn")
         "REAL_ESTATE" -> setOf("areaSqFt", "ownership", "ownershipPercent", "linkedHoldingId",
-            "monthlyIncomeMinor", "incomeDay", "incomeStart", "incomeEnd")
+            "altHoldMode", "monthlyIncomeMinor", "incomeDay", "incomeStart", "incomeEnd")
         "SPECIALISED", "NPS" -> setOf("npsTier", "npsCra", "npsPfm",
             "aifCategory", "commitmentMinor", "capitalCalledMinor", "strategyName",
             "custodian", "altHoldMode", "ifsc")
@@ -143,13 +175,35 @@ fun HoldingProfileEditor(
         }.forEach { key ->
             val initial = if (original.has(key) && !original.isNull(key)) original.opt(key).toString()
                 else ""
-            OutlinedTextField(
-                value = edits[key] ?: initial,
-                onValueChange = { edits = edits + (key to it.take(300)) },
-                label = { Text(key + (enumSelections[key]?.let { values ->
-                    " (" + values.joinToString(" / ") + ")"
-                } ?: "")) }, modifier = Modifier.fillMaxWidth(),
-            )
+            if (key == "linkedHoldingId" && linkedAlternatives.isNotEmpty()) {
+                OutlinedButton(onClick = { linkedMenuOpen = true }) {
+                    Text("Linked " +
+                        (if (profile.assetCategory == "LIABILITY") "property: " else "loan: ") +
+                        (linkedAlternatives.firstOrNull {
+                            it.id.raw == (edits[key] ?: initial)
+                        }?.name ?: "None"))
+                }
+                DropdownMenu(expanded = linkedMenuOpen,
+                    onDismissRequest = { linkedMenuOpen = false }) {
+                    DropdownMenuItem(text = { Text("None") }, onClick = {
+                        edits = edits + (key to ""); linkedMenuOpen = false
+                    })
+                    linkedAlternatives.forEach { linked ->
+                        DropdownMenuItem(text = { Text(linked.name) }, onClick = {
+                            edits = edits + (key to linked.id.raw)
+                            linkedMenuOpen = false
+                        })
+                    }
+                }
+            } else {
+                OutlinedTextField(
+                    value = edits[key] ?: initial,
+                    onValueChange = { edits = edits + (key to it.take(300)) },
+                    label = { Text(key + (enumSelections[key]?.let { values ->
+                        " (" + values.joinToString(" / ") + ")"
+                    } ?: "")) }, modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
 
         Text("Holding-level rate, maturity, EMI, allocation and tags",
@@ -183,12 +237,38 @@ fun HoldingProfileEditor(
                 label = { Text(label) }, modifier = Modifier.fillMaxWidth(),
             )
         }
+        if (profile.assetCategory == "LIABILITY") {
+            Text("Loan amounts: set monthly_emi_scaled, remaining_emi_count, " +
+                "interest_rate_bps, nextEmiDate and EMI status when known. " +
+                "The original outstanding balance is entered separately through " +
+                "a reviewed OPENING_BALANCE ledger entry (exactly 1 unit). " +
+                "Repayments never automatically imply principal reduction.",
+                style = MaterialTheme.typography.bodySmall)
+        }
+        if (profile.assetCategory == "FIXED_INCOME") {
+            Text("FD: choose compounding and maturity. For PPF / SSY / EPF " +
+                "record actual deposits and contribution dates, not estimated interest. " +
+                "NPS is market-valued, not a fixed-interest account.",
+                style = MaterialTheme.typography.bodySmall)
+        }
+        if (profile.assetCategory == "GOLD_SGB") {
+            Text("SGB: review issue price, coupon, early exit and maturity. " +
+                "Physical gold: select purity, hallmark and quoted price per gram.",
+                style = MaterialTheme.typography.bodySmall)
+        }
+        if (profile.assetCategory == "SPECIALISED" || profile.assetCategory == "REAL_ESTATE") {
+            Text("AIF / REIT / InvIT: set DEMAT or LUMPSUM and any actual " +
+                "commitment, capital called, ownership percentage or lease income. " +
+                "Private cash amounts are not fabricated unit lots.",
+                style = MaterialTheme.typography.bodySmall)
+        }
         Text("Original instrument and registrar fields",
             style = MaterialTheme.typography.titleSmall)
         Text("These are owner-private recorded metadata, not verified issuer connections.",
             style = MaterialTheme.typography.bodySmall)
         sourceInstrumentFields.filter { key ->
             key in setOf("amc", "rta", "amfiCode", "schemeType", "exchange") ||
+                (profile.assetCategory == "LIABILITY" && key == "nextEmiDate") ||
                 sourceInstrument.has(key) || richExpanded
         }.forEach { key ->
             OutlinedTextField(
@@ -286,8 +366,11 @@ fun HoldingProfileEditor(
                 else -> value.length <= 300
             }
         }
-        val instrumentValid = instrumentEdits.all { (_, value) ->
-            value.length <= 200 && value.none { it.isISOControl() }
+        val instrumentValid = instrumentEdits.all { (key, value) ->
+            value.length <= 200 && value.none { it.isISOControl() } &&
+                (key != "nextEmiDate" || value.isBlank() ||
+                    runCatching { java.time.LocalDate.parse(value).year in 1900..2300 }
+                        .getOrDefault(false))
         }
         val priceProvenanceValid = price.isBlank() ||
             (priceSource.isNotBlank() && runCatching {
@@ -295,7 +378,28 @@ fun HoldingProfileEditor(
                     !it.isAfter(java.time.LocalDate.now()) && it.year >= 1900
                 }
             }.getOrDefault(false))
-        val valid = name.trim().isNotBlank() && instrumentValid &&
+        val advancedFacts = mutableMapOf<String, String?>()
+        for (json in listOf(original, richOriginal, sourceInstrument)) {
+            val keys = json.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                advancedFacts[key] = if (json.isNull(key)) null else json.get(key).toString()
+            }
+        }
+        edits.forEach { (key, value) -> advancedFacts[key] = value }
+        richEdits.forEach { (key, value) -> advancedFacts[key] = value }
+        instrumentEdits.forEach { (key, value) -> advancedFacts[key] = value }
+        val missingAdvanced = if (creating) OriginalHoldingFormPolicy.missing(
+            profile.assetCategory, profile.subCategory.orEmpty(), advancedFacts,
+        ) else emptyList()
+        if (missingAdvanced.isNotEmpty()) {
+            Text("Complete these required fields: " +
+                missingAdvanced.joinToString { it.label },
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall)
+        }
+        val valid = missingAdvanced.isEmpty() &&
+            name.trim().isNotBlank() && instrumentValid &&
             priceProvenanceValid &&
             ! (resetCost && cost.isNotBlank()) &&
             detailInputsValid && richValid &&

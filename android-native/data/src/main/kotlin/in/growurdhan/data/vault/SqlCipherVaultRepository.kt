@@ -28,6 +28,7 @@ import java.util.UUID
 import `in`.growurdhan.domain.vault.FamilyMemberOnboarding
 import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
 import `in`.growurdhan.domain.vault.ManualAssetOnboarding
+import `in`.growurdhan.domain.vault.OriginalHoldingFormPolicy
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import `in`.growurdhan.domain.vault.LegacyRestoreIdentity
@@ -290,6 +291,19 @@ class SqlCipherVaultRepository(
             arrayOf(asset.id.raw,ownerId.raw,subCategory,"{}"),
         )
         if (initialProfile != null) {
+            val facts = mutableMapOf<String, String?>()
+            for (source in listOf(initialProfile.detailsJson,
+                initialProfile.richMetadataJson, initialProfile.instrumentMetadataJson)) {
+                val json = JSONObject(source)
+                val keys = json.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    facts[key] = if (json.isNull(key)) null else json.get(key).toString()
+                }
+            }
+            require(OriginalHoldingFormPolicy.missing(category, subCategory, facts).isEmpty()) {
+                "Complete every required advanced financial-product input before registration."
+            }
             require(initialProfile.ownerId == ownerId &&
                 initialProfile.closedOn == null && !initialProfile.archived) {
                 "New assets cannot be born closed, archived or owned by another member."
@@ -403,8 +417,18 @@ class SqlCipherVaultRepository(
             val replacesValuation = current.event.kind == FinancialEventKind.CORRECTION &&
                 readEvents(db).any { it.id == current.event.supersedesEventId &&
                     it.kind == LedgerKind.VALUATION_UPDATE }
+            val isLiability = readHoldings(db).any {
+                it.id == current.event.holdingId && it.ownerId == current.event.ownerId &&
+                    it.assetCategory == "LIABILITY"
+            }
+            val opensLiability = isLiability &&
+                current.event.kind == FinancialEventKind.OPENING_BALANCE
+            val correctsOpeningLiability = isLiability &&
+                current.event.kind == FinancialEventKind.CORRECTION &&
+                readEvents(db).any { it.id == current.event.supersedesEventId &&
+                    it.kind == LedgerKind.OPENING_BALANCE }
             if (current.event.kind == FinancialEventKind.VALUATION_UPDATE ||
-                replacesValuation) {
+                replacesValuation || opensLiability || correctsOpeningLiability) {
                 val price = current.event.unitPrice?.raw
                     ?: throw IllegalArgumentException("Valuation requires a quoted unit price.")
                 val lastKnownDate = db.rawQuery(
@@ -427,7 +451,9 @@ class SqlCipherVaultRepository(
                 db.execSQL(
                     """UPDATE holding_profile SET last_price_updated=?,price_source=?,
                         is_price_stale=0 WHERE holding_id=? AND owner_id=?""",
-                    arrayOf(current.event.date.toString(), "USER_REVIEWED_LEDGER",
+                    arrayOf(current.event.date.toString(),
+                        if (opensLiability || correctsOpeningLiability)
+                            "USER_REVIEWED_OPENING_DEBT" else "USER_REVIEWED_LEDGER",
                         current.event.holdingId.raw, current.event.ownerId.raw),
                 )
             }
@@ -948,14 +974,16 @@ class SqlCipherVaultRepository(
         var original = "{}"
         var originalExtras = "{}"
         var originalPriceDate: String? = null
+        var originalSubCategory: String? = null
         db.rawQuery(
-            "SELECT details_json,extra_json,last_price_updated FROM holding_profile WHERE holding_id=? AND owner_id=?",
+            "SELECT details_json,extra_json,last_price_updated,sub_category FROM holding_profile WHERE holding_id=? AND owner_id=?",
             arrayOf(edit.holdingId.raw, edit.ownerId.raw),
         ).use { cursor ->
             if (cursor.moveToFirst()) {
                 original = if (cursor.isNull(0)) "{}" else cursor.getString(0)
                 originalExtras = if (cursor.isNull(1)) "{}" else cursor.getString(1)
                 originalPriceDate = if (cursor.isNull(2)) null else cursor.getString(2)
+                originalSubCategory = if (cursor.isNull(3)) null else cursor.getString(3)
             }
         }
         // Merge, rather than replace, so unknown original legacy fields are retained
@@ -982,6 +1010,36 @@ class SqlCipherVaultRepository(
                     "monthlyIncomeMinor")
                 when {
                     key == "tdsApplicable" -> require(value is Boolean)
+                    key in setOf("depository", "goldHoldMode", "goldPurity",
+                        "compounding", "npsTier", "npsCra", "aifCategory", "ownership",
+                        "rateType", "mfPlan", "mfOption", "mfHeldAs", "altHoldMode") -> {
+                        val legal = when (key) {
+                            "depository" -> setOf("NSDL", "CDSL")
+                            "goldHoldMode" -> setOf("DEMAT", "CERTIFICATE")
+                            "goldPurity" -> setOf("24K", "22K", "999")
+                            "compounding" -> setOf("MONTHLY", "QUARTERLY",
+                                "HALF_YEARLY", "YEARLY", "CUMULATIVE")
+                            "npsTier" -> setOf("I", "II")
+                            "npsCra" -> setOf("PROT", "CAMS", "KFIN")
+                            "aifCategory" -> setOf("I", "II", "III")
+                            "ownership" -> setOf("SELF", "JOINT", "HUF", "SPOUSE")
+                            "rateType" -> setOf("FLOATING", "FIXED")
+                            "mfPlan" -> setOf("DIRECT", "REGULAR")
+                            "mfOption" -> setOf("GROWTH", "IDCW")
+                            "mfHeldAs" -> setOf("FOLIO", "DEMAT")
+                            else -> setOf("DEMAT", "LUMPSUM")
+                        }
+                        require(value is String && value in legal) {
+                            "Choose an original supported value for this asset type."
+                        }
+                    }
+                    key in setOf("dpId", "clientId", "boId") -> {
+                        require(value is String && when (key) {
+                            "dpId" -> Regex("IN[0-9]{6}").matches(value)
+                            "clientId" -> Regex("[0-9]{8}").matches(value)
+                            else -> Regex("[0-9]{16}").matches(value)
+                        }) { "Invalid demat reference format." }
+                    }
                     key in numericKeys -> {
                         require(value is Number && value.toDouble().isFinite() &&
                             value.toDouble() >= 0.0)
@@ -994,11 +1052,33 @@ class SqlCipherVaultRepository(
                     key in moneyStringKeys -> require(value is String &&
                         Regex("[0-9]{1,18}").matches(value))
                     key == "linkedHoldingId" -> {
+                        val targetCategory = when (ownerHolding.assetCategory) {
+                            "LIABILITY" -> "REAL_ESTATE"
+                            "REAL_ESTATE" -> "LIABILITY"
+                            else -> throw IllegalArgumentException(
+                                "Only properties and loans may link to one another.")
+                        }
                         require(value is String && readHoldings(db).any {
                             it.id.raw == value && it.ownerId == edit.ownerId &&
-                                it.assetCategory == "LIABILITY" &&
+                                it.assetCategory == targetCategory &&
                                 it.id != edit.holdingId
-                        }) { "Linked loan must belong to the same family owner." }
+                        }) { "Linked property or loan must belong to this family member." }
+                        if (ownerHolding.assetCategory == "REAL_ESTATE") {
+                            require((edit.subCategory ?: originalSubCategory) !in
+                                setOf("REIT", "InvIT")) {
+                                "Listed REIT and InvIT units cannot link to a mortgage."
+                            }
+                        } else {
+                            db.rawQuery("SELECT sub_category FROM holding_profile " +
+                                "WHERE holding_id=? AND owner_id=?",
+                                arrayOf(value, edit.ownerId.raw)).use { result ->
+                                if (result.moveToFirst() && !result.isNull(0)) {
+                                    require(result.getString(0) !in setOf("REIT", "InvIT")) {
+                                        "A loan cannot link to REIT or InvIT units."
+                                    }
+                                }
+                            }
+                        }
                     }
                     key in setOf("earlyExitDate","contributionOn","incomeStart","incomeEnd") -> {
                         require(value is String)
@@ -1012,6 +1092,22 @@ class SqlCipherVaultRepository(
                 details.put(key, value)
             }
         }
+        if (listOf("depository", "dpId", "clientId", "boId").any { incoming.has(it) }) {
+            val depos = details.optString("depository")
+            val dp = details.optString("dpId")
+            val client = details.optString("clientId")
+            val bo = details.optString("boId")
+            require(when (depos) {
+                "NSDL" -> bo.isBlank() &&
+                    (dp.isBlank() && client.isBlank() ||
+                        Regex("IN[0-9]{6}").matches(dp) &&
+                            Regex("[0-9]{8}").matches(client))
+                "CDSL" -> dp.isBlank() && client.isBlank() &&
+                    (bo.isBlank() || Regex("[0-9]{16}").matches(bo))
+                "" -> dp.isBlank() && client.isBlank() && bo.isBlank()
+                else -> false
+            }) { "Depository identifiers must match the selected NSDL or CDSL format." }
+        }
         require(details.toString().toByteArray(Charsets.UTF_8).size <= 65_536)
         val extras = JSONObject(originalExtras)
         require(edit.instrumentMetadataJson.toByteArray(Charsets.UTF_8).size <= 16_384) {
@@ -1020,7 +1116,7 @@ class SqlCipherVaultRepository(
         val sourceInstrument = JSONObject(edit.instrumentMetadataJson)
         val supportedInstrumentFields = setOf(
             "amc", "rta", "amfiCode", "advisor", "schemeType", "ucc",
-            "exchange", "dpName",
+            "exchange", "dpName", "nextEmiDate",
         )
         val instrument = extras.optJSONObject("m27InstrumentMetadata") ?: JSONObject()
         val sourceNames = sourceInstrument.keys()
@@ -1030,6 +1126,11 @@ class SqlCipherVaultRepository(
             val value = sourceInstrument.get(key)
             require(value == JSONObject.NULL || (value is String && value.length <= 200 &&
                 value.none { it.isISOControl() })) { "Invalid instrument description." }
+            if (key == "nextEmiDate" && value != JSONObject.NULL) {
+                require(value is String && runCatching {
+                    LocalDate.parse(value).year in 1900..2300
+                }.getOrDefault(false)) { "Next EMI date must be an ISO calendar date." }
+            }
             if (value == JSONObject.NULL) instrument.remove(key)
             else instrument.put(key, value)
         }
@@ -1041,9 +1142,25 @@ class SqlCipherVaultRepository(
             val history = readEvents(db).filter { it.holdingId == edit.holdingId }
                 .map { it.toFinancialEvent() }
             val position = LotEngine.fold(edit.holdingId, ownerHolding.assetCategory, history)
-            require(position.errors.isEmpty() && position.quantityScaled == 0L &&
-                ownerHolding.quantity.raw == 0L) {
-                "An asset can close only after all units are reconciled to zero."
+            require(position.errors.isEmpty()) {
+                "Reconcile all financial event conflicts before closing."
+            }
+            if (ownerHolding.assetCategory == "LIABILITY") {
+                // A loan is modelled as one priced debt unit. Repayment cash does
+                // not prove principal reduction: require explicit reviewed payoff.
+                val recordedZeroPayoff = history.any {
+                    it.kind == FinancialEventKind.VALUATION_UPDATE &&
+                        it.unitPrice?.raw == 0L
+                }
+                require(ownerHolding.currentUnitPrice.raw == 0L &&
+                    (history.isEmpty() || recordedZeroPayoff)) {
+                    "Close a loan only after a reviewed zero-outstanding valuation."
+                }
+            } else {
+                require(position.quantityScaled == 0L &&
+                    ownerHolding.quantity.raw == 0L) {
+                    "An investment can close only after all units reconcile to zero."
+                }
             }
             db.rawQuery("SELECT outstanding_scaled FROM liability_profile " +
                 "WHERE holding_id=? AND owner_id=?",

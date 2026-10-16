@@ -81,4 +81,18 @@ class ManualTradeShellTest {
         compose.onNodeWithText("Unlock the vault before recording a financial transaction.")
             .assertIsDisplayed()
     }
+
+    @Test fun loanPickerExposesReviewedOpeningBalanceWithoutOfferingBuy() {
+        val loan = holding.copy(assetCategory = "LIABILITY", name = "Synthetic loan")
+        val loanBook = book.copy(holdings = listOf(loan))
+        compose.setContent {
+            ManualTradeScreen(
+                ManualTradeUiState.Ready(loanBook), onIntent = {}, onReturn = {},
+            )
+        }
+        compose.onNodeWithTag("ManualTradeKindPicker").performScrollTo().performClick()
+        compose.onNodeWithText("OPENING_BALANCE").performClick()
+        compose.onNodeWithText("To establish an existing loan", substring = true)
+            .performScrollTo().assertIsDisplayed()
+    }
 }

@@ -107,7 +107,8 @@ object ManualTradePlanner {
         val owner = book.members.singleOrNull { it.id == holding.ownerId }
             ?: throw IllegalArgumentException("Holding owner is no longer enrolled.")
         require(holding.assetCategory != "LIABILITY" || draft.kind in setOf(
-            ManualTradeKind.INTEREST, ManualTradeKind.REPAYMENT, ManualTradeKind.VALUATION_UPDATE,
+            ManualTradeKind.OPENING_BALANCE, ManualTradeKind.INTEREST,
+            ManualTradeKind.REPAYMENT, ManualTradeKind.VALUATION_UPDATE,
             ManualTradeKind.CORRECTION,
         )) { "Buy and sell transactions cannot be entered for liabilities." }
         require(eventId.isNotBlank() && eventId.length <= 128)
@@ -174,7 +175,9 @@ object ManualTradePlanner {
                 draft.unitPriceInr.toLong()
             } else amount(draft.unitPriceInr, 4, moneyPattern)
             require(price > 0 || (semanticKind in setOf(FinancialEventKind.BONUS,
-                FinancialEventKind.OPENING_BALANCE) && price == 0L)) {
+                FinancialEventKind.OPENING_BALANCE) && price == 0L) ||
+                (holding.assetCategory == "LIABILITY" &&
+                    semanticKind == FinancialEventKind.VALUATION_UPDATE && price == 0L)) {
                 "Enter a positive amount or unit price; bonus units use zero cost."
             }
             val incomeKinds = setOf(FinancialEventKind.DIVIDEND, FinancialEventKind.INTEREST,
@@ -192,9 +195,20 @@ object ManualTradePlanner {
                 "This entry requires positive units or a valid split ratio."
             }
             require(holding.assetCategory != "LIABILITY" ||
-                semanticKind in setOf(FinancialEventKind.REPAYMENT,
+                semanticKind in setOf(FinancialEventKind.OPENING_BALANCE, FinancialEventKind.REPAYMENT,
                     FinancialEventKind.INTEREST, FinancialEventKind.VALUATION_UPDATE)) {
                 "Liability entries must be repayments, interest or valuation updates."
+            }
+            if (holding.assetCategory == "LIABILITY" &&
+                semanticKind == FinancialEventKind.OPENING_BALANCE) {
+                require(quantity == QUANTITY_SCALE && price > 0 && fee == 0L &&
+                    history.none { it.id != target?.id &&
+                        it.kind in setOf(
+                            FinancialEventKind.OPENING_BALANCE, FinancialEventKind.BUY
+                        )
+                    }) {
+                    "Open a recorded loan once as one unit with a documented debt price."
+                }
             }
             require(semanticKind != FinancialEventKind.REPAYMENT ||
                 holding.assetCategory == "LIABILITY") {

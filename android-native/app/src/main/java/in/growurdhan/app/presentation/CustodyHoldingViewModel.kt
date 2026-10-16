@@ -12,6 +12,8 @@ import `in`.growurdhan.core.model.FamilyGoalProfile
 import `in`.growurdhan.core.model.FamilyAdminChange
 import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
 import `in`.growurdhan.domain.vault.ManualAssetOnboarding
+import `in`.growurdhan.domain.vault.OriginalHoldingFormPolicy
+import org.json.JSONObject
 import `in`.growurdhan.domain.vault.VaultRepository
 import java.util.UUID
 import javax.inject.Inject
@@ -193,6 +195,20 @@ class CustodyHoldingViewModel @Inject constructor(
                     "New holding fields must match the selected family owner and asset."
                 }
                 require(intent.subCategory != null && edit.subCategory == intent.subCategory)
+                val facts = mutableMapOf<String, String?>()
+                for (source in listOf(edit.detailsJson, edit.richMetadataJson,
+                    edit.instrumentMetadataJson)) {
+                    val json = JSONObject(source)
+                    val keys = json.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        facts[key] = if (json.isNull(key)) null else json.get(key).toString()
+                    }
+                }
+                require(OriginalHoldingFormPolicy.missing(
+                    intent.category, intent.subCategory, facts).isEmpty()) {
+                    "Advanced holding form is incomplete."
+                }
             }
             val asset = ManualAssetOnboarding.create(
                 intent.ownerId, intent.name, intent.category,

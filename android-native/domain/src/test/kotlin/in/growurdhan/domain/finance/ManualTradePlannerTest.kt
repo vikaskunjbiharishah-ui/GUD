@@ -239,4 +239,55 @@ class ManualTradePlannerTest {
         )
         assertEquals(1L, result.gross.raw)
     }
+
+    @Test fun existingLiabilityOpensOnceWithPreciselyOneDebtUnitAndDocumentedPrice() {
+        val loan = holding.copy(assetCategory = "LIABILITY", quantity = QuantityScaled(0))
+        val baseline = book().copy(holdings = listOf(loan))
+        val opening = draft(ManualTradeKind.OPENING_BALANCE, qty = "1",
+            price = "125000.2500")
+        val approved = ManualTradePlanner.prepare(baseline, opening, "loan-open", today)
+        assertEquals(FinancialEventKind.OPENING_BALANCE, approved.event.kind)
+        assertEquals(QUANTITY_SCALE, approved.event.quantityScaled)
+        assertEquals(1_250_002_500L, approved.event.unitPrice?.raw)
+        assertEquals(1_250_002_500L, approved.gross.raw)
+        for (bad in listOf("0.5", "2", "0")) {
+            assertThrows(IllegalArgumentException::class.java) {
+                ManualTradePlanner.prepare(baseline,
+                    opening.copy(quantity = bad), "rejected-" + bad, today)
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(baseline,
+                opening.copy(chargesInr = "1"), "rejected-fees", today)
+        }
+        val already = LedgerEvent("existing-open", loan.id, owner,
+            LedgerKind.OPENING_BALANCE, "2026-09-01", QUANTITY_SCALE,
+            MoneyScaled(1_250_002_500L), null, MoneyScaled(1_250_002_500L))
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(baseline.copy(events = listOf(already)),
+                opening, "duplicate-loan", today)
+        }
+    }
+
+    @Test fun liabilityOpeningCanBeCorrectedOnceWithoutDoubleCounting() {
+        val loan = holding.copy(assetCategory = "LIABILITY")
+        val original = LedgerEvent("loan-opening", loan.id, owner,
+            LedgerKind.OPENING_BALANCE, "2026-09-01", QUANTITY_SCALE,
+            MoneyScaled(1_500_000_000L), null, MoneyScaled(1_500_000_000L))
+        val correction = ManualTradePlanner.prepare(
+            book(listOf(original)).copy(holdings = listOf(loan)),
+            draft(ManualTradeKind.CORRECTION, qty = "1", price = "120000")
+                .copy(supersedesEventId = original.id), "loan-correction", today)
+        assertEquals(FinancialEventKind.CORRECTION, correction.event.kind)
+        assertEquals("loan-opening", correction.event.supersedesEventId)
+        val result = LotEngine.fold(loan.id, loan.assetCategory,
+            listOf(original.toFinancialEvent(), correction.event))
+        assertTrue(result.errors.isEmpty())
+        assertEquals(QUANTITY_SCALE, result.quantityScaled)
+        assertThrows(IllegalArgumentException::class.java) {
+            ManualTradePlanner.prepare(book(listOf(original)).copy(holdings = listOf(loan)),
+                draft(ManualTradeKind.CORRECTION, qty = "2", price = "120000")
+                    .copy(supersedesEventId = original.id), "bad-loan-correction", today)
+        }
+    }
 }

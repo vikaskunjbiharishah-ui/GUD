@@ -503,4 +503,85 @@ class NativeCustodyHoldingInstrumentedTest {
         assertEquals("Original", metadata.getString("rta"))
         assertTrue(vault.events().isEmpty())
     }
+
+    @Test fun confirmedLoanOpeningAndZeroValuationPermitSafeClosure(): Unit = runBlocking {
+        val account = seed()
+        val loan = vault.registerDetailedAsset(
+            account.ownerId, "Synthetic loan opening", "LIABILITY", "Home loan")
+        val draft = `in`.growurdhan.domain.finance.ManualTradeDraft(
+            loan.id, `in`.growurdhan.domain.finance.ManualTradeKind.OPENING_BALANCE,
+            "2026-10-01", "1", "125000.0000")
+        val reviewed = `in`.growurdhan.domain.finance.ManualTradePlanner.prepare(
+            vault.readBook(), draft, "loan-start", java.time.LocalDate.parse("2026-10-10"))
+        vault.commitManualTrade(draft, reviewed)
+        assertEquals(1, vault.events().size)
+        assertEquals(1_250_000_000L, vault.holdings().single().currentUnitPrice.raw)
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { vault.updateHoldingProfile(HoldingProfileEdit(
+                loan.id, account.ownerId, loan.name,
+                subCategory = "Home loan", closedOn = "2026-10-10")) }
+        }
+        val payoff = `in`.growurdhan.domain.finance.ManualTradeDraft(
+            loan.id, `in`.growurdhan.domain.finance.ManualTradeKind.VALUATION_UPDATE,
+            "2026-10-10", "", "0")
+        val payoffPlan = `in`.growurdhan.domain.finance.ManualTradePlanner.prepare(
+            vault.readBook(), payoff, "loan-payoff", java.time.LocalDate.parse("2026-10-10"))
+        vault.commitManualTrade(payoff, payoffPlan)
+        assertEquals(0L, vault.holdings().single().currentUnitPrice.raw)
+        vault.updateHoldingProfile(HoldingProfileEdit(
+            loan.id, account.ownerId, loan.name,
+            subCategory = "Home loan", closedOn = "2026-10-10"))
+        assertEquals("2026-10-10", vault.holdingProfiles().single().closedOn)
+        assertEquals(2, vault.events().size)
+        assertEquals(0, vault.health().foreignKeyViolations)
+    }
+
+    @Test fun loanPropertyLinksAreSymmetricAndDematIdentityPairsAreValidated(): Unit = runBlocking {
+        val account = seed()
+        val loan = vault.registerDetailedAsset(account.ownerId, "Synthetic loan", "LIABILITY", "Home loan")
+        val property = vault.registerDetailedAsset(account.ownerId, "Synthetic home", "REAL_ESTATE", "Residential")
+        vault.updateHoldingProfile(HoldingProfileEdit(
+            loan.id, account.ownerId, loan.name, subCategory = "Home loan",
+            detailsJson = JSONObject().put("linkedHoldingId", property.id.raw).toString()))
+        vault.updateHoldingProfile(HoldingProfileEdit(
+            property.id, account.ownerId, property.name, subCategory = "Residential",
+            detailsJson = JSONObject().put("linkedHoldingId", loan.id.raw).toString()))
+        assertEquals(property.id.raw,
+            JSONObject(vault.holdingProfiles().first { it.holdingId == loan.id }.detailsJson)
+                .getString("linkedHoldingId"))
+        val shares = vault.registerDetailedAsset(account.ownerId, "Synthetic shares",
+            "EQUITY", "Large cap")
+        val nsdl = JSONObject().put("depository", "NSDL")
+            .put("dpId", "IN300214").put("clientId", "12345678")
+        vault.updateHoldingProfile(HoldingProfileEdit(shares.id, account.ownerId,
+            shares.name, subCategory = "Large cap", detailsJson = nsdl.toString()))
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { vault.updateHoldingProfile(HoldingProfileEdit(
+                shares.id, account.ownerId, shares.name,
+                detailsJson = JSONObject().put("depository", "CDSL").toString())) }
+        }
+        assertEquals("NSDL",
+            JSONObject(vault.holdingProfiles().first { it.holdingId == shares.id }.detailsJson)
+                .getString("depository"))
+        assertEquals(0, vault.health().foreignKeyViolations)
+    }
+
+    @Test fun listedReitCannotBeMistakenForMortgageLinkedProperty(): Unit = runBlocking {
+        val account = seed()
+        val loan = vault.registerDetailedAsset(account.ownerId,
+            "Synthetic loan for REIT guard", "LIABILITY", "Home loan")
+        val reit = vault.registerDetailedAsset(account.ownerId,
+            "Synthetic REIT", "REAL_ESTATE", "REIT")
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { vault.updateHoldingProfile(HoldingProfileEdit(
+                loan.id, account.ownerId, loan.name, subCategory = "Home loan",
+                detailsJson = JSONObject().put("linkedHoldingId", reit.id.raw).toString())) }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { vault.updateHoldingProfile(HoldingProfileEdit(
+                reit.id, account.ownerId, reit.name, subCategory = "REIT",
+                detailsJson = JSONObject().put("linkedHoldingId", loan.id.raw).toString())) }
+        }
+        assertEquals(0, vault.health().foreignKeyViolations)
+    }
 }

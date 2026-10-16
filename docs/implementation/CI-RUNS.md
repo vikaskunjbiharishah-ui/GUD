@@ -21,3 +21,7 @@ This file records **observed historical run results**. The original issues and r
 ## 2026-10-16 — M27 source-only extension; no run
 
 Starting HEAD: `66d1cb7db9b6b0ada2d96e58df85f88854b45839`. This later source/documentation commit adds M27 advanced forms, atomic goal/profile creation, instrument metadata, archive list status and regression tests, **but GitHub Actions NOT DISPATCHED and no Gradle/JVM/Android tests executed**. Exact source SHA for this increment is the GitHub commit containing this note; **tested source SHA = NONE**. Build #18 and all preceding failures remain unchanged above. Next run requires explicit owner authorization and must test that final SHA, not this earlier baseline.
+
+
+## 2026-10-16 M27 form and loan opening source follow-up
+Starting source SHA bf4ecf3f358fad807deb808064c02e27dd2888e1. New-source exact tested SHA: NONE. GitHub Actions: NOT RUN, NOT AUTHORIZED. Isolated local policy rehearsal (stubbed taxonomy) 6 checks PASS; no full Gradle/JUnit/SQLCipher/Compose/Android proof. Retain failed Build #18 history. Next combined M25/M26/M27 run only after owner approval, with exact new main source_sha and terminal job/artifact evidence.

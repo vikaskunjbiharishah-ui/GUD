@@ -45,6 +45,7 @@ fun CustodyHoldingScreen(
     onIntent: (CustodyHoldingIntent) -> Unit,
     onBackToVault: () -> Unit,
     onContinueToStatements: () -> Unit,
+    onRecordOpeningBalance: () -> Unit = {},
     selectedFamilyOwner: OwnerId? = null,
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
@@ -99,6 +100,13 @@ fun CustodyHoldingScreen(
                         Text("No purchase transaction or historical cost was invented.")
                     }
                 }
+                Text("To add documented starting units, deposits or outstanding debt, " +
+                    "record a separately reviewed OPENING_BALANCE. Registration never " +
+                    "invents a purchase or interest accrual.")
+                Button(
+                    onClick = onRecordOpeningBalance,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Record opening balance or debt") }
                 Button(
                     onClick = { onIntent(CustodyHoldingIntent.Refresh) },
                     modifier = Modifier.fillMaxWidth(),
@@ -379,6 +387,7 @@ fun CustodyHoldingScreen(
                                 HoldingProfileEditor(
                                     profile = draft,
                                     creating = true,
+                                    ownedHoldings = book.holdings,
                                     onStage = { edit ->
                                         onIntent(CustodyHoldingIntent.StageAsset(
                                             selectedOwner, edit.name, manualCategory,
@@ -554,6 +563,7 @@ fun CustodyHoldingScreen(
                                     if (profile != null) HoldingProfileEditor(
                                         profile = profile,
                                         goals = state.goals,
+                                        ownedHoldings = book.holdings,
                                         onStage = { edit ->
                                             onIntent(CustodyHoldingIntent.StageProfile(edit))
                                         },

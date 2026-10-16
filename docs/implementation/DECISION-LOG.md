@@ -13,3 +13,5 @@
 ## Future decision format
 
 `D-xxx | YYYY-MM-DD | PROPOSED/APPROVED/REJECTED | exact owner instruction/link | P/E/G identifiers; rationale, alternatives and migration impact | specific test/run/approval gates`.
+
+| D-006 | 2026-10-16 | **PROPOSED ONLY — OWNER ACCEPTANCE PENDING** | Original AddHoldingModal creates user-entered opening holdings in one step; native introduces basic zero-unit creation then a separately reviewed, device-approved OPENING_BALANCE entry. This prevents fabricated purchases/lots and mistaken verified cost. | P09–P15; two-stage onboarding is a deliberate UX parity deviation, not yet an owner-approved product decision | Owner signoff and exact-SHA loan/unit/backup/device regression |

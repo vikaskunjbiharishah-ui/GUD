@@ -371,6 +371,11 @@ fun GrowUrDhanShell(
                                 onReviewIntent(StatementReviewIntent.LoadOwners)
                                 navigate(MainDestination.REVIEW.route)
                             },
+                            onRecordOpeningBalance = {
+                                onCustodyIntent(CustodyHoldingIntent.Cancel)
+                                onManualTradeIntent(ManualTradeIntent.Refresh)
+                                navigate(MANUAL_TRADE_ROUTE)
+                            },
                             selectedFamilyOwner = selectedOwner,
                             onSelectFamilyOwner = { selectedOwner = it },
                         )
