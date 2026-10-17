@@ -1,11 +1,12 @@
 package `in`.growurdhan.app.presentation
 
-import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import `in`.growurdhan.app.presentation.theme.GrowUrDhanTheme
 import `in`.growurdhan.app.presentation.screens.HoldingProfileEditor
+import `in`.growurdhan.app.presentation.screens.CustodyHoldingScreen
 import `in`.growurdhan.core.model.*
 import `in`.growurdhan.domain.market.CachedListedSecurity
 import `in`.growurdhan.domain.market.OfficialMarketSource
@@ -306,8 +308,8 @@ class CustodyHoldingShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Record opening balance or debt")
-            .assertDoesNotExist()
+        compose.onAllNodesWithText("Record opening balance or debt")
+            .assertCountEquals(0)
     }
 
     @Test fun aifCommitmentRupeesAreSavedAsExactScaledIntegerString() {

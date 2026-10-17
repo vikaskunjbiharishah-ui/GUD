@@ -55,3 +55,7 @@ Source increment from 74178c356ff72524ba9791b457e1f29960abf298 adds opt-in HTTPS
 ## Repository correction — 2026-10-17
 
 The owner said `shahvikask/kosha` was the wrong working repository. Instructions in this repository now name https://github.com/vikaskunjbiharishah-ui/GUD.git branch `main`. Milestone acceptance is unchanged.
+
+## 2026-10-17 M27 local AMFI JVM tests and Android-test compile
+
+Production AMFI parser, catalog gateway, and INR field editor were reviewed and left unchanged. `:domain:compileKotlin` and `:app:compileDebugKotlin` succeeded. Local Gradle `:domain:test` ran `OfficialAmfiNavParserTest` (3), `OfficialQuotePolicyTest` (3), and `LocalOfficialSecurityCatalogTest` (4): **10 tests, 0 failures**. That does not prove a live AMFI download or an emulator. `:app:compileDebugAndroidTestKotlin` failed on the removed Compose `assertDoesNotExist` API and a missing `CustodyHoldingScreen` import; the test sources were updated to `onAllNodesWithText` / `onAllNodesWithTag` plus `assertCountEquals(0)`, then recompiled successfully. Instrumented tests were **NOT RUN**. **M27, M25, and M26 remain OPEN and NOT ACCEPTED.** No GitHub Actions run was authorized or dispatched.

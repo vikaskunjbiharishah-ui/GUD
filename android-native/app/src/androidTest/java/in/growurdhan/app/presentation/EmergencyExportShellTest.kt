@@ -1,7 +1,9 @@
 package `in`.growurdhan.app.presentation
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -30,8 +32,8 @@ class EmergencyExportShellTest {
         compose.setContent {
             EmergencyExportScreen(EmergencyExportUiState.FAILED, {}, {})
         }
-        compose.onNodeWithText("CSV was written to your chosen destination. Store it securely.")
-            .assertDoesNotExist()
+        compose.onAllNodesWithText("CSV was written to your chosen destination. Store it securely.")
+            .assertCountEquals(0)
         compose.onNodeWithText("Unencrypted export").assertIsDisplayed()
     }
 }

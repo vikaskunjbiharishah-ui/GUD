@@ -37,3 +37,15 @@ Starting main SHA 3ef250021d44170e8f2b7c7e23f153a76b5016a2. Twelve new JVM/Compo
 ## 2026-10-16 M27 AMFI gateway / INR field source increment
 
 Starting commit 74178c356ff72524ba9791b457e1f29960abf298. **No GitHub Actions run authorized or dispatched. Exact tested project source SHA: NONE.** Five JVM/Android/Compose synthetic test methods authored but not run. Available source scan only (8 Kotlin files balanced and required API/provenance assertions). **No checked-in Kotlin build, Gradle/JUnit, SQLCipher, emulator, AAB, or device proof.** Current AMFI legacy report availability not verified. Preserve Build #18 FAIL above. Next permitted run requires owner approval and exact new main SHA; compare [combined checklist](M25-M26-M27-EXACT-SHA-REGRESSION-CHECKLIST.md).
+
+## 2026-10-17 — local Gradle only; no Actions
+
+Starting HEAD `e39aed5545ca415d129d19cc3be6f6faf866226d`. GitHub Actions: **NOT RUN, NOT AUTHORIZED**. `gh run list` was not refreshed as a new dispatch; the newest recorded remote native run remains Build #18 / 38237260337, tested `3e41b7c4ac04261953beb75e79a57c6bdea3e6a3`, **FAIL**.
+
+Local evidence, not CI:
+
+- `ANDROID_HOME=/opt/android-sdk /tmp/gradle-8.13/bin/gradle --no-daemon :domain:test --tests in.growurdhan.domain.market.OfficialAmfiNavParserTest --tests in.growurdhan.domain.market.OfficialQuotePolicyTest --tests in.growurdhan.domain.market.LocalOfficialSecurityCatalogTest` → BUILD SUCCESSFUL. 10 tests, 0 failures, 0 errors. XML under `android-native/domain/build/test-results/test/`, timestamp 2026-10-17T16:48:04Z.
+- `:app:compileDebugKotlin` succeeded on the unchanged production sources.
+- `:app:compileDebugAndroidTestKotlin` failed, then succeeded after the Compose absence-assertion test fix. Instrumentation **NOT RUN**.
+
+Do not treat this local JVM/compile result as G00–G14 or as acceptance of M25, M26, or M27.

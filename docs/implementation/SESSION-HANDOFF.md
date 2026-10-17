@@ -23,3 +23,15 @@ Read all permanent files again, print startup receipt and resolve live GitHub HE
 ## Repository correction — 2026-10-17
 
 Owner instruction: work only in https://github.com/vikaskunjbiharishah-ui/GUD.git on `main`. Do not continue `shahvikask/kosha` branch `GUD-Android-Redevelopment`. Verify live HEAD after this commit. No product code changed. No Actions workflow was dispatched. Next product work remains the open M27 scope already recorded above, only after a fresh read of these instructions.
+
+## 2026-10-17 local M27 verification
+
+- Confirmed `main` was `e39aed5545ca415d129d19cc3be6f6faf866226d` before this change.
+- Reviewed `OfficialAmfiNavParser`, `OfficialAmfiCatalogGateway`, and `HoldingProfileEditor` INR display (`movePointLeft(4)`) / save (`MoneyScaled.fromRupees`). No production Kotlin change. No financial rows inserted.
+- Gradle 8.13 `--no-daemon` `:domain:test` for the three market classes: 10 tests, 0 failures, 0 errors (XML 2026-10-17T16:48:04Z). First daemon attempt died with Gradle worker "Unexpected type tag 71"; the no-daemon rerun is the evidence.
+- `:app:compileDebugKotlin` succeeded. `:app:compileDebugAndroidTestKotlin` failed because Compose UI test on this BOM no longer has `assertDoesNotExist`, and `CustodyHoldingShellTest` did not import `CustodyHoldingScreen`. Absence checks now use `assertCountEquals(0)` on `onAllNodesWithText` / `onAllNodesWithTag`. Recompile succeeded. Emulator instrumentation NOT RUN.
+- M27 #5, M25 #3, and M26 #4 stay OPEN. Live AMFI format, NSE/BSE adapters, D-006, and exact-SHA combined regression remain unaccepted. No Actions dispatch.
+
+## Next session
+
+Re-read the instruction files and resolve live HEAD. Do not mark M27 accepted. Next product gap is still the unfinished M27 form/catalog scope, then an owner-authorized exact-SHA `native-android.yml` run only if explicitly requested.

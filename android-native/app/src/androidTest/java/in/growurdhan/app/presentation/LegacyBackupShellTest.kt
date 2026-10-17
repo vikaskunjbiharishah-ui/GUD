@@ -1,8 +1,10 @@
 package `in`.growurdhan.app.presentation
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -27,7 +29,7 @@ class LegacyBackupShellTest {
         }
         compose.onNodeWithText("Select locked .kosha file").performClick()
         compose.runOnIdle { assertEquals(LegacyBackupIntent.SelectFile, last) }
-        compose.onNodeWithText("Import into vault").assertDoesNotExist()
+        compose.onAllNodesWithText("Import into vault").assertCountEquals(0)
     }
 
     @Test fun authenticatedSummaryDoesNotRevealAccountIdentifiersOrOfferMerge() {
@@ -39,8 +41,8 @@ class LegacyBackupShellTest {
         }
         compose.onNodeWithText("Holdings: 3").assertIsDisplayed()
         compose.onNodeWithText("Goals: 1").assertIsDisplayed()
-        compose.onNodeWithText("Import into vault").assertDoesNotExist()
-        compose.onNodeWithText("Merge financial records").assertDoesNotExist()
+        compose.onAllNodesWithText("Import into vault").assertCountEquals(0)
+        compose.onAllNodesWithText("Merge financial records").assertCountEquals(0)
     }
     @Test fun previewOffersExplicitRestoreButRequiresFullIdentityScreen() {
         var action: LegacyBackupIntent? = null

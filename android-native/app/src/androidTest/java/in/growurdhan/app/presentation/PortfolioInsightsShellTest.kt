@@ -3,9 +3,11 @@ package `in`.growurdhan.app.presentation
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -80,7 +82,7 @@ class PortfolioInsightsShellTest {
         compose.runOnIdle {
             org.junit.Assert.assertEquals(ManualTradeIntent.Refresh, lastIntent)
         }
-        compose.onNodeWithText("Confirm transaction with device lock").assertDoesNotExist()
+        compose.onAllNodesWithText("Confirm transaction with device lock").assertCountEquals(0)
     }
 
     @Test fun portfolioFiltersHideUnmatchedRecordsWithoutEditingTotals() {
@@ -96,7 +98,7 @@ class PortfolioInsightsShellTest {
         compose.onNodeWithContentDescription("Filter category LIABILITY")
             .performScrollTo().performClick()
         compose.onNodeWithText("Synthetic housing debt").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Synthetic private fund").assertDoesNotExist()
+        compose.onAllNodesWithText("Synthetic private fund").assertCountEquals(0)
         compose.onNodeWithText("Family assets: 30.0000 INR", substring = true)
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(
@@ -115,7 +117,7 @@ class PortfolioInsightsShellTest {
         }
         compose.onNodeWithText("Synthetic private fund").performScrollTo().assertIsDisplayed()
         compose.runOnIdle { state = HouseholdDashboardUiState.Locked }
-        compose.onNodeWithText("Synthetic private fund").assertDoesNotExist()
+        compose.onAllNodesWithText("Synthetic private fund").assertCountEquals(0)
         compose.onNodeWithText("Unlock the vault to see your family's recorded holdings.")
             .assertIsDisplayed()
     }
@@ -132,7 +134,7 @@ class PortfolioInsightsShellTest {
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Debt-to-assets: 33.3% (recorded balances only)")
             .performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Allocation withheld").assertDoesNotExist()
+        compose.onAllNodesWithText("Allocation withheld").assertCountEquals(0)
     }
 
     @Test fun inconsistentBookWithholdsAllocationInsteadOfShowingPercentages() {
@@ -145,7 +147,7 @@ class PortfolioInsightsShellTest {
             }
         }
         compose.onNodeWithText("Allocation withheld").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("MUTUAL FUND · 66.7%").assertDoesNotExist()
+        compose.onAllNodesWithText("MUTUAL FUND · 66.7%").assertCountEquals(0)
     }
 
     @Test fun lockedInsightsNeverExposeFamilyHoldingsOrRecordedTotals() {
@@ -157,7 +159,7 @@ class PortfolioInsightsShellTest {
         compose.onNodeWithText(
             "Unlock the vault to view your family's private financial insights.",
         ).assertIsDisplayed()
-        compose.onNodeWithText("Synthetic private fund").assertDoesNotExist()
-        compose.onNodeWithText("Household position").assertDoesNotExist()
+        compose.onAllNodesWithText("Synthetic private fund").assertCountEquals(0)
+        compose.onAllNodesWithText("Household position").assertCountEquals(0)
     }
 }

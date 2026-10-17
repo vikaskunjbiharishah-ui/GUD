@@ -1,9 +1,10 @@
 package `in`.growurdhan.app.presentation
 
-import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -47,7 +48,7 @@ class ManualTradeShellTest {
         assertEquals(holding.id, staged.draft.holdingId)
         assertEquals("2", staged.draft.quantity)
         assertEquals("100", staged.draft.unitPriceInr)
-        compose.onNodeWithText("Confirm transaction with device lock").assertDoesNotExist()
+        compose.onAllNodesWithText("Confirm transaction with device lock").assertCountEquals(0)
     }
 
     @Test fun verifiedReviewDisplaysAmountsBeforeOsChallengeButton() {
@@ -78,7 +79,7 @@ class ManualTradeShellTest {
         compose.setContent {
             ManualTradeScreen(ManualTradeUiState.Locked, {}, {})
         }
-        compose.onNodeWithText("Synthetic index asset").assertDoesNotExist()
+        compose.onAllNodesWithText("Synthetic index asset").assertCountEquals(0)
         compose.onNodeWithText("Unlock the vault before recording a financial transaction.")
             .assertIsDisplayed()
     }
@@ -142,7 +143,7 @@ class ManualTradeShellTest {
         compose.onNodeWithTag("ManualTradePrice").assertIsDisplayed()
         compose.onNodeWithText("OPENING_BALANCE").assertIsDisplayed()
         compose.onNodeWithTag("ManualTradeKindPicker").performScrollTo().performClick()
-        compose.onNodeWithText("BUY").assertDoesNotExist()
-        compose.onNodeWithText("SELL").assertDoesNotExist()
+        compose.onAllNodesWithText("BUY").assertCountEquals(0)
+        compose.onAllNodesWithText("SELL").assertCountEquals(0)
     }
 }

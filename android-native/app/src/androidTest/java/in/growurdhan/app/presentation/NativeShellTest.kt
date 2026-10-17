@@ -1,7 +1,9 @@
 package `in`.growurdhan.app.presentation
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -150,7 +152,7 @@ class NativeShellTest {
         compose.onNodeWithText("Synthetic Home Loan").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Outstanding liability: 5.0000 INR")
             .performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("synthetic-owner").assertDoesNotExist()
+        compose.onAllNodesWithText("synthetic-owner").assertCountEquals(0)
     }
 
     @Test fun knownCostHoldingShowsVerifiedGainInsteadOfUnknownCostWarning() {
@@ -182,7 +184,7 @@ class NativeShellTest {
         compose.onNodeWithText("Synthetic Verified Cost Asset").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Unrealised gain/loss: 4.5000 INR")
             .performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Historical purchase cost unavailable").assertDoesNotExist()
+        compose.onAllNodesWithText("Historical purchase cost unavailable").assertCountEquals(0)
     }
 
     @Test fun holdingsSearchFiltersUnmatchedNamesWithoutChangingTotals() {
@@ -210,7 +212,7 @@ class NativeShellTest {
         compose.onNodeWithTag("RecordedHoldingsSearch").performScrollTo()
             .performTextInput("home loan")
         compose.onNodeWithText("Synthetic Home Loan").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Synthetic Alpha Fund").assertDoesNotExist()
+        compose.onAllNodesWithText("Synthetic Alpha Fund").assertCountEquals(0)
         compose.onNodeWithText("Showing 1 of 1 matching holding(s); 2 recorded in total.")
             .performScrollTo().assertIsDisplayed()
     }
@@ -234,7 +236,7 @@ class NativeShellTest {
                     onOpenSettings = {}, onOpenPrivacy = {})
             }
         }
-        compose.onNodeWithText("Synthetic Holding 31").assertDoesNotExist()
+        compose.onAllNodesWithText("Synthetic Holding 31").assertCountEquals(0)
         compose.onNodeWithText("Show more holdings").performScrollTo().performClick()
         compose.onNodeWithText("Synthetic Holding 31").performScrollTo().assertIsDisplayed()
     }
@@ -261,11 +263,11 @@ class NativeShellTest {
         }
         compose.onNodeWithTag("RecordedHoldingsSearch").performScrollTo()
             .performTextInput("not present")
-        compose.onNodeWithText("Synthetic Family Investment").assertDoesNotExist()
+        compose.onAllNodesWithText("Synthetic Family Investment").assertCountEquals(0)
 
         compose.runOnIdle { display = HouseholdDashboardUiState.Locked }
-        compose.onNodeWithTag("RecordedHoldingsSearch").assertDoesNotExist()
-        compose.onNodeWithText("Synthetic Family Investment").assertDoesNotExist()
+        compose.onAllNodesWithTag("RecordedHoldingsSearch").assertCountEquals(0)
+        compose.onAllNodesWithText("Synthetic Family Investment").assertCountEquals(0)
 
         compose.runOnIdle { display = HouseholdDashboardUiState.Ready(dashboard) }
         compose.onNodeWithText("Synthetic Family Investment")
@@ -283,7 +285,7 @@ class NativeShellTest {
             }
         }
         compose.onNodeWithText("Unlock the vault to view your family wealth.").assertIsDisplayed()
-        compose.onNodeWithText("Synthetic Member").assertDoesNotExist()
+        compose.onAllNodesWithText("Synthetic Member").assertCountEquals(0)
     }
 
     @Test
@@ -352,7 +354,7 @@ class NativeShellTest {
         compose.onNodeWithText(
             "Unlock the vault to view your family's private financial insights.",
         ).assertIsDisplayed()
-        compose.onNodeWithText("Synthetic private holding").assertDoesNotExist()
+        compose.onAllNodesWithText("Synthetic private holding").assertCountEquals(0)
     }
 
     @Test fun emptyStatementDestinationCannotOfferUnverifiedImport() {
@@ -363,7 +365,7 @@ class NativeShellTest {
         }
         compose.onNodeWithContentDescription("Statements").performClick()
         compose.onNodeWithText("No statement ready for review").assertIsDisplayed()
-        compose.onNodeWithText("Confirm and authenticate approval").assertDoesNotExist()
+        compose.onAllNodesWithText("Confirm and authenticate approval").assertCountEquals(0)
     }
 
     @Test fun consentButtonNeedsExplicitAcknowledgement() {
