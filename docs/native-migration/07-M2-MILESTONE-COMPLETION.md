@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan — M2 Milestone Completion and Verification Report
 
 **Milestone:** M2 — Native vault and financial database  

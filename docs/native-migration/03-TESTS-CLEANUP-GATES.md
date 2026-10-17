@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan — Native Migration Test Plan, Cleanup Manifest and Release Gates
 
 **Status:** Planned checks; only explicitly recorded baseline CI checks have run.  

@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan — E0 Enterprise Feature Parity Matrix (Source-Audited Pass 1)
 
 **Date:** 2026-10-09  

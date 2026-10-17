@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # M27 Source Parity Audit: Security Picker, Opening Balances and Ledger
 Date: 2026-10-16. Repo: vikaskunjbiharishah-ui/GUD main. Starting source SHA: 3ef250021d44170e8f2b7c7e23f153a76b5016a2. Final SHA: verify in GitHub. M27 issue #5 remains OPEN.
 

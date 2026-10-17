@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan — Domain Porting Register and Kotlin Golden-Test Contracts
 
 **Status:** Planning inventory, 2026-10-08. No financial algorithms have been ported.  

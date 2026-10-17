@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan — M7 Authenticated Custody, Holding Identity and CAS Verification (As Built)
 
 **Working branch:** `GUD-Android-ChatGPT` only  

@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan M7 — Encrypted Custody/Mutual-Fund Onboarding and Strict CAS Mapping
 
 **As-built on branch:** `GUD-Android-ChatGPT`  

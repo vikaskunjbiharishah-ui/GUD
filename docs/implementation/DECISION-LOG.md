@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan — Owner decisions and deviations (append only)
 
 **Rules:** Only an express user/owner decision is APPROVED. Proposals and technical ideas are NOT approvals. Preserve date, requirement IDs, rationale, implications and required tests. Do not silently override the original product or weaken security.
@@ -14,4 +16,5 @@
 
 `D-xxx | YYYY-MM-DD | PROPOSED/APPROVED/REJECTED | exact owner instruction/link | P/E/G identifiers; rationale, alternatives and migration impact | specific test/run/approval gates`.
 
+| D-007 | 2026-10-17 | **APPROVED** | Owner said the Kosha redevelopment repository was the wrong one and directed all instruction files to https://github.com/vikaskunjbiharishah-ui/GUD.git | Working branch remains `main`. `shahvikask/kosha` stays a frozen reference. Historical evidence URLs that already point at Kosha Actions runs were not rewritten. `src/casparser-main/NOTICE.md` was not edited | No product code and no paid CI in this change |
 | D-006 | 2026-10-16 | **PROPOSED ONLY — OWNER ACCEPTANCE PENDING** | Original AddHoldingModal creates user-entered opening holdings in one step; native introduces basic zero-unit creation then a separately reviewed, device-approved OPENING_BALANCE entry. This prevents fabricated purchases/lots and mistaken verified cost. | P09–P15; two-stage onboarding is a deliberate UX parity deviation, not yet an owner-approved product decision | Owner signoff and exact-SHA loan/unit/backup/device regression |

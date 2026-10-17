@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan — M3 Increment: Rich Ledger Persistence, Atomic Books and Pre-release v1 Upgrade
 
 > **Verified M3 baseline (2026-10-08):** [Native Android M3 run #37807320946](https://github.com/shahvikask/kosha/actions/runs/37807320946) on commit `e25fec7080b197fca893a0dd578c325e8cac490d` passed **31/31 JVM tests**, **12/12 data-module Android vault tests**, **3/3 Compose instrumentation tests**, schema v1→v2 preflight, APK compilation/artifact upload and CASPARSER guard. Details and remaining blockers: [10-M3-VERIFICATION-RESULTS.md](10-M3-VERIFICATION-RESULTS.md). Full legacy financial parity and release readiness remain OPEN.

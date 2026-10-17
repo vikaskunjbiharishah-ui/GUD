@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan Native — M5 Parser Integration, Financial Parity, Release and AppSec Gates
 
 **Date:** 2026-10-08  

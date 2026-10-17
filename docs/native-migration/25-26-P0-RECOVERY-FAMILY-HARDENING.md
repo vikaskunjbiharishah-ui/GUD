@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # M25 + M26 — pre-regression P0 recovery and family ownership hardening
 
 **Source checkpoint:** 11 October 2026. **Development branch:** `main` only. **CI:** not yet invoked for this checkpoint, by explicit owner agreement. The exact combined regression is run once after all source review is complete.

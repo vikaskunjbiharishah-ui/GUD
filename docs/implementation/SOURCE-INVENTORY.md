@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # Original and native source inventory — initial pointer register
 
 **Status:** Initial source-file inventory for the continuation of existing native development; **NOT exhaustive**. Audit screen/field parity against original exact reference during M27 and later milestones.

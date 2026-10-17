@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # Isolated GUD/main consolidated Portfolio + Insights milestone
 
 **Date:** 10 October 2026  

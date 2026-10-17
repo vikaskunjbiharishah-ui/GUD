@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # M27 — audited implementation and acceptance contract
 
 Date: 2026-10-12. Repository: `vikaskunjbiharishah-ui/GUD`, branch `main`.

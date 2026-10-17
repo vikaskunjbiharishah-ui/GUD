@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # Deliberate GitHub Actions regression triggers
 
 Normal code pushes to isolated `GUD/main` must **not** consume build credits.

@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # Native redevelopment — immutable GitHub Actions evidence log
 
 This file records **observed historical run results**. The original issues and run logs are the source of truth for older runs; this initial record is **not** an exhaustive reconstruction of all historical CI. Append rows; never revise a failed conclusion to PASS after a fix. Always distinguish *trigger commit*, *tested source SHA*, *new fix commit*.

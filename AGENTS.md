@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan — Mandatory Repository Operating Instructions (ChatGPT / GUD main)
 
 > **READ THIS BEFORE EVERY USER PROMPT, MILESTONE, DIAGNOSIS, REPOSITORY WRITE, CODE REVIEW, AND CI ACTION.** This file is committed project context, not optional prose or a substitute for verified tests.
@@ -5,8 +7,8 @@
 ## Authority and adaptation
 
 - **Active implementation repository:** https://github.com/vikaskunjbiharishah-ui/GUD ; **owner-authorized working branch: `main` only**. Confirm remote/main/HEAD from GitHub on every session. The owner explicitly requested this repository to adopt the same methodology as Grok.
-- **Full common requirements:** [docs/GROK-FULL-NATIVE-REDEVELOPMENT-SPEC.md](docs/GROK-FULL-NATIVE-REDEVELOPMENT-SPEC.md), **unaltered v1.2**. Treat **G01–G15, P01–P39, E01–E18, Section 6A, and Section 17** as binding where applicable, subject only to the specific branch/repository adaptation below. Read this full document again at the start of **each new user prompt** and relevant sections before every task; do not trust chat memory.
-- **Critical G01/G08 adaptation:** The Grok specification describes a *different AI* starting from the frozen old application on its own branch and explicitly forbids Grok from changing this repository. **That prohibition is directed to Grok, not to the owner-authorized ChatGPT work on this GUD mainline.** Here, continue the pre-existing Kotlin/Compose/SQLCipher code on `main` and never reset, rebootstrap, clone/merge Grok's branch, or rewrite the project's history. Current work is **not M00 fresh-code migration**.
+- **Full common requirements:** [docs/GROK-FULL-NATIVE-REDEVELOPMENT-SPEC.md](docs/GROK-FULL-NATIVE-REDEVELOPMENT-SPEC.md), v1.2. On 2026-10-17 the owner amended only the repository target: G01 and the clone/startup steps now name this repository. Feature requirements are unchanged. Treat **G01–G15, P01–P39, E01–E18, Section 6A, and Section 17** as binding. Read this full document again at the start of **each new user prompt** and relevant sections before every task; do not trust chat memory.
+- **Repository correction:** The owner said earlier sessions used the wrong repository (`shahvikask/kosha`, including `GUD-Android-Redevelopment`). Grok now works in this repository on `main`. Continue the existing Kotlin/Compose/SQLCipher code. Do not reset, rebootstrap, or rewrite history. Do not commit to `shahvikask/kosha`. Current work is **not M00 fresh-code migration**.
 - **Immutable reference:** `shahvikask/kosha` `GUD-Android-Gmail@af96dcc8967ab595e1d9acee78e29e500cb99a9e`; old React/Tauri sources retained read-only; `src/casparser-main/**` and original parser invocation scripts/dependency pins frozen; preserve the approved logo artwork at `public/brand/`.
 - Record this G01 adaptation as the explicitly owner-authorized decision **D-001** in [DECISION-LOG.md](docs/implementation/DECISION-LOG.md). If later instructions conflict with safety, data integrity, commercial release rules or authorization, ask for a clear owner choice and log it.
 

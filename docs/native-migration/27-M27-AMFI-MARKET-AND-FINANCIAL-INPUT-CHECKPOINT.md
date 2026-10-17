@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # M27 — AMFI NAV source, safer financial metadata and incomplete official catalog
 
 **Date:** 2026-10-16. **Repo:** vikaskunjbiharishah-ui/GUD **branch:** main. **Starting SHA:** 74178c356ff72524ba9791b457e1f29960abf298. **Resolve final SHA from GitHub after commit.**

@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GUD main — Actual GitHub Actions and Grok G00–G14 gate crosswalk
 
 **State on 2026-10-16:** Existing workflows were inspected by name; **G00–G14 proposed workflow filenames from specification §10 were NOT installed by this documentation checkpoint.** This document maps the intended verification outcomes to current automation and future gaps; mapping is **NOT** proof a job exists or passes. Owner controls paid CI.

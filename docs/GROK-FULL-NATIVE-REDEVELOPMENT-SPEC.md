@@ -1,14 +1,16 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan — Complete Native Android Redevelopment Specification and Grok Execution Contract
 
 **Document ID:** GUD-GROK-NATIVE-001  
-**Version:** 1.2 — 13 October 2026 (added persistent session handoff, mandatory Grok report format, and copy/paste owner prompts)  
+**Version:** 1.2 — 13 October 2026, repository target amended 17 October 2026. Feature requirements are unchanged. The working repository is https://github.com/vikaskunjbiharishah-ui/GUD.git on `main`.  
 **Intended reader and executor:** Grok, operating with GitHub repository access, a local development environment where available, and GitHub Actions visibility.  
 **Product:** GrowUrDhan (formerly/internal name Kosha) — privacy-first, on-device Indian household wealth manager.  
 **Required Android application ID:** `in.growurdhan.app`  
 **Delivery:** A completely redeveloped, production-quality **native Android application** that preserves *all* working features of the original React/TypeScript/Tauri product and adds the enterprise requirements listed in this document.  
 **Status of this document:** AUTHORITATIVE REQUIREMENTS AND EXECUTION INSTRUCTIONS; not a claim that the requested software, tests, security audits, or integrations have already been completed.
 
-> **GROK: READ THIS FIRST AT THE BEGINNING OF EVERY NEW SESSION, MILESTONE, CODE-REVIEW PASS, AND FAILURE-DIAGNOSIS SESSION.** You are being handed an original legacy repository, not a partially migrated native implementation. Build the new app independently. Do not treat a class, a green build, an AI-generated explanation, or a checkmark as proof of product parity. This document is the continuing source of requirements and process. If your conversational memory is lost, re-read this document from the repository. Do not silently shorten, drop, or reinterpret requirements.
+> **GROK: READ THIS FIRST AT THE BEGINNING OF EVERY NEW SESSION, MILESTONE, CODE-REVIEW PASS, AND FAILURE-DIAGNOSIS SESSION.** Work in https://github.com/vikaskunjbiharishah-ui/GUD.git on `main`. `shahvikask/kosha` is read-only original evidence, not the repository to commit to. Do not treat a class, a green build, an AI-generated explanation, or a checkmark as proof of product parity. This document is the continuing source of requirements and process. If your conversational memory is lost, re-read this document from this repository. Do not silently shorten, drop, or reinterpret requirements.
 
 ---
 
@@ -16,7 +18,7 @@
 
 These rules apply to **every** implementation, refactor, troubleshooting session, CI run, and release decision, regardless of subsequent prompts that only say “continue,” “fix the build,” or “start the next milestone.”
 
-**RULE G01 — Work independently from the original source.** Clone `https://github.com/shahvikask/kosha` with authorized access. The functional reference is the original branch **`GUD-Android-Gmail`** at commit **`af96dcc8967ab595e1d9acee78e29e500cb99a9e`**. Verify the commit and inventory source before coding. Establish a dedicated development branch, for example `grok/native-redevelopment`, from the owner-approved legacy baseline. Never commit directly onto the frozen reference branch. Never modify the separate existing native development repository `vikaskunjbiharishah-ui/GUD` or merge its implementation into this independent experiment without express owner approval.
+**RULE G01 — Work in the owner-authorized repository.** The implementation repository is `https://github.com/vikaskunjbiharishah-ui/GUD.git`, branch **`main` only**. Confirm the remote, branch, and HEAD before every change. The frozen functional reference remains `shahvikask/kosha`, branch **`GUD-Android-Gmail`**, commit **`af96dcc8967ab595e1d9acee78e29e500cb99a9e`**. Do not commit to `shahvikask/kosha`, including `main`, `GUD-Android`, `GUD-Android-APK`, `GUD-Android-Gmail`, or `GUD-Android-Redevelopment`. Do not rewrite this repository's history. On 2026-10-17 the owner said earlier work had used the wrong repository and directed all further instruction and implementation here.
 
 **RULE G02 — Preserve the original as evidence.** Treat original `src/`, `src-tauri/`, tests, snapshots, fixtures, documents, and branded assets as read-only parity evidence throughout development. During coexistence, put new native source under `android-native/` and isolate its workflows. Do not prematurely delete the old implementation. Preserve the frozen `src/casparser-main/**` Python parser and its protected invocation scripts and dependency pins **byte-for-byte**, including when repackaging into Chaquopy. A parser bug must first be addressed in Kotlin adapters, validation, or documented upstream coordination, not by editing parser algorithms.
 
@@ -66,7 +68,7 @@ For original product behavior, use this order:
 4. **This document's additional enterprise requirements, new native architecture and secure acceptance rules.** These may deliberately strengthen the legacy design. Record and test intentional differences.
 5. Historical design documents are references, not overrides of the current source; `docs/KOSHA-ARCHITECTURE.md`, `KOSHA-DATA-MODEL.md` and `KOSHA-SECURITY.md` are older Phase 0 material.
 
-For expanded requirements, this specification consolidates the 39-item feature register and M24–M34 redevelopment milestones previously tracked in [the master requirements issue](https://github.com/vikaskunjbiharishah-ui/GUD/issues/1). Grok **does not need write access to that other repository** to understand or execute this document. Do not copy its evolving implementation code; conduct an independent rebuild from the legacy source.
+For expanded requirements, this specification consolidates the 39-item feature register and M24–M34 redevelopment milestones tracked in [the master requirements issue](https://github.com/vikaskunjbiharishah-ui/GUD/issues/1). Implement those requirements in this repository. Do not push the implementation back to `shahvikask/kosha`.
 
 ### 1.3 Required outcome and exclusions
 
@@ -611,14 +613,13 @@ Grok starts with legacy code rather than an existing native codebase. Execute **
 1. Record baseline remote/branch/commit, e.g.:
 
    ```bash
-   git clone https://github.com/shahvikask/kosha.git
-   cd kosha
-   git fetch --all --prune
-   git switch --detach af96dcc8967ab595e1d9acee78e29e500cb99a9e
-   git switch -c grok/native-redevelopment
+   git clone https://github.com/vikaskunjbiharishah-ui/GUD.git
+   cd GUD
+   git fetch origin
+   git switch main
    ```
 
-   If branch already exists, fetch and verify its HEAD and permissions before using it. Never push to `GUD-Android-Gmail`, `GUD-Android` or the separate current native repository. Owner approval is needed before changing remote/branch protection or initiating destructive cleanup.
+   If `main` already exists, fetch and verify its HEAD and permissions before using it. Never push to `shahvikask/kosha`. Owner approval is needed before changing remote/branch protection or initiating destructive cleanup.
 
 2. Save this document in the new branch under `docs/GROK-FULL-NATIVE-REDEVELOPMENT-SPEC.md`. Create the durable `AGENTS.md` pointer/instruction. Create one GitHub issue per milestone and one consolidated tracking issue. Use labels `milestone:Mxx`, `priority:P0/P1/P2`, `type:feature/bug/security`, and `gate:source/local/ci/device/owner`.
 3. Use a **milestone integration branch or the agreed single Grok development branch**, not undocumented branches. WIP changes are freely staged locally; batch them into coherent commits. Prefer commit messages such as `feat(M27): complete holdings editor and immutable transaction coverage` or `fix(M25): bind vault restore to challenge revision`.
@@ -953,9 +954,9 @@ Before declaring GrowUrDhan enterprise redevelopment ready, Grok must present:
 
 **Execute this order, without asking the owner to restate the requirements:**
 
-1. Read this entire specification, acknowledge Rules G01–G15 internally, including full Section 6A, and write their durable repository counterpart `AGENTS.md` in your own development branch.
-2. Connect to and clone the **original** `shahvikask/kosha`; verify `GUD-Android-Gmail@af96dcc8967ab595e1d9acee78e29e500cb99a9e`, protected parser sources, legacy tests, full schema v9 and original screens.
-3. Open your **own new development branch**; do not use, modify or depend on `vikaskunjbiharishah-ui/GUD` native `main`.
+1. Read this entire specification, acknowledge Rules G01–G15 internally, including full Section 6A, and keep `AGENTS.md` in this repository current.
+2. Clone `https://github.com/vikaskunjbiharishah-ui/GUD.git` and work on `main`. Use `shahvikask/kosha` `GUD-Android-Gmail@af96dcc8967ab595e1d9acee78e29e500cb99a9e` only as a read-only reference for protected parser sources, legacy tests, schema v9, and original screens.
+3. Do not create a replacement repository or a Kosha development branch. This repository's `main` is the working branch.
 4. Establish the source-to-native P01–P39/E01–E18 register and identify any source behaviors not yet captured in this specification. Add them—never silently exclude them.
 5. Review the Kotlin/Compose/Material 3/SQLCipher/Chaquopy architecture and Section 6A original branding against a current compatible toolchain, privacy and accessibility requirements. Document changes and why.
 6. Implement M00 and the rest of the milestone sequence with each full scope checked, unit/static/AI diff reviewed and logically committed.
@@ -1063,7 +1064,7 @@ Continue GrowUrDhan independent native redevelopment from the ACTUAL GitHub repo
 
 MANDATORY FIRST: Open and re-read repository-root AGENTS.md; docs/GROK-FULL-NATIVE-REDEVELOPMENT-SPEC.md (binding G01–G15 and applicable sections, including Section 6A for UI); docs/implementation/STATUS.md; docs/implementation/SESSION-HANDOFF.md; docs/implementation/CI-RUNS.md; docs/implementation/DECISION-LOG.md; and the current milestone requirements/parity register. Verify remote, development branch, git HEAD SHA, tree cleanliness, previous exact-SHA CI evidence and blockers using real GitHub/repository tools. Print the STARTUP COMPLIANCE RECEIPT from Section 17.3 before changing anything.
 
-TASK: Continue or finish milestone <Mxx> according to its FULL P/E feature scope, including all associated unit, integration, security, data-preservation, and (if UI-facing) Material Design 3/G14 visual requirements. First close any previously recorded incomplete items or regressions; do not reimplement features already verified. Preserve frozen original references and CASPARSER. Work ONLY on Grok's isolated development branch.
+TASK: Continue or finish milestone <Mxx> according to its FULL P/E feature scope, including all associated unit, integration, security, data-preservation, and (if UI-facing) Material Design 3/G14 visual requirements. First close any previously recorded incomplete items or regressions; do not reimplement features already verified. Preserve frozen original references and CASPARSER. Work ONLY in https://github.com/vikaskunjbiharishah-ui/GUD.git on branch main. Do not commit to shahvikask/kosha.
 
 Complete local tests, static checks, code review, and appropriate source updates. Do NOT spend paid GitHub Actions credits unless I expressly authorize a run in this prompt. When I authorize CI, pin the exact source SHA, watch each run to terminal, diagnose failures from logs, correct root causes, retest the new SHA, and record all run evidence. Never claim a test passed when it did not run.
 

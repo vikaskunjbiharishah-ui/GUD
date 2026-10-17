@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan Native Redevelopment — Status (GUD main)
 
 **Initialized:** 2026-10-16. **Repository:** https://github.com/vikaskunjbiharishah-ui/GUD , branch **`main`**. **Pre-documentation HEAD reviewed:** `33c3ffb43b62baa969184f67dfbef67d0d4354d4`. Documentation-only commit SHA must be verified live after publication; a document cannot safely embed its own future commit SHA.
@@ -50,3 +52,6 @@ The newest main-only source increment adds typed offline cached official-securit
 ## 2026-10-16 M27 — AMFI public market-data gateway and financial INR entry
 
 Source increment from 74178c356ff72524ba9791b457e1f29960abf298 adds opt-in HTTPS AMFI NAV refresh with bounded strict parser, app-private atomic cache, offline picker injection, and exact rupee-to-integer minor-string conversions for original amount details. Five source tests authored, **not executed**. The official old AMFI text endpoint may be discontinued, real current format not verified; NSE/BSE adapters not implemented. See [checkpoint](../native-migration/27-M27-AMFI-MARKET-AND-FINANCIAL-INPUT-CHECKPOINT.md). **M27 OPEN (P09–P15), M25 OPEN, M26 OPEN.** D-006 remains owner-PROPOSED. No paid Actions, Android Gradle, emulator or device tests run.
+## Repository correction — 2026-10-17
+
+The owner said `shahvikask/kosha` was the wrong working repository. Instructions in this repository now name https://github.com/vikaskunjbiharishah-ui/GUD.git branch `main`. Milestone acceptance is unchanged.

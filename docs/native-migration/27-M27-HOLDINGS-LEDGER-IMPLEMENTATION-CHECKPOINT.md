@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # M27 holdings and ledger — as-built source checkpoint
 
 Date: 12 October 2026. Repository: `vikaskunjbiharishah-ui/GUD`, target `main` only. Milestone: [#5](https://github.com/vikaskunjbiharishah-ui/GUD/issues/5). **Status: substantial implementation committed, not fully scope-accepted; do not close.** This is neither a passing CI report nor a device/security certification.

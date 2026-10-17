@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan — M2 Native Encrypted Vault and Database (As-Built)
 
 > **Current verified status (2026-10-08):** M2 foundation CI **PASS** on commit `efcaeaa`, including 7/7 vault and 3/3 Compose instrumentation tests. Earlier failures documented below are historical and fixed. See [07-M2-MILESTONE-COMPLETION.md](07-M2-MILESTONE-COMPLETION.md). Native Google Play release readiness is **not** established.

@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # M27 source extension — full creation profile, instrument metadata, goals, archive visibility
 
 **Date:** 2026-10-16. **Repository/branch:** `vikaskunjbiharishah-ui/GUD` / `main`. **Starting commit:** `66d1cb7db9b6b0ada2d96e58df85f88854b45839`. This file accompanies the new source commit; resolve the published head SHA from GitHub. **STATUS: SOURCE ENHANCED, NOT COMPILED / CI ACCEPTED / DEVICE TESTED; #5 stays OPEN.**

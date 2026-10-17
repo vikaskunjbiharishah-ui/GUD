@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan Android (`GUD-Android`)
 
 Commercial phone app. Windows stays on `GUD-Windows`. Daily UI work stays on `Grok-Improvised-FrontEnd`, then merge into this branch.

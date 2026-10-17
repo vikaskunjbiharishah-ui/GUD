@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # Mandatory GrowUrDhan session handoff (read after AGENTS.md on EVERY user prompt)
 
 **Date:** 2026-10-16. **Repo:** vikaskunjbiharishah-ui/GUD, **branch main only**. **Starting SHA:** 74178c356ff72524ba9791b457e1f29960abf298. After publication verify actual 40-char HEAD from GitHub.
@@ -18,3 +20,6 @@
 ## Mandatory next session action
 
 Read all permanent files again, print startup receipt and resolve live GitHub HEAD. Review new AMFI source and tests for actual Kotlin/Android compile errors, inspect endorsed AMFI 2026 text-format change, implement NSE/BSE genuine official file adapters and remaining M27 conditional forms, write exact golden/rollback owner tests. With explicit owner authorization ONLY, dispatch native-android.yml manually with source_sha=<current full main SHA>; monitor, fix on main and retest newer SHA. Update STATUS, SESSION-HANDOFF, CI-RUNS and parity register, return 21-field A–U report and copy/paste next prompt.
+## Repository correction — 2026-10-17
+
+Owner instruction: work only in https://github.com/vikaskunjbiharishah-ui/GUD.git on `main`. Do not continue `shahvikask/kosha` branch `GUD-Android-Redevelopment`. Verify live HEAD after this commit. No product code changed. No Actions workflow was dispatched. Next product work remains the open M27 scope already recorded above, only after a fresh read of these instructions.

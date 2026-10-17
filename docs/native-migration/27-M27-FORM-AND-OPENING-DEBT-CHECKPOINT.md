@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # M27 holding form and opening debt source checkpoint
 Date: 2026-10-16. Repository: vikaskunjbiharishah-ui/GUD, branch main. Starting HEAD bf4ecf3f358fad807deb808064c02e27dd2888e1. This is a SOURCE checkpoint, NOT compilation or milestone acceptance.
 

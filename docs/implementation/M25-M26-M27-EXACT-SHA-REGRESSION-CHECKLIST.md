@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # Proposed Combined Exact-SHA M25 + M26 + M27 Regression Checklist
 Status: NOT AUTHORIZED / NOT DISPATCHED. Starting main SHA: 3ef250021d44170e8f2b7c7e23f153a76b5016a2; verify newest main HEAD immediately before workflow dispatch. Never substitute mutable branch for tested 40-character source SHA.
 

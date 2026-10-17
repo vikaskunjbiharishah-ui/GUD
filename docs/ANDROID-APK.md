@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # Device-test APK (`GUD-Android-APK`)
 
 This branch is for installing GrowUrDhan on a real phone **before** Play production.

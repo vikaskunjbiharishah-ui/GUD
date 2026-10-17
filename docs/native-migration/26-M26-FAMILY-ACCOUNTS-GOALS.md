@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # M26 P0 — Native family, account, nomination and goal administration (as-built source)
 
 **Date:** 10 October 2026  

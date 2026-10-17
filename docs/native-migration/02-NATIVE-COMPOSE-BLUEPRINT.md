@@ -1,3 +1,5 @@
+> **Working repository:** https://github.com/vikaskunjbiharishah-ui/GUD.git — branch `main` only. `shahvikask/kosha` is the frozen original reference, not the repository to commit to.
+
 # GrowUrDhan — Kotlin/Jetpack Compose Native Migration Blueprint
 
 **Status:** Architecture blueprint, 2026-10-08. **M1 native foundation now under implementation.**  
