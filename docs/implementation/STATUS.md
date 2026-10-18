@@ -59,3 +59,7 @@ The owner said `shahvikask/kosha` was the wrong working repository. Instructions
 ## 2026-10-17 M27 local AMFI JVM tests and Android-test compile
 
 Production AMFI parser, catalog gateway, and INR field editor were reviewed and left unchanged. `:domain:compileKotlin` and `:app:compileDebugKotlin` succeeded. Local Gradle `:domain:test` ran `OfficialAmfiNavParserTest` (3), `OfficialQuotePolicyTest` (3), and `LocalOfficialSecurityCatalogTest` (4): **10 tests, 0 failures**. That does not prove a live AMFI download or an emulator. `:app:compileDebugAndroidTestKotlin` failed on the removed Compose `assertDoesNotExist` API and a missing `CustodyHoldingScreen` import; the test sources were updated to `onAllNodesWithText` / `onAllNodesWithTag` plus `assertCountEquals(0)`, then recompiled successfully. Instrumented tests were **NOT RUN**. **M27, M25, and M26 remain OPEN and NOT ACCEPTED.** No GitHub Actions run was authorized or dispatched.
+
+## 2026-10-18 M00 prompt stopped — conflict with no-rebootstrap rule
+
+The prompt asked to continue or complete **M00**. That conflicts with AGENTS.md, D-001, and D-007: this repository already contains the native app, and M00 must not be restarted as a fresh scaffold. GitHub issues are #1 and #3–#12 (M24–M34). There is no M00 issue. No product source was changed. **M00 is not accepted.** Active open work remains M27 #5, with M25 #3 and M26 #4 still open. See D-008.

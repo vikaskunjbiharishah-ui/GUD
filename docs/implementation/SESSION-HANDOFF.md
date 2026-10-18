@@ -35,3 +35,11 @@ Owner instruction: work only in https://github.com/vikaskunjbiharishah-ui/GUD.gi
 ## Next session
 
 Re-read the instruction files and resolve live HEAD. Do not mark M27 accepted. Next product gap is still the unfinished M27 form/catalog scope, then an owner-authorized exact-SHA `native-android.yml` run only if explicitly requested.
+
+## 2026-10-18 M00 request blocked
+
+- Live `main` verified at `3e5981e673802c3acc0cfe17bf4545b6c1b52e5b` before this note. Working tree was clean.
+- Prompt asked to complete M00. AGENTS.md says current work is not an M00 fresh-code migration. D-001 and D-007 forbid reset/rebootstrap. Issue list has no M00 issue; #1 is M24–M34.
+- No Kotlin, schema, parser, logo, or workflow file was edited. No Gradle run and no GitHub Actions dispatch in this session.
+- M00, M25, M26, and M27 are not accepted.
+- Owner choice required (D-008): explicitly override and rebuild M00, or continue M27 on this `main`. Until then the next safe product task remains open M27, not a new scaffold.

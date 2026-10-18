@@ -49,3 +49,7 @@ Local evidence, not CI:
 - `:app:compileDebugAndroidTestKotlin` failed, then succeeded after the Compose absence-assertion test fix. Instrumentation **NOT RUN**.
 
 Do not treat this local JVM/compile result as G00–G14 or as acceptance of M25, M26, or M27.
+
+## 2026-10-18 — M00 prompt, no run
+
+HEAD remained `3e5981e673802c3acc0cfe17bf4545b6c1b52e5b` for product source. No local Gradle command and no GitHub Actions workflow were run. Build #18 / 38237260337 stays **FAIL** on tested SHA `3e41b7c4ac04261953beb75e79a57c6bdea3e6a3`. G00–G14 for M00: **NOT RUN**.
