@@ -47,6 +47,37 @@ object OriginalHoldingFormPolicy {
     fun missing(category: String, subCategory: String, facts: Map<String, String?>): List<RequiredField> =
         required(category, subCategory, facts).filter { facts[it.key].isNullOrBlank() }
 
+    /**
+     * Detail keys the original add-holding form shows without "show all".
+     * Equity depository IDs and non-liquid bank IFSC match AddHoldingModal.tsx.
+     */
+    fun preferredDetailKeys(category: String, subCategory: String): Set<String> = when (category) {
+        "MUTUAL_FUND" -> setOf("mfPlan", "mfOption", "mfHeldAs", "dpId", "clientId", "boId")
+        "EQUITY" -> setOf("depository", "dpId", "clientId", "boId")
+        "GOLD_SGB" -> setOf("goldHoldMode", "goldPurity", "goldHallmark", "earlyExitDate", "faceValueMinor")
+        "FIXED_INCOME", "PPF", "EPF", "FIXED_DEPOSIT", "BOND" ->
+            if (subCategory == "NPS")
+                setOf("npsTier", "npsCra", "npsPfm", "annualContributionMinor")
+            else setOf("annualContributionMinor", "compounding", "tdsApplicable",
+                "rateType", "originalTenorMonths", "contributionOn")
+        "REAL_ESTATE" -> setOf("areaSqFt", "ownership", "ownershipPercent", "linkedHoldingId",
+            "altHoldMode", "monthlyIncomeMinor", "incomeDay", "incomeStart", "incomeEnd")
+        "SPECIALISED", "NPS" -> setOf("npsTier", "npsCra", "npsPfm",
+            "aifCategory", "commitmentMinor", "capitalCalledMinor", "strategyName",
+            "custodian", "altHoldMode", "ifsc")
+        "CASH_BANK" -> if (subCategory.contains("liquid", ignoreCase = true)) emptySet()
+            else setOf("ifsc")
+        "LIABILITY" -> setOf("linkedHoldingId", "rateType", "compounding", "originalTenorMonths")
+        else -> emptySet()
+    }
+
+    /** Same identifier cleanup as AddHoldingModal submit / IFSC typing. Does not invent values. */
+    fun normalizeStoredDetail(key: String, value: String): String = when (key) {
+        "dpId", "ifsc" -> value.replace(Regex("\\s"), "").uppercase()
+        "clientId", "boId" -> value.replace(Regex("\\s"), "")
+        else -> value
+    }
+
     /** Units and money must be recorded by explicit ledger review, not inferred here. */
     fun usesSingleMonetaryBalance(category: String, subCategory: String, facts: Map<String, String?>): Boolean =
         category in setOf("CASH_BANK", "LIABILITY") ||

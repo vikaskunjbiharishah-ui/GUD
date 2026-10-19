@@ -143,22 +143,9 @@ fun HoldingProfileEditor(
     val original = remember(profile.holdingId, profile.detailsJson) {
         JSONObject(profile.detailsJson)
     }
-    val preferred = when (profile.assetCategory) {
-        "MUTUAL_FUND" -> setOf("mfPlan", "mfOption", "mfHeldAs", "dpId", "clientId", "boId")
-        "GOLD_SGB" -> setOf("goldHoldMode", "goldPurity", "goldHallmark", "earlyExitDate", "faceValueMinor")
-        "FIXED_INCOME", "PPF", "EPF", "FIXED_DEPOSIT", "BOND" ->
-            if (profile.subCategory == "NPS")
-                setOf("npsTier","npsCra","npsPfm","annualContributionMinor")
-            else setOf("annualContributionMinor", "compounding", "tdsApplicable",
-                "rateType", "originalTenorMonths", "contributionOn")
-        "REAL_ESTATE" -> setOf("areaSqFt", "ownership", "ownershipPercent", "linkedHoldingId",
-            "altHoldMode", "monthlyIncomeMinor", "incomeDay", "incomeStart", "incomeEnd")
-        "SPECIALISED", "NPS" -> setOf("npsTier", "npsCra", "npsPfm",
-            "aifCategory", "commitmentMinor", "capitalCalledMinor", "strategyName",
-            "custodian", "altHoldMode", "ifsc")
-        "LIABILITY" -> setOf("linkedHoldingId", "rateType", "compounding", "originalTenorMonths")
-        else -> emptySet()
-    }
+    val preferred = OriginalHoldingFormPolicy.preferredDetailKeys(
+        profile.assetCategory, profile.subCategory.orEmpty(),
+    )
     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Holding details", style = MaterialTheme.typography.titleMedium)
         Text("All changes require a new device lock approval. Original ledger entries are immutable.")
@@ -503,7 +490,7 @@ fun HoldingProfileEditor(
                         value.toIntOrNull() ?: JSONObject.NULL
                     key in detailMoneyKeys ->
                         MoneyScaled.fromRupees(BigDecimal(value)).raw.toString()
-                    else -> value
+                    else -> OriginalHoldingFormPolicy.normalizeStoredDetail(key, value)
                 }
                 delta.put(key, typed)
             }

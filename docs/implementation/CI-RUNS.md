@@ -53,3 +53,14 @@ Do not treat this local JVM/compile result as G00–G14 or as acceptance of M25,
 ## 2026-10-18 — M00 prompt, no run
 
 HEAD remained `3e5981e673802c3acc0cfe17bf4545b6c1b52e5b` for product source. No local Gradle command and no GitHub Actions workflow were run. Build #18 / 38237260337 stays **FAIL** on tested SHA `3e41b7c4ac04261953beb75e79a57c6bdea3e6a3`. G00–G14 for M00: **NOT RUN**.
+
+## 2026-10-19 — local M27 form policy only; no Actions
+
+Starting HEAD `a601e732de4ac58b94cd4b6230c6aca459fc18b3`. GitHub Actions: **NOT RUN, NOT AUTHORIZED**. Newest remote native run remains Build #18 / 38237260337, tested `3e41b7c4ac04261953beb75e79a57c6bdea3e6a3`, **FAIL**.
+
+Local evidence, not CI:
+
+- `ANDROID_HOME=/opt/android-sdk /tmp/gradle-8.13/bin/gradle --no-daemon :domain:test --tests in.growurdhan.domain.vault.OriginalHoldingFormPolicyTest` → BUILD SUCCESSFUL. 4 tests, 0 failures, 0 errors. XML timestamp 2026-10-19T10:33:40.413Z. An earlier attempt in the same session failed because the Gradle test worker died with "Unexpected type tag 71"; the rerun above is the evidence.
+- `:app:compileDebugKotlin` → BUILD SUCCESSFUL. One pre-existing nullable warning in `HoldingProfileEditor.kt` remains. Instrumentation **NOT RUN**.
+
+Do not treat this as G00–G14 or as acceptance of M00, M25, M26, or M27.

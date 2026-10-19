@@ -43,3 +43,15 @@ Re-read the instruction files and resolve live HEAD. Do not mark M27 accepted. N
 - No Kotlin, schema, parser, logo, or workflow file was edited. No Gradle run and no GitHub Actions dispatch in this session.
 - M00, M25, M26, and M27 are not accepted.
 - Owner choice required (D-008): explicitly override and rebuild M00, or continue M27 on this `main`. Until then the next safe product task remains open M27, not a new scaffold.
+
+## 2026-10-19 M27 identifier fields
+
+- Live `main` before this change: `a601e732de4ac58b94cd4b6230c6aca459fc18b3`, clean.
+- Owner chose continue M27 and do not rebootstrap M00. Recorded as D-009. D-006 stays PROPOSED.
+- Holding editor preferred keys for EQUITY now include depository, dpId, clientId, and boId. Non-liquid CASH_BANK includes ifsc. Save path normalizes those identifiers the way `AddHoldingModal.tsx` does. No financial row inserted.
+- Gradle 8.13 `--no-daemon` `:domain:test --tests in.growurdhan.domain.vault.OriginalHoldingFormPolicyTest`: 4 tests, 0 failures, 0 errors, XML 2026-10-19T10:33:40.413Z. `:app:compileDebugKotlin` BUILD SUCCESSFUL. Worker protocol warnings ("Unexpected type tag 71") appeared and did not fail this rerun. Instrumentation NOT RUN. Actions NOT dispatched.
+- M00, M25 #3, M26 #4, and M27 #5 stay OPEN / not accepted.
+
+## Next session
+
+Re-read the instruction files and resolve live HEAD. Continue a remaining M27 form or ledger gap on this main. Do not rebootstrap M00, do not insert financial rows, and do not dispatch Actions unless the owner explicitly authorizes that spend.

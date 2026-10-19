@@ -63,3 +63,7 @@ Production AMFI parser, catalog gateway, and INR field editor were reviewed and 
 ## 2026-10-18 M00 prompt stopped — conflict with no-rebootstrap rule
 
 The prompt asked to continue or complete **M00**. That conflicts with AGENTS.md, D-001, and D-007: this repository already contains the native app, and M00 must not be restarted as a fresh scaffold. GitHub issues are #1 and #3–#12 (M24–M34). There is no M00 issue. No product source was changed. **M00 is not accepted.** Active open work remains M27 #5, with M25 #3 and M26 #4 still open. See D-008.
+
+## 2026-10-19 M27 equity and bank identifier fields
+
+Owner chose M27 on this `main` (D-009). No M00 rebootstrap. `OriginalHoldingFormPolicy.preferredDetailKeys` now surfaces equity depository/DP/client/BO fields and a non-liquid cash IFSC, matching `AddHoldingModal.tsx`. Stored `dpId` and `ifsc` are whitespace-stripped and uppercased; `clientId` and `boId` are whitespace-stripped. No ledger row is created. Local `:domain:test --tests in.growurdhan.domain.vault.OriginalHoldingFormPolicyTest` was **4 tests, 0 failures** (XML timestamp 2026-10-19T10:33:40.413Z). `:app:compileDebugKotlin` succeeded. Emulator and GitHub Actions were **NOT RUN**. **M00, M25, M26, and M27 remain NOT ACCEPTED.**
