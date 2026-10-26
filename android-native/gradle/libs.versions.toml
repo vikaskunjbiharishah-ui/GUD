@@ -16,6 +16,7 @@ androidxTest = "1.2.1"
 espresso = "3.6.1"
 javaxInject = "1"
 sqlcipher = "4.17.0"
+billing = "7.1.1"
 androidxSqlite = "2.7.0"
 
 [libraries]
@@ -42,6 +43,7 @@ dagger-hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref
 javax-inject = { module = "javax.inject:javax.inject", version.ref = "javaxInject" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit5" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit5" }
 junit4 = { module = "junit:junit", version.ref = "junit4" }

@@ -113,6 +113,37 @@ object SnapshotReconciler {
     }
 
     /**
+     * Zero-quantity lines for holdings on the previous statement of the same
+     * issuer that this file does not mention. A later file replaces that
+     * issuer's last snapshot; it does not append to it.
+     */
+    fun linesToClose(
+        previousHoldingIds: List<HoldingId>,
+        currentLines: List<StatementLine>,
+        holdings: List<FinancialHolding>,
+        statementDate: LocalDate,
+        events: List<FinancialEvent> = emptyList(),
+    ): List<StatementLine> {
+        val mentioned = currentLines.map { it.holdingId }.toSet()
+        val byId = holdings.associateBy { it.holdingId }
+        val closing = mutableListOf<StatementLine>()
+        for (id in previousHoldingIds) {
+            if (id in mentioned) continue
+            val holding = byId[id] ?: continue
+            if (events.isNotEmpty()) {
+                val own = events.filter { it.holdingId == id && it.date <= statementDate }
+                val qty = if (own.isEmpty()) 0L
+                    else LotEngine.fold(id, holding.category, own).quantityScaled
+                if (qty == 0L) continue
+            }
+            closing += StatementLine(
+                holding.holdingId, holding.ownerId, statementDate, 0L, holding.unitPrice,
+            )
+        }
+        return closing
+    }
+
+    /**
      * Source SHA is part of deterministic event IDs. The repository also rejects duplicate
      * source SHA, making repeated imports idempotent after explicit user acceptance.
      */

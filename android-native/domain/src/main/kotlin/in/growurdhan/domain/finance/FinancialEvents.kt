@@ -68,6 +68,8 @@ data class FinancialHolding(
     val openingCostPerUnit: MoneyScaled? = null,
     val subCategory: String = "",
     val goldHoldMode: String? = null,
+    /** Purchase date recorded on the holding when the ledger has no parcel yet. */
+    val acquiredOn: LocalDate? = null,
 ) {
     init {
         require(name.isNotBlank())

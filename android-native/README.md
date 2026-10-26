@@ -426,13 +426,14 @@ provenance, positive scaled prices, an exact identifier match and a dated
 as-of/age classification. It does not fetch, cache or silently update holding
 prices.
 
-**E4 commercial entitlement contract (not active Play Billing):**
+**E4 commercial entitlement (`gud_annual` only):**
 `domain/commercial/PlayEntitlementPolicy.kt` refuses unverified, pending,
-unacknowledged, expired or unrelated purchase observations. A separately
-verified lifetime entitlement is required before support entitlement applies.
-No trusted Play purchase verification adapter, trial activation or paid UI
-is enabled: treating a caller-controlled `verifiedByTrustedProvider` field
-as real verification would be insecure.
+unacknowledged, expired, stale, or unrelated purchase observations. Only a
+current verified `gud_annual` subscription unlocks after the trial. Old
+lifetime, Gmail and support product ids do not. The app asks Play Billing
+for that one subscription. A preference cannot set `subscribed`. A debug
+build may start the same 30-day trial; a release sideload stays locked
+until that Play subscription is active. Gmail OAuth is still not connected.
 
 **Production release must still remain blocked:** The manual
 `native-signed-aab.yml` workflow additionally runs

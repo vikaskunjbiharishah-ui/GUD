@@ -68,17 +68,29 @@ object PortfolioEngine {
             val mine = eventsByHolding[holding.holdingId].orEmpty()
             var result = LotEngine.fold(holding.holdingId, holding.category, mine)
             if (mine.isEmpty() && holding.storedQuantityScaled > 0) {
-                // Do not pretend the current market price is an actual purchase price.
+                // positions.ts openingBalanceFor: stored average is the cost,
+                // current price is only the valuation. A missing average is not
+                // filled from the market price.
                 val knownCost = holding.openingCostPerUnit
-                val cost = if (knownCost == null) MoneyScaled(0)
-                    else MoneyScaled(timesQuantity(holding.storedQuantityScaled, knownCost.raw))
-                result = result.copy(
-                    quantityScaled = holding.storedQuantityScaled,
-                    investedCost = cost,
-                    averageUnitCost = knownCost ?: MoneyScaled(0),
-                    fromOpeningBalance = true,
-                    unknownInvestedCost = knownCost == null,
-                )
+                result = if (knownCost == null) {
+                    result.copy(
+                        quantityScaled = holding.storedQuantityScaled,
+                        investedCost = MoneyScaled(0),
+                        averageUnitCost = MoneyScaled(0),
+                        fromOpeningBalance = true,
+                        unknownInvestedCost = true,
+                    )
+                } else {
+                    val openingId = "ob_${holding.holdingId.raw}".take(128)
+                    val opening = FinancialEvent(
+                        openingId, holding.holdingId, holding.ownerId,
+                        FinancialEventKind.OPENING_BALANCE, asOf,
+                        holding.storedQuantityScaled, knownCost,
+                        MoneyScaled(timesQuantity(holding.storedQuantityScaled, knownCost.raw)),
+                    )
+                    LotEngine.fold(holding.holdingId, holding.category, listOf(opening))
+                        .copy(fromOpeningBalance = true)
+                }
             }
             val activeLotIds = result.openLots.map { it.eventId }.toSet()
             if (result.quantityScaled > 0 && mine.any {

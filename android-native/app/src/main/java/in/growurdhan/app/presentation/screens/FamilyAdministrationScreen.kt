@@ -420,8 +420,8 @@ fun FamilyAdministrationScreen(
                                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                                     Text(goal.name,style = MaterialTheme.typography.titleMedium)
                                     Text("Scope: ${goal.ownerId?.let { id -> book.family.find { it.id == id }?.name } ?: "Whole family"}")
-                                    Text("Target: ${goal.target?.rupees()?.toPlainString() ?: "Not entered"} INR")
-                                    Text("Tagged current exposure: ${goal.taggedExposure.rupees().toPlainString()} INR")
+                                    Text("Target: ${goal.target?.asBook() ?: "Not entered"}")
+                                    Text("Tagged current exposure: ${goal.taggedExposure.asBook()}")
                                     goal.targetDate?.let { Text("Target date: $it") }
                                     OutlinedButton(onClick = { editGoal = goal.id }) { Text("Edit goal") }
                                     Text("Remove goal deletes only the goal and its tags, not holdings or ledger events.",

@@ -44,7 +44,7 @@ fun TaxOwnerScopeScreen(
                             Text(member.displayName ?: "Family owner",
                                 style = MaterialTheme.typography.titleMedium)
                             Text("Recorded holdings: ${member.holdings}")
-                            Text("Recorded assets: ${member.assets.rupees().toPlainString()} INR")
+                            Text("Recorded assets: ${member.assets.asBook()}")
                             Text("This is not taxable gains or filing totals.",
                                 style = MaterialTheme.typography.bodySmall)
                         }

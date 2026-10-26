@@ -61,9 +61,9 @@ fun InsightsScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Text("Household position", style = MaterialTheme.typography.titleMedium)
-                        Text("Assets: ${dashboard.assets.rupees().toPlainString()} INR")
-                        Text("Liabilities: ${dashboard.liabilities.rupees().toPlainString()} INR")
-                        Text("Net worth: ${dashboard.netWorth.rupees().toPlainString()} INR")
+                        Text("Assets: ${dashboard.assets.asBook()}")
+                        Text("Liabilities: ${dashboard.liabilities.asBook()}")
+                        Text("Net worth: ${dashboard.netWorth.asBook()}")
                         val debtRatio = result.debtToAssetsPercent
                         if (result.reconciled && debtRatio != null) {
                             Text(
@@ -114,7 +114,7 @@ fun InsightsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                                 Text(
-                                    "${item.value.rupees().toPlainString()} INR · " +
+                                    "${item.value.asBook()} · " +
                                         "${item.holdingCount} holding(s)",
                                     style = MaterialTheme.typography.bodySmall,
                                 )

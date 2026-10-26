@@ -34,7 +34,6 @@ import `in`.growurdhan.app.presentation.StatementReviewIntent
 import `in`.growurdhan.app.presentation.StatementReviewUiState
 import `in`.growurdhan.core.model.SnapshotResult
 import `in`.growurdhan.domain.finance.ReconciliationOutcome
-import java.math.BigDecimal
 
 /**
  * Financial consent is deliberately explicit. The confirmation checkbox is not
@@ -212,7 +211,7 @@ fun StatementReviewScreen(
                         Text("Source fingerprint ending: …${plan.sourceSha256.takeLast(8)}")
                         Text("Positions reviewed: ${plan.lines.size}")
                         Text("Proposed ledger adjustments: $events")
-                        Text("Estimated change in value: ₹${plan.estimatedValueChange.rupees().toPlainString()}")
+                        Text("Estimated change in value: ${plan.estimatedValueChange.asBook()}")
                         Text("Purchase cost can remain unknown when the registrar reports only market value.")
                     }
                 }
@@ -227,9 +226,9 @@ fun StatementReviewScreen(
                                 "Statement position ${index + 1} — ${item.outcome.name.replace('_', ' ')}",
                                 style = MaterialTheme.typography.titleMedium,
                             )
-                            Text("Units on statement: ${BigDecimal.valueOf(item.source.quantityScaled, 8).toPlainString()}")
-                            Text("Units previously recorded: ${BigDecimal.valueOf(item.expectedQtyScaled, 8).toPlainString()}")
-                            Text("Proposed unit difference: ${BigDecimal.valueOf(item.deltaQtyScaled, 8).toPlainString()}")
+                            Text("Quantity on statement: ${bookQuantity(item.source.quantityScaled)}")
+                            Text("Quantity previously recorded: ${bookQuantity(item.expectedQtyScaled)}")
+                            Text("Proposed quantity difference: ${bookQuantity(item.deltaQtyScaled)}")
                             Text(item.explanation)
                             if (item.outcome == ReconciliationOutcome.CONFLICT) {
                                 Text(

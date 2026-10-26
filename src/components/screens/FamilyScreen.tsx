@@ -7,7 +7,7 @@ import { maskPan } from '../../lib/vault';
 import { suggestedBackupName } from '../../lib/backup';
 import { saveBackupFile, pickBackupFile } from '../../lib/backupIo';
 import { useLicence } from '../../context/LicenseContext';
-import { formatInr, gmailSyncAllowed, inTrial, canPurchaseLifetime, canPurchaseGmailDirect, canPurchaseGmailUpgrade, canPurchaseSupport, isNativeShell, nativeCommand, PRICE_INR, purchaseLifetime, purchaseGmailPlan, purchaseSupport } from '../../lib/license';
+import { formatInr, gmailSyncAllowed, inTrial, canPurchaseAnnual, isNativeShell, nativeCommand, PRICE_INR, purchaseAnnual } from '../../lib/license';
 import { rateOnGooglePlay } from '../../lib/feedback';
 import {
   readBackupSchedule,
@@ -727,7 +727,7 @@ export const FamilyScreen: React.FC<FamilyScreenProps> = ({ onOpenEmergencySheet
           </p>
           {!gmailSyncAllowed(licence.state) && (
             <p className="text-[11px]" style={{ color: 'var(--bad)' }}>
-              Gmail sync is off. The trial included it. The ₹249 licence does not. Pay ₹250 to turn it on.
+              Gmail sync is included in the ₹99 yearly plan. It is on during the trial and while that subscription is active.
             </p>
           )}
           {familyMembers.map(member => (
@@ -747,7 +747,7 @@ export const FamilyScreen: React.FC<FamilyScreenProps> = ({ onOpenEmergencySheet
                 aria-label={`${member.name} Gmail sync`}
                 onClick={() => {
                   if (!gmailSyncAllowed(licence.state)) {
-                    setIdPrompt('Gmail sync is off on the ₹249 licence. The ₹250 upgrade turns it back on.');
+                    setIdPrompt('Gmail sync needs the trial or the ₹99 yearly plan.');
                     return;
                   }
                   if (!member.gmailSync && !member.casId && !member.pran) {
@@ -799,7 +799,7 @@ export const FamilyScreen: React.FC<FamilyScreenProps> = ({ onOpenEmergencySheet
                       .finally(() => setGmailBusy(false));
                   }}
                 >
-                  {gmailSyncAllowed(licence.state) ? (gmailAccounts.length ? 'Add another Gmail' : 'Connect Gmail') : 'Gmail sync is a paid upgrade'}
+                  {gmailSyncAllowed(licence.state) ? (gmailAccounts.length ? 'Add another Gmail' : 'Connect Gmail') : 'Subscribe to connect Gmail'}
                 </button>
                 <button
                   type="button"
@@ -846,27 +846,14 @@ export const FamilyScreen: React.FC<FamilyScreenProps> = ({ onOpenEmergencySheet
           <div className="font-bold">Licence</div>
           <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
             {inTrial(licence.state)
-              ? `Trial: ${licence.state.daysLeft} days left. Every feature is on, including Gmail. After the trial, ₹249 turns Gmail off. ₹499 keeps it. New features after that need the ₹199 yearly service.`
-              : licence.state.lifetime
-              ? licence.state.gmail
-                ? licence.state.supportActive
-                  ? 'Gmail sync is on. New features stay on while the annual service is paid. If you cancel, they stay until that year ends, then they lock. App updates still install.'
-                  : `Gmail sync is on. New features are locked until the ${formatInr(PRICE_INR.supportAnnual)} yearly service is active. App updates still install.`
-                : `Manual licence is on and Gmail sync is off. The ₹499 product is closed. ₹250 turns Gmail on. New features need the ${formatInr(PRICE_INR.supportAnnual)} yearly service.`
-              : 'The trial has ended. Buy ₹249 or ₹499 to open the vault.'}
+              ? `Trial: ${licence.state.daysLeft} days left. Every feature is on, including Gmail. After the trial, ${formatInr(PRICE_INR.annual)} a year keeps the vault and Gmail open.`
+              : licence.state.subscribed
+                ? 'The ₹99 yearly plan is on. The vault and Gmail stay open until this paid year ends.'
+                : 'The trial has ended. ₹99 a year is the only plan that opens the vault.'}
           </p>
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            {canPurchaseLifetime(licence.state) && (
-              <button type="button" onClick={() => void purchaseLifetime().then(licence.setState)} style={{ color: 'var(--accent)' }}>Buy ₹249</button>
-            )}
-            {canPurchaseGmailDirect(licence.state) && (
-              <button type="button" onClick={() => void purchaseGmailPlan().then(licence.setState)} style={{ color: 'var(--accent)' }}>Buy ₹499 with Gmail</button>
-            )}
-            {canPurchaseGmailUpgrade(licence.state) && (
-              <button type="button" onClick={() => void purchaseGmailPlan().then(licence.setState)} style={{ color: 'var(--accent)' }}>Add Gmail for ₹250</button>
-            )}
-            {canPurchaseSupport(licence.state) && (
-              <button type="button" onClick={() => void purchaseSupport().then(licence.setState)} style={{ color: 'var(--accent)' }}>Annual service ₹199</button>
+            {canPurchaseAnnual(licence.state) && (
+              <button type="button" onClick={() => void purchaseAnnual().then(licence.setState)} style={{ color: 'var(--accent)' }}>Subscribe ₹99 / year</button>
             )}
           </div>
           <div className="flex flex-wrap gap-3 text-xs font-semibold" style={{ color: 'var(--accent)' }}>

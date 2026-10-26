@@ -25,6 +25,8 @@ android {
         versionCode = 3000
         versionName = "0.3.0-dev"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Phone CASPARSER needs the arm64 PDFium wheel. Emulator debug stays x86_64.
+        ndk { abiFilters += listOf(if (System.getenv("GUD_PHONE_PARSER") == "1") "arm64-v8a" else "x86_64") }
     }
     buildFeatures { compose = true }
     signingConfigs {
@@ -65,6 +67,7 @@ dependencies {
     implementation(project(":domain"))
     implementation(project(":data"))
     // ARM64-only release module; default x86_64 emulator debug remains lightweight.
+    debugImplementation(project(":casparser-runtime"))
     releaseImplementation(project(":casparser-runtime"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
@@ -77,6 +80,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.billing)
     implementation(libs.dagger.hilt.android)
     kapt(libs.dagger.hilt.compiler)
     debugImplementation(libs.androidx.ui.tooling)

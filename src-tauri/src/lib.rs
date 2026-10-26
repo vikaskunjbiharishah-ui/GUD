@@ -133,9 +133,8 @@ fn vault_blob_save(app: AppHandle, bytes_b64: String) -> Result<(), String> {
 #[tauri::command]
 fn play_licence_status() -> Result<serde_json::Value, String> {
     Ok(serde_json::json!({
-        "lifetime": false,
-        "gmail": false,
-        "supportActive": false,
+        "subscribed": false,
+        "renewsAt": serde_json::Value::Null,
         "integrity": false,
         "trialStartedAt": serde_json::Value::Null
     }))
@@ -143,7 +142,7 @@ fn play_licence_status() -> Result<serde_json::Value, String> {
 
 #[tauri::command]
 fn play_purchase(_sku: String, _offer: Option<String>) -> Result<(), String> {
-    Err("Purchases are only available in the Google Play build.".into())
+    Err("The ₹99 yearly subscription is only available in the Google Play build.".into())
 }
 
 #[tauri::command]

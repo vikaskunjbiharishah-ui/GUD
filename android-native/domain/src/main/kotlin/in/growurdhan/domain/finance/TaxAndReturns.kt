@@ -5,7 +5,6 @@ import java.math.BigInteger
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.pow
-import kotlin.math.round
 
 /** Frozen legacy rule inputs: src/lib/taxRules.ts. Verify statutory rates before release. */
 data class TaxRuleSet(
@@ -15,7 +14,11 @@ data class TaxRuleSet(
     val ltcgExemptionRupees: Long = 125_000,
     val equityLongTermDays: Int = 365,
     val realEstateLongTermDays: Int = 730,
-    val grandfatherDate: LocalDate = LocalDate.of(2018, 1, 31),
+    val otherLongTermDays: Int = 1095,
+    val grandfatherDate: LocalDate? = LocalDate.of(2018, 1, 31),
+    val debtMfAtSlab: Boolean = true,
+    val sgbRedemptionExempt: Boolean = true,
+    val notes: String = "",
     val provisional: Boolean = false,
 )
 
@@ -23,9 +26,19 @@ enum class GainClass { LTCG_EQUITY, STCG_EQUITY, DEBT_SLAB, SGB_EXEMPT, REAL_EST
 
 object IndianTaxRules {
     private val published = mapOf(
-        "AY25-26" to TaxRuleSet("AY25-26"),
-        "AY26-27" to TaxRuleSet("AY26-27"),
-        "AY27-28" to TaxRuleSet("AY27-28", provisional = true),
+        "AY25-26" to TaxRuleSet(
+            "AY25-26",
+            notes = "FY 2024-25. Rates changed mid-year by Finance (No.2) Act 2024; verify against the Act.",
+        ),
+        "AY26-27" to TaxRuleSet(
+            "AY26-27",
+            notes = "FY 2025-26. Verify against Finance Act before release.",
+        ),
+        "AY27-28" to TaxRuleSet(
+            "AY27-28",
+            notes = "FY 2026-27. PROVISIONAL — verify against Finance Act 2026.",
+            provisional = true,
+        ),
     )
     fun forAssessmentYear(year: String): TaxRuleSet? = published[year]
     fun publishedYears(): List<String> = published.keys.sorted()
@@ -67,7 +80,8 @@ object IndianTaxRules {
         proceeds: MoneyScaled,
         fmv: MoneyScaled?,
     ): MoneyScaled {
-        if (purchaseDate > rules.grandfatherDate || fmv == null || fmv.raw <= 0) return actualCost
+        val cutoff = rules.grandfatherDate ?: return actualCost
+        if (purchaseDate > cutoff || fmv == null || fmv.raw <= 0) return actualCost
         return MoneyScaled(maxOf(actualCost.raw, minOf(fmv.raw, proceeds.raw)))
     }
 
@@ -90,7 +104,7 @@ object ReturnEngine {
         asOf: LocalDate,
     ): List<DatedCashFlow> {
         val all = mutableListOf<DatedCashFlow>()
-        for (event in events.filter { it.date <= asOf }) {
+        for (event in events) {
             val amount = if (event.totalAmount.raw != 0L) event.totalAmount.raw.big().abs().toCheckedLong()
                 else if (event.unitPrice != null) {
                     timesQuantity(event.quantityScaled.big().abs().toCheckedLong(), event.unitPrice.raw).big().abs().toCheckedLong()
@@ -110,6 +124,12 @@ object ReturnEngine {
         return all.sortedBy { it.date }
     }
 
+    /** Simple total gain, not annualised. src/lib/returns.ts totalGainPercent. */
+    fun totalGainPercent(invested: MoneyScaled, gain: MoneyScaled): Double {
+        if (invested.raw <= 0L) return 0.0
+        return java.lang.Math.round((gain.raw.toDouble() / invested.raw.toDouble()) * 10_000.0) / 100.0
+    }
+
     /** Port of src/lib/returns.ts: Newton-Raphson then bisection, or null on no convergence. */
     fun xirr(flows: List<DatedCashFlow>): Double? {
         if (flows.size < 2 || flows.none { it.amount.raw < 0 } || flows.none { it.amount.raw > 0 }) return null
@@ -122,7 +142,7 @@ object ReturnEngine {
                 (it.amount.raw / 10_000.0) / (1.0 + rate).pow(years)
             }
         }
-        fun asPercent(rate: Double): Double = round(rate * 10_000) / 100
+        fun asPercent(rate: Double): Double = java.lang.Math.round(rate * 10_000.0) / 100.0
         var rate = .1
         for (step in 0 until 60) {
             val value = npv(rate)

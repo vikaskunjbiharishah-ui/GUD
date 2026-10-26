@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.domain.finance.RecordedHoldingDashboard
-import java.math.BigDecimal
 
 private const val PAGE_SIZE = 30
 
@@ -81,21 +80,19 @@ internal fun RecordedHoldingsSection(holdings: List<RecordedHoldingDashboard>) {
                     )
                     Text(
                         (if (holding.isLiability) "Outstanding liability: " else "Recorded value: ") +
-                            holding.recordedValue.rupees().toPlainString() + " INR",
+                            holding.recordedValue.asBook(),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     if (!holding.isLiability) {
                         Text(
-                            "Units: " + BigDecimal.valueOf(holding.quantityScaled, 8)
-                                .stripTrailingZeros().toPlainString(),
+                            "Quantity: " + bookQuantity(holding.quantityScaled),
                             style = MaterialTheme.typography.bodySmall,
                         )
                         val verifiedGain = holding.unrealisedGain
                         Text(
                             when {
                                 holding.unknownHistoricalCost -> "Historical cost unknown; gain unavailable"
-                                verifiedGain != null -> "Unrealised gain/loss: " +
-                                    verifiedGain.rupees().toPlainString() + " INR"
+                                verifiedGain != null -> "Unrealised gain/loss: " + verifiedGain.asBook()
                                 else -> "Unrealised gain/loss unavailable"
                             },
                             style = MaterialTheme.typography.bodySmall,

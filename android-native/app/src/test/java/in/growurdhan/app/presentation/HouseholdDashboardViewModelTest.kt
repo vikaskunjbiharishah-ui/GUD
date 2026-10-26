@@ -116,8 +116,8 @@ class HouseholdDashboardViewModelTest {
 
     @Test fun missingFamilyRegistryNeverCreatesSyntheticDashboardOwners() = runTest {
         val repo = mockk<VaultRepository>()
-        coEvery { repo.readBook() } returns book()
-        coEvery { repo.holdingProfiles() } returns emptyList().copy(members = emptyList())
+        coEvery { repo.readBook() } returns book().copy(members = emptyList())
+        coEvery { repo.holdingProfiles() } returns emptyList()
         val gate = VaultSessionGate(UnitTestPasswordAdmission).also { it.grantDeviceCredential() }
         val vm = HouseholdDashboardViewModel(repo, gate)
 

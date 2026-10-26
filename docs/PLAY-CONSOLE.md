@@ -31,28 +31,25 @@ Complete these in the console. The repo cannot tick them for you.
 
 ## Products
 
-- [ ] In-app product `gud_lifetime` — one-time, ₹249, licence testers enabled
-- [ ] Subscription `gud_support_annual` — ₹299 / year
-  - Base plan `standalone` (the only offer the app buys)
-  - Leave any leftover intro offer `with_licence` (₹250) **unpublished** — the app no longer sells a first-year bundle
+- [ ] Subscription `gud_annual` — ₹99 / year, recurring. This is the only paid product.
+  - One base plan, billed yearly. Do not publish `gud_lifetime`, `gud_gmail`, `gud_gmail_upgrade`, or `gud_support_annual`.
 - [ ] Licence testers for `play.review@growurdhan.in`
 
 ## Trial (read this)
 
-Play does **not** attach a 30-day free trial to a one-time product. A subscription trial would auto-charge after 30 days, which contradicts a perpetual ₹249 licence.
+The app is free to install. A genuine Play install starts a 30-day trial on that device. Play does not run that trial: a Play free-trial offer would auto-charge, and this trial must not.
 
-What we ship instead (Payments-policy compliant):
-
-1. The app is **free** on the store.
-2. A genuine Play install starts a 30-day trial bound to that device’s Keystore. Prices are on the last intro slide, the licence screen, and the store listing.
-3. After 30 days the vault stays on the phone but the UI asks for `gud_lifetime` through **Google Play Billing only**. No Stripe, UPI, or “pay on our website”.
-4. Buying `gud_lifetime` is perpetual and restores on any phone signed into the same Play account (`queryPurchasesAsync`). A copied APK fails the Play installer check and stays locked.
+1. During the 30 days every feature is on, including Gmail sync.
+2. After 30 days the vault file may stay on the phone, but the app locks until `gud_annual` is active.
+3. Checkout is Google Play Billing only. No Stripe, UPI, or “pay on our website”.
+4. While the year is paid, the vault stays open and Gmail sync stays on. It is not a lifetime licence. Cancel in Play; access continues until that period ends, then the app locks.
+5. A copied APK stays locked unless that same Play account already has an active `gud_annual`.
 
 ## Payments policy
 
 - [ ] No Stripe, UPI deep links, or “pay on our website” inside the app
-- [ ] Trial and prices stated on onboarding slide 6 and on the licence screen
-- [ ] Support subscription can be cancelled in Play; the lifetime licence remains
+- [ ] Trial and the ₹99 yearly price stated on onboarding and on the licence screen
+- [ ] The subscription can be cancelled in Play; there is no second product left behind
 
 ## Reviews
 

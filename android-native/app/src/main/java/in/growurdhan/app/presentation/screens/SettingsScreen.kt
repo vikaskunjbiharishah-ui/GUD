@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import `in`.growurdhan.app.presentation.AppIntent
 import `in`.growurdhan.core.model.AppearanceSettings
 import `in`.growurdhan.core.model.ThemeMode
+import `in`.growurdhan.domain.finance.LicenceState
 
 @Composable
 fun SettingsScreen(
@@ -39,6 +40,9 @@ fun SettingsScreen(
     onOpenPrivacy: () -> Unit = {},
     onChangeAppPassword: () -> Unit = {},
     onOpenEmergencyExport: () -> Unit = {},
+    onOpenBackupFolder: () -> Unit = {},
+    licence: LicenceState? = null,
+    onOpenLicence: () -> Unit = {},
 ) {
     val haptics = LocalHapticFeedback.current
     Column(
@@ -117,22 +121,26 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    "Commercial release readiness",
+                    "Yearly plan",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    "This native build is still in development. Paid access and " +
-                        "Gmail account connection are not enabled.",
+                    when {
+                        licence == null -> "₹99 a year on Google Play, after a 30-day trial."
+                        licence.subscribed -> "₹99 a year is on. The vault and Gmail stay open while it is paid."
+                        licence.sideloadBlocked -> "This copy was not installed from Google Play."
+                        licence.plan == "trial" -> "Trial: ${licence.daysLeft} days left. Then ₹99 a year."
+                        else -> "The trial has ended. ₹99 a year on Google Play."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    "Before a Play release: old account/email recovery compatibility, " +
-                        "legacy migration, live prices, verified NPS imports, Gmail OAuth, " +
-                        "Play purchase verification, legal approval, device QA " +
-                        "and independent security testing must be accepted.",
+                    "One plan only. There is no lifetime licence and no second product. " +
+                        "Gmail account connection is not enabled yet.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                OutlinedButton(onClick = onOpenLicence) { Text("Yearly plan") }
                 Text(
                     "Native financial access requires both the local GrowUrDhan " +
                         "app password and Android device credential. The app password " +
@@ -146,6 +154,11 @@ fun SettingsScreen(
             onClick = onOpenEmergencyExport,
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Export emergency summary (unencrypted CSV)") }
+
+        OutlinedButton(
+            onClick = onOpenBackupFolder,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Backup folder") }
 
         OutlinedButton(
             onClick = onChangeAppPassword,

@@ -54,6 +54,7 @@ import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.core.model.HoldingId
 import `in`.growurdhan.app.market.OfficialAmfiCatalogGateway
 import `in`.growurdhan.domain.market.CachedListedSecurity
+import `in`.growurdhan.app.presentation.screens.BackupFolderScreen
 import `in`.growurdhan.app.presentation.screens.PortableRecoveryIntent
 import `in`.growurdhan.app.presentation.screens.PortableRecoveryScreen
 import `in`.growurdhan.app.presentation.screens.CustodyHoldingScreen
@@ -66,6 +67,7 @@ import `in`.growurdhan.app.presentation.screens.InsightsScreen
 import `in`.growurdhan.app.presentation.screens.TaxOwnerScopeScreen
 import `in`.growurdhan.app.presentation.screens.StatementReviewScreen
 import `in`.growurdhan.app.presentation.screens.PrivacyScreen
+import `in`.growurdhan.app.presentation.screens.LicenceScreen
 import `in`.growurdhan.app.presentation.screens.SettingsScreen
 import `in`.growurdhan.app.presentation.screens.VaultScreen
 import `in`.growurdhan.app.presentation.screens.LegacyBackupScreen
@@ -102,6 +104,8 @@ private const val MANUAL_TRADE_ROUTE = "manual-trade"
 private const val LEGACY_PREVIEW_ROUTE = "legacy-preview"
 private const val PASSWORD_CHANGE_ROUTE = "password-change"
 private const val EMERGENCY_EXPORT_ROUTE = "emergency-export"
+private const val BACKUP_FOLDER_ROUTE = "backup-folder"
+private const val LICENCE_ROUTE = "licence"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,6 +134,14 @@ fun GrowUrDhanShell(
     dossierStatus: EmergencyExportUiState = EmergencyExportUiState.READY,
     onChooseDossierDestination: () -> Unit = {},
     onCancelDossier: () -> Unit = {},
+    backupFolderState: BackupFolderUiState = BackupFolderUiState(),
+    onPickBackupFolder: () -> Unit = {},
+    onBackupFolderEnabled: (Boolean) -> Unit = {},
+    onBackupFolderNow: (CharArray) -> Unit = {},
+    onBackupFolderRefresh: () -> Unit = {},
+    licenceState: LicenceUiState = LicenceUiState(),
+    onLicencePurchase: () -> Unit = {},
+    onLicenceRefresh: () -> Unit = {},
 ) {
     val controller = rememberNavController()
     val currentBackStackEntry by controller.currentBackStackEntryAsState()
@@ -479,6 +491,24 @@ fun GrowUrDhanShell(
                             },
                         )
                     }
+                    composable(BACKUP_FOLDER_ROUTE) {
+                        LaunchedEffect(Unit) { onBackupFolderRefresh() }
+                        BackupFolderScreen(
+                            state = backupFolderState,
+                            onPickFolder = onPickBackupFolder,
+                            onEnabled = onBackupFolderEnabled,
+                            onBackupNow = onBackupFolderNow,
+                            onBack = { navigate(MainDestination.SETTINGS.route) },
+                        )
+                    }
+                    composable(LICENCE_ROUTE) {
+                        LicenceScreen(
+                            state = licenceState,
+                            onPurchase = onLicencePurchase,
+                            onRestore = onLicenceRefresh,
+                            onBack = { navigate(MainDestination.SETTINGS.route) },
+                        )
+                    }
                     composable(PRIVACY_ROUTE) {
                         PrivacyScreen()
                     }
@@ -490,6 +520,9 @@ fun GrowUrDhanShell(
                             onOpenPrivacy = { navigate(PRIVACY_ROUTE) },
                             onChangeAppPassword = { navigate(PASSWORD_CHANGE_ROUTE) },
                             onOpenEmergencyExport = { navigate(EMERGENCY_EXPORT_ROUTE) },
+                            onOpenBackupFolder = { navigate(BACKUP_FOLDER_ROUTE) },
+                            licence = licenceState.licence,
+                            onOpenLicence = { navigate(LICENCE_ROUTE) },
                         )
                     }
                 }

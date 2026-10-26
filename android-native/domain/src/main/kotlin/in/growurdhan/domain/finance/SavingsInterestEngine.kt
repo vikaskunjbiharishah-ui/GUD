@@ -6,6 +6,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.pow
 import java.time.LocalDate
+import java.util.Locale
 
 /**
  * Reference inputs: src/lib/interest.ts, Jul–Sep 2026 small-savings rates
@@ -220,4 +221,292 @@ object SavingsInterestEngine {
             assumption = "Historical balances and rate changes are not fully known; confirm against the passbook.",
         )
     }
+
+    /** src/lib/interest.ts interestKindOf. NPS is not a small-savings product. */
+    fun interestKindOf(holding: FinancialHolding, statedRate: Double? = null): SavingsKind? {
+        if (holding.category == "LIABILITY") return null
+        val sub = holding.subCategory.lowercase()
+        val sgbName = Regex("\\bSGB\\b").containsMatchIn(holding.name.uppercase()) ||
+            "SOVEREIGN GOLD" in holding.name.uppercase()
+        if (holding.category == "GOLD_SGB") {
+            if (Regex("physical|digital").containsMatchIn(sub)) return null
+            if (Regex("\\bother\\b").containsMatchIn(sub) && !sgbName) return null
+            if (Regex("sovereign|\\bsgb\\b").containsMatchIn(sub) || sgbName || sub.isEmpty()) return SavingsKind.SGB
+            return null
+        }
+        if (sgbName && !Regex("physical|digital").containsMatchIn(sub)) return SavingsKind.SGB
+        if (holding.category != "FIXED_INCOME") return null
+        val blob = "${holding.subCategory} ${holding.name}"
+        if (Regex("\\bnps\\b").containsMatchIn(blob.lowercase())) return null
+        kindForSubcategory(blob)?.let { return it }
+        if (sub == "other" && (statedRate ?: 0.0) > 0.0) return SavingsKind.OTHER
+        return null
+    }
+
+    /**
+     * Catch-up from src/lib/interest.ts. A payout is cash and does not change
+     * the holding. A typed "Manual Verified" balance is not rebuilt.
+     * When the stored balance is still the deposit, earlier 31 March credits
+     * are projected. A balance that has already moved is only credited forward.
+     */
+    fun planInterest(
+        terms: SchemeTerms,
+        asOf: LocalDate,
+        alreadyPosted: Set<LocalDate> = emptySet(),
+    ): InterestCatchUp? {
+        val spec = interestSpec(terms) ?: return null
+        val acquired = terms.holding.acquiredOn
+        val locked = Regex("Manual Verified").containsMatchIn(terms.priceSource)
+        val deposited = investedOf(terms.holding)
+        val projectFromDeposit = spec.mode == SavingsInterestMode.COMPOUND &&
+            !locked && acquired != null && deposited > 0L && spec.principal.raw == deposited
+        val dates = if (spec.mode == SavingsInterestMode.PAYOUT) {
+            payoutSchedule(terms, spec, asOf).filter { it !in alreadyPosted }
+        } else if (locked) {
+            return null
+        } else if (projectFromDeposit) {
+            fyEndDatesAfter(acquired!!, asOf).filter { terms.maturityOn == null || it <= terms.maturityOn }
+        } else {
+            val after = laterDate(terms.valuedOn, acquired) ?: return null
+            fyEndDatesAfter(after, asOf).filter {
+                it !in alreadyPosted && (terms.maturityOn == null || it <= terms.maturityOn)
+            }
+        }
+        if (dates.isEmpty()) return null
+        var principal = if (projectFromDeposit) deposited else spec.principal.raw
+        val events = mutableListOf<PlannedInterest>()
+        for (date in dates) {
+            if (!projectFromDeposit && date in alreadyPosted) continue
+            val contrib = if (spec.mode == SavingsInterestMode.COMPOUND) contributionThisFy(terms, spec.kind, date) else null
+            var base = principal
+            if (contrib != null && contrib.earnsThisYear) base = Math.addExact(base, contrib.amount.raw)
+            val amount = when {
+                spec.mode == SavingsInterestMode.PAYOUT ->
+                    coupon(MoneyScaled(principal), spec.rateBps, spec.periodsPerYear)
+                spec.quarterlyCompound ->
+                    quarterlyCompoundAccrual(MoneyScaled(base), spec.rateBps, monthsHeldInFy(acquired, date))
+                else -> annualAccrual(MoneyScaled(base), spec.rateBps, monthsHeldInFy(acquired, date))
+            }
+            if (amount.raw <= 0L) {
+                if (spec.mode == SavingsInterestMode.COMPOUND && contrib != null && !contrib.earnsThisYear) {
+                    principal = Math.addExact(principal, contrib.amount.raw)
+                }
+                continue
+            }
+            if (date !in alreadyPosted) {
+                events += PlannedInterest(date, amount, interestNote(spec, date))
+            }
+            if (spec.mode == SavingsInterestMode.COMPOUND) {
+                principal = Math.addExact(base, amount.raw)
+                if (contrib != null && !contrib.earnsThisYear) principal = Math.addExact(principal, contrib.amount.raw)
+            }
+        }
+        if (events.isEmpty()) return null
+        val grown = if (spec.mode == SavingsInterestMode.COMPOUND) MoneyScaled(principal) else null
+        if (grown != null && grown.raw == terms.balance.raw) return null
+        return InterestCatchUp(events, grown)
+    }
+
+    fun planMonthlyIncome(
+        terms: SchemeTerms,
+        asOf: LocalDate,
+        alreadyPosted: Set<LocalDate> = emptySet(),
+    ): List<PlannedInterest>? {
+        val amount = terms.monthlyIncome ?: return null
+        if (amount.raw <= 0L) return null
+        val start = terms.incomeStart ?: terms.holding.acquiredOn ?: return null
+        val dates = monthlyIncomeDates(start, terms.incomeDay ?: 1, asOf, terms.incomeEnd)
+            .filter { it !in alreadyPosted }
+        if (dates.isEmpty()) return null
+        return dates.map { PlannedInterest(it, amount, "Monthly income on $it") }
+    }
+
+    fun nextMonthlyIncomeDate(terms: SchemeTerms, asOf: LocalDate): LocalDate? {
+        val amount = terms.monthlyIncome ?: return null
+        if (amount.raw <= 0L) return null
+        val start = terms.incomeStart ?: terms.holding.acquiredOn ?: return null
+        val horizon = LoanEmiEngine.addCalendarMonths(asOf, 36)
+        return monthlyIncomeDates(start, terms.incomeDay ?: 1, horizon, terms.incomeEnd)
+            .firstOrNull { it >= asOf }
+    }
+
+    private data class Spec(
+        val kind: SavingsKind,
+        val mode: SavingsInterestMode,
+        val rateBps: Int,
+        val ratePercent: Double,
+        val principal: MoneyScaled,
+        val periodsPerYear: Int,
+        val stepMonths: Int,
+        val quarterlyCompound: Boolean,
+    )
+
+    private fun interestSpec(terms: SchemeTerms): Spec? {
+        val kind = interestKindOf(terms.holding, terms.ratePercent) ?: return null
+        val stated = if (kind == SavingsKind.SGB) terms.couponRatePercent else terms.ratePercent
+        val rateBps = if (stated != null && stated > 0.0) java.lang.Math.round(stated * 100.0).toInt()
+            else defaultRateBps(kind) ?: return null
+        if (rateBps <= 0) return null
+        if (kind == SavingsKind.FD && terms.compounding == null) return null
+        val periods = periodsFor(kind, terms.compounding)
+        val ratePercent = rateBps / 100.0
+        if (kind == SavingsKind.SGB) {
+            val issue = terms.issuePrice ?: return null
+            val principal = timesQuantity(terms.holding.storedQuantityScaled, issue.raw)
+            if (principal <= 0L) return null
+            return Spec(kind, SavingsInterestMode.PAYOUT, rateBps, ratePercent, MoneyScaled(principal), 2, 6, false)
+        }
+        if (kind == SavingsKind.BOND) {
+            val face = terms.issuePrice?.takeIf { it.raw > 0L } ?: terms.balance
+            if (face.raw <= 0L) return null
+            val principal = timesQuantity(terms.holding.storedQuantityScaled, face.raw)
+            if (principal <= 0L) return null
+            return Spec(kind, SavingsInterestMode.PAYOUT, rateBps, ratePercent, MoneyScaled(principal), periods.first, periods.second, false)
+        }
+        if (terms.balance.raw <= 0L && kind != SavingsKind.FD) return null
+        if (kind in setOf(SavingsKind.SCSS, SavingsKind.POMIS, SavingsKind.FRSB)) {
+            if (terms.balance.raw <= 0L) return null
+            return Spec(kind, SavingsInterestMode.PAYOUT, rateBps, ratePercent, terms.balance, periods.first, periods.second, false)
+        }
+        if (kind == SavingsKind.FD) {
+            val cumulative = terms.compounding == "CUMULATIVE"
+            val deposited = investedOf(terms.holding)
+            val principal = if (!cumulative && deposited > 0L) deposited else terms.balance.raw
+            if (principal <= 0L) return null
+            return Spec(
+                kind, if (cumulative) SavingsInterestMode.COMPOUND else SavingsInterestMode.PAYOUT,
+                rateBps, ratePercent, MoneyScaled(principal), periods.first, periods.second, cumulative,
+            )
+        }
+        if (terms.balance.raw <= 0L) return null
+        val rd = kind == SavingsKind.RD
+        return Spec(
+            kind, SavingsInterestMode.COMPOUND, rateBps, ratePercent, terms.balance,
+            if (rd) 4 else 1, periods.second, rd,
+        )
+    }
+
+    private fun periodsFor(kind: SavingsKind, compounding: String?): Pair<Int, Int> = when (kind) {
+        SavingsKind.FD -> when (compounding) {
+            "MONTHLY" -> 12 to 1
+            "HALF_YEARLY" -> 2 to 6
+            "YEARLY" -> 1 to 12
+            else -> 4 to 3
+        }
+        SavingsKind.POMIS -> 12 to 1
+        SavingsKind.SCSS, SavingsKind.RD -> 4 to 3
+        else -> 2 to 6
+    }
+
+    private fun payoutSchedule(terms: SchemeTerms, spec: Spec, asOf: LocalDate): List<LocalDate> {
+        val acquired = terms.holding.acquiredOn ?: return emptyList()
+        if (spec.kind == SavingsKind.FRSB) {
+            val out = mutableListOf<LocalDate>()
+            for (year in acquired.year..asOf.year + 1) {
+                for (month in listOf(1, 7)) {
+                    val day = LocalDate.of(year, month, 1)
+                    if (day <= acquired || day > asOf) continue
+                    if (terms.maturityOn != null && day > terms.maturityOn) continue
+                    out += day
+                }
+            }
+            return out
+        }
+        return payoutDates(acquired, spec.stepMonths, asOf, terms.maturityOn)
+    }
+
+    private fun contributionThisFy(terms: SchemeTerms, kind: SavingsKind, fyEnd: LocalDate): FyContribution? {
+        if (terms.compounding != null) return null
+        if (kind != SavingsKind.PPF && kind != SavingsKind.SSY) return null
+        val amount = terms.annualContribution ?: return null
+        val whenPaid = terms.contributionOn ?: return null
+        if (amount.raw <= 0L) return null
+        val start = LocalDate.of(fyEnd.year - 1, 4, 1)
+        if (whenPaid < start || whenPaid > fyEnd) return null
+        return FyContribution(amount, earnsThisYear = whenPaid.dayOfMonth <= 5)
+    }
+
+    private fun investedOf(holding: FinancialHolding): Long {
+        val cost = holding.openingCostPerUnit ?: return 0L
+        if (holding.storedQuantityScaled <= 0L || cost.raw <= 0L) return 0L
+        return timesQuantity(holding.storedQuantityScaled, cost.raw)
+    }
+
+    private fun laterDate(a: LocalDate?, b: LocalDate?): LocalDate? = when {
+        a == null -> b
+        b == null -> a
+        else -> maxOf(a, b)
+    }
+
+    private fun interestNote(spec: Spec, date: LocalDate): String {
+        val rate = formatRate(spec.ratePercent)
+        val fy = fyLabel(date)
+        return when (spec.kind) {
+            SavingsKind.SGB -> "SGB half-year coupon on $date ($rate% on the issue price)"
+            SavingsKind.PPF -> "PPF interest for FY $fy ($rate%)"
+            SavingsKind.EPF -> "EPF interest for FY $fy ($rate%, passbook date 31 March)"
+            SavingsKind.SSY -> "SSY interest for FY $fy ($rate%)"
+            SavingsKind.FD -> if (spec.mode == SavingsInterestMode.COMPOUND)
+                "FD interest for FY $fy ($rate%, compounded quarterly)"
+            else "FD interest paid on $date ($rate%)"
+            SavingsKind.SCSS -> "SCSS quarterly interest on $date ($rate%)"
+            SavingsKind.POMIS -> "POMIS monthly interest on $date ($rate%)"
+            SavingsKind.NSC -> "NSC accrual for FY $fy ($rate%, paid only at maturity)"
+            SavingsKind.KVP -> "KVP accrual for FY $fy ($rate%, paid only at maturity)"
+            SavingsKind.RD -> "RD interest for FY $fy ($rate%, quarterly compound on the balance entered)"
+            SavingsKind.FRSB -> "RBI floating-rate bond interest on $date ($rate%)"
+            SavingsKind.BOND -> "Bond coupon on $date ($rate% on face value)"
+            SavingsKind.OTHER -> "Interest for FY $fy ($rate%)"
+        }
+    }
+
+    private fun formatRate(percent: Double): String {
+        if (percent % 1.0 == 0.0) return percent.toInt().toString()
+        return String.format(Locale.US, "%.2f", percent).trimEnd('0').trimEnd('.')
+    }
+
+    private fun fyLabel(date: LocalDate): String {
+        val endYear = if (date.monthValue > 3) date.year + 1 else date.year
+        return "${endYear - 1}-${(endYear % 100).toString().padStart(2, '0')}"
+    }
+
+    private fun monthlyIncomeDates(
+        start: LocalDate, day: Int, asOf: LocalDate, end: LocalDate?,
+    ): List<LocalDate> {
+        val payday = day.coerceIn(1, 28)
+        var cursor = LocalDate.of(start.year, start.monthValue, minOf(payday, start.lengthOfMonth()))
+        if (cursor < start) cursor = cursor.plusMonths(1).withDayOfMonth(payday)
+        val out = mutableListOf<LocalDate>()
+        repeat(480) {
+            if (cursor > asOf || (end != null && cursor > end)) return out
+            out += cursor
+            cursor = cursor.plusMonths(1).withDayOfMonth(payday)
+        }
+        return out
+    }
 }
+
+private data class FyContribution(val amount: MoneyScaled, val earnsThisYear: Boolean)
+
+/** Inputs that src/lib/interest.ts reads off a holding and its details. */
+data class SchemeTerms(
+    val holding: FinancialHolding,
+    val balance: MoneyScaled,
+    val ratePercent: Double? = null,
+    val couponRatePercent: Double? = null,
+    val issuePrice: MoneyScaled? = null,
+    val priceSource: String = "",
+    val valuedOn: LocalDate? = null,
+    val maturityOn: LocalDate? = null,
+    val compounding: String? = null,
+    val annualContribution: MoneyScaled? = null,
+    val contributionOn: LocalDate? = null,
+    val monthlyIncome: MoneyScaled? = null,
+    val incomeDay: Int? = null,
+    val incomeStart: LocalDate? = null,
+    val incomeEnd: LocalDate? = null,
+)
+
+data class PlannedInterest(val date: LocalDate, val amount: MoneyScaled, val notes: String)
+
+data class InterestCatchUp(val events: List<PlannedInterest>, val grownBalance: MoneyScaled?)

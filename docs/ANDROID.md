@@ -12,25 +12,15 @@ Commercial phone app. Windows stays on `GUD-Windows`. Daily UI work stays on `Gr
 - Play App Signing (upload key in CI secrets; Google holds the app signing key)
 - 30-day trial, then Play Billing only
 
-## Licence SKUs (create in Play Console)
+## Licence SKU (create in Play Console)
 
 | Product id | Type | Price |
 |---|---|---|
-| `gud_lifetime` | One-time | ₹249 |
-| `gud_support_annual` | Subscription, yearly | ₹299. Base plan `standalone` only |
+| `gud_annual` | Subscription, yearly, recurring | ₹99 |
 
-Checkout in the app — **only two options, in this order**:
+There is one paid product. No lifetime licence, no Gmail add-on, and no separate support SKU.
 
-1. Lifetime — ₹249 (required after the 30-day trial). Does **not** include support or enhancements.
-2. Annual support — ₹299 / year (optional; disabled until lifetime is owned).
-
-There is no bundle and no per-member seat. Family members stay unlimited inside the ₹249 licence.
-
-Play cannot attach a 30-day free trial to a one-time SKU. A subscription trial would auto-charge, which is not a perpetual licence. The app is free; a genuine Play install starts a 30-day trial; then the user buys `gud_lifetime` through Play Billing. Prices are on the intro, the paywall, and the store listing.
-
-The lifetime product is perpetual. Support can lapse; the vault still opens. After cancel, support continues until that Play period ends.
-
-Purchases restore on a new phone that uses the **same Google Play account**. A sideloaded APK does not carry the licence.
+The app is free to install. A genuine Play install starts a 30-day trial on the device. After that the vault file may remain, but the app locks until `gud_annual` is active. While the year is paid, the vault and Gmail sync stay on. Cancel in Play; access lasts until that period ends. A sideloaded APK stays locked unless the same Play account already has the year.
 
 ## Encryption
 

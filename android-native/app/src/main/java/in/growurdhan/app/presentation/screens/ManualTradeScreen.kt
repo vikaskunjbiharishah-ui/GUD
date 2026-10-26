@@ -29,7 +29,6 @@ import `in`.growurdhan.domain.finance.ManualTradeDraft
 import `in`.growurdhan.domain.finance.ManualTradeKind
 import `in`.growurdhan.domain.finance.ManualTradePlanner
 import `in`.growurdhan.core.model.HoldingId
-import java.math.BigDecimal
 import java.time.LocalDate
 
 /** A visible review step precedes the separate OS device-credential challenge. */
@@ -82,14 +81,13 @@ fun ManualTradeScreen(
                         Text(
                             "Quantity / split numerator: " +
                                 (if (plan.event.kind.name == "SPLIT") plan.quantity.toString()
-                                    else BigDecimal.valueOf(plan.quantity, 8)
-                                        .stripTrailingZeros().toPlainString()),
+                                    else bookQuantity(plan.quantity)),
                         )
-                        Text("Gross: ${plan.gross.rupees().toPlainString()} INR")
-                        Text("Charges: ${plan.charges.rupees().toPlainString()} INR")
+                        Text("Gross: ${plan.gross.asBook()}")
+                        Text("Charges: ${plan.charges.asBook()}")
                         Text(
                             "Reviewed cash or stated amount: " +
-                                plan.cashAmount.rupees().toPlainString() + " INR",
+                                plan.cashAmount.asBook(),
                         )
                         Text(
                             "This will append one permanent ledger event; you cannot edit " +
@@ -272,7 +270,7 @@ fun ManualTradeScreen(
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
                                     Text(
-                                        "Amount: ${event.amount.rupees().toPlainString()} INR",
+                                        "Amount: ${event.amount.asBook()}",
                                         style = MaterialTheme.typography.bodySmall,
                                     )
                                 }

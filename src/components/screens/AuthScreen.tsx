@@ -358,7 +358,7 @@ export const AuthScreen: React.FC = () => {
         </div>
         <p className="text-[11px] text-center mt-4 leading-relaxed" style={{ color: 'var(--muted)' }}>
           No mobile number. No cloud login. The vault never leaves this phone unless you save a backup.
-          Thirty days free, then a ₹249 lifetime licence on Google Play.
+          Thirty days free, then ₹99 a year on Google Play.
         </p>
       </div>
       {termsReason && (

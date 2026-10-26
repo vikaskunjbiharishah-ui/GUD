@@ -1,0 +1,96 @@
+package `in`.growurdhan.domain.finance
+
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+
+/** Goldens from src/lib/kosha.test.ts section V. */
+class HoldingFormTest {
+    @Test fun fieldsFollowTheInstrument() {
+        assertTrue(HoldingForm.usesUnits("EQUITY"))
+        assertTrue(HoldingForm.usesUnits("GOLD_SGB", "Sovereign Gold Bond"))
+        assertFalse(HoldingForm.usesUnits("FIXED_INCOME", "PPF"))
+        assertTrue(HoldingForm.usesUnits("FIXED_INCOME", "Bond / GOI"))
+        assertFalse(HoldingForm.usesUnits("REAL_ESTATE", "Residential"))
+        assertTrue(HoldingForm.usesUnits("REAL_ESTATE", "REIT"))
+        assertFalse(HoldingForm.usesUnits("REAL_ESTATE", "REIT", InstrumentDetails(altHoldMode = "LUMPSUM")))
+        assertTrue(HoldingForm.usesUnits("REAL_ESTATE", "InvIT"))
+        assertFalse(HoldingForm.usesUnits("SPECIALISED", "PMS"))
+        assertFalse(HoldingForm.usesUnits("SPECIALISED", "AIF"))
+        assertTrue(HoldingForm.usesUnits("SPECIALISED", "AIF", InstrumentDetails(altHoldMode = "DEMAT")))
+        assertTrue(HoldingForm.usesUnits("SPECIALISED", "Unlisted equity"))
+        assertTrue(HoldingForm.usesUnits("SPECIALISED", "ESOP"))
+
+        assertEquals("PRAN (12 digits)", HoldingForm.identifierLabel("FIXED_INCOME", "NPS"))
+        assertEquals("UAN (12 digits)", HoldingForm.identifierLabel("FIXED_INCOME", "EPF"))
+        assertEquals("SGB series", HoldingForm.identifierLabel("GOLD_SGB", "Sovereign Gold Bond"))
+        assertEquals("Invoice / hallmark no.", HoldingForm.identifierLabel("GOLD_SGB", "Physical gold (24K)"))
+        assertEquals("Loan account number", HoldingForm.identifierLabel("LIABILITY", "Home loan"))
+        assertEquals("NSE/BSE Symbol", HoldingForm.identifierLabel("EQUITY", "Large cap"))
+        assertEquals("Folio Number", HoldingForm.identifierLabel("MUTUAL_FUND", "Equity fund"))
+        assertEquals("Symbol or folio", HoldingForm.identifierLabel("MUTUAL_FUND", "Index / ETF"))
+        assertEquals("NSE/BSE Symbol", HoldingForm.identifierLabel("MUTUAL_FUND", "Index / ETF", "DEMAT"))
+        assertEquals("Folio Number", HoldingForm.identifierLabel("MUTUAL_FUND", "Index / ETF", "FOLIO"))
+        assertEquals("Folio (optional)", HoldingForm.identifierLabel("MUTUAL_FUND", "Equity fund", "DEMAT"))
+        assertEquals("Agreement / folio (optional)", HoldingForm.identifierLabel("REAL_ESTATE", "REIT", details = InstrumentDetails(altHoldMode = "LUMPSUM")))
+        assertEquals("ISIN", HoldingForm.identifierLabel("SPECIALISED", "AIF", details = InstrumentDetails(altHoldMode = "DEMAT")))
+
+        assertTrue(HoldingForm.looksLikeUan("100012345678"))
+        assertFalse(HoldingForm.looksLikeUan("12345"))
+        assertTrue(HoldingForm.looksLikePran("110123981321"))
+        assertTrue(HoldingForm.looksLikeIsin("INE467B01029"))
+        assertEquals(2.5, HoldingForm.defaultSgbCoupon())
+        val sgb = HoldingForm.suggestLockIn("GOLD_SGB", "Sovereign Gold Bond", "2020-09-08")
+        assertEquals("2028-09-08", sgb.maturity)
+        assertEquals("2025-09-08", sgb.earlyExit)
+        assertEquals("2026-04-01", HoldingForm.suggestLockIn("FIXED_INCOME", "PPF", "2011-04-01").maturity)
+        assertEquals("2039-02-07", HoldingForm.suggestLockIn("FIXED_INCOME", "Sukanya Samriddhi (SSY)", "2018-02-07").maturity)
+        assertEquals("2026-03-14", HoldingForm.suggestLockIn("MUTUAL_FUND", "ELSS (tax saving)", "2023-03-14").maturity)
+        assertNull(HoldingForm.suggestLockIn("EQUITY", "Large cap", "2020-09-08").maturity)
+
+        assertTrue(HoldingForm.looksLikeNsdlDpId("IN300214"))
+        assertFalse(HoldingForm.looksLikeNsdlDpId("300214"))
+        assertTrue(HoldingForm.looksLikeNsdlClientId("12345678"))
+        assertTrue(HoldingForm.looksLikeBoid("1208160012345678"))
+        assertFalse(HoldingForm.looksLikeBoid("12081600"))
+        assertEquals("DIRECT", HoldingForm.inferPlan("Parag Parikh Flexi Cap Fund - Direct Growth"))
+        assertEquals("REGULAR", HoldingForm.inferPlan("HDFC Flexi Cap Fund Regular Plan"))
+        assertEquals("IDCW", HoldingForm.inferOption("SBI Bluechip Fund Direct IDCW"))
+        assertEquals("GROWTH", HoldingForm.inferOption("Axis ELSS Tax Saver Direct Growth"))
+        assertTrue(HoldingForm.nameLooksLikeEtf("Nippon India ETF Nifty BeES"))
+        assertFalse(HoldingForm.nameLooksLikeEtf("Parag Parikh Flexi Cap Fund"))
+        assertEquals("IN300214 12345678", HoldingForm.dematMask(InstrumentDetails(dpId = "in300214", clientId = "12345678")))
+        assertEquals("1208160012345678", HoldingForm.dematMask(InstrumentDetails(boId = "1208160012345678")))
+
+        val lines = HoldingForm.detailLines("2024-01-15", InstrumentDetails(mfPlan = "DIRECT", mfOption = "GROWTH", mfHeldAs = "FOLIO"))
+        assertTrue(lines.any { it.first == "Plan" && it.second == "Direct" })
+        assertTrue(lines.any { it.first == "Option" && it.second == "Growth" })
+        assertTrue(lines.any { it.first == "Held as" && it.second == "SOA folio" })
+        assertEquals("₹ 5,00,000", HoldingForm.detailLines(null, InstrumentDetails(annualContributionMinor = "5000000000")).single().second)
+
+        assertTrue(HoldingForm.nameLooksLikeReit("Embassy Office Parks REIT"))
+        assertFalse(HoldingForm.nameLooksLikeReit("Tata Consultancy Services"))
+        assertTrue(HoldingForm.nameLooksLikeAif("IIFL India Discovery Fund"))
+        assertEquals("REAL_ESTATE", HoldingForm.recategorize("Embassy Office Parks REIT", "EQUITY"))
+        assertEquals("REAL_ESTATE", HoldingForm.recategorize("IndiGrid InvIT Fund", "EQUITY"))
+        assertEquals("EQUITY", HoldingForm.recategorize("Tata Consultancy Services Ltd", "EQUITY"))
+        assertEquals("GOLD_SGB", HoldingForm.recategorize("SGB 2018-19 Series VI", "EQUITY"))
+        assertEquals("SPECIALISED", HoldingForm.recategorize("Blume Ventures Fund IV", "MUTUAL_FUND", "AIF"))
+        assertEquals("REIT", HoldingForm.subCategoryFor("REAL_ESTATE", "Embassy Office Parks REIT"))
+        assertEquals("InvIT", HoldingForm.subCategoryFor("REAL_ESTATE", "IndiGrid InvIT"))
+        assertEquals("AIF", HoldingForm.subCategoryFor("SPECIALISED", "Edelweiss Crossover", "AIF"))
+        val imported = HoldingForm.importDetails("REAL_ESTATE", "CDSL")
+        assertEquals("DEMAT", imported?.altHoldMode)
+        assertEquals("CDSL", imported?.depository)
+        assertNull(HoldingForm.importDetails("EQUITY", "CDSL"))
+        assertEquals("Trade date", HoldingForm.acquiredOnLabel("EQUITY"))
+        assertEquals("Balance as of", HoldingForm.acquiredOnLabel("FIXED_INCOME", "PPF"))
+        assertEquals("e.g. HDFC Home Loan", HoldingForm.namePlaceholder("LIABILITY", "Home loan"))
+        assertTrue(HoldingForm.hasStatementHistory("CAS Statement Snapshot", false))
+        assertFalse(HoldingForm.hasStatementHistory("manual", false))
+        assertTrue(HoldingForm.isEmpty(InstrumentDetails()))
+        assertFalse(HoldingForm.isEmpty(InstrumentDetails(mfPlan = "DIRECT")))
+    }
+}

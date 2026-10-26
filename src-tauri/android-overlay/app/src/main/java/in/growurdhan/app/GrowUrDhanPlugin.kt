@@ -61,6 +61,10 @@ class GrowUrDhanPlugin(private val activity: Activity) : Plugin(activity), Purch
     private val gmail = GmailClient(activity)
     private val gmailScope = "https://www.googleapis.com/auth/gmail.readonly"
 
+    companion object {
+        private const val SKU_ANNUAL = "gud_annual"
+    }
+
     override fun load(webView: android.webkit.WebView) {
         val pending = PendingPurchasesParams.newBuilder().enableOneTimeProducts().build()
         billing = BillingClient.newBuilder(activity)
@@ -230,8 +234,8 @@ class GrowUrDhanPlugin(private val activity: Activity) : Plugin(activity), Purch
                 return
             }
             val fallback = JSObject()
-            fallback.put("lifetime", false)
-            fallback.put("supportActive", false)
+            fallback.put("subscribed", false)
+            fallback.put("renewsAt", null)
             fallback.put("integrity", trusted)
             fallback.put("trialStartedAt", ensureTrialStarted(trusted))
             invoke.resolve(fallback)
@@ -239,25 +243,15 @@ class GrowUrDhanPlugin(private val activity: Activity) : Plugin(activity), Purch
         }
         val result = JSObject()
         result.put("integrity", trusted)
-        queryKind(client, BillingClient.ProductType.INAPP) { inapp ->
-            val owned = inapp.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-            acknowledgeAll(client, owned)
-            val ids = owned.flatMap { it.products }.toSet()
-            val manual = ids.contains("gud_lifetime")
-            val gmailDirect = ids.contains("gud_gmail")
-            val gmailUpgrade = ids.contains("gud_gmail_upgrade")
-            result.put("lifetime", manual || gmailDirect || gmailUpgrade)
-            result.put("gmail", gmailDirect || gmailUpgrade)
-            queryKind(client, BillingClient.ProductType.SUBS) { subs ->
-                val live = subs.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                acknowledgeAll(client, live)
-                val support = live.firstOrNull { it.products.contains("gud_support_annual") }
-                result.put("supportActive", support != null)
-                result.put("supportRenewsAt", null)
-                result.put("playAccountBound", owned.isNotEmpty() || support != null)
-                result.put("trialStartedAt", ensureTrialStarted(trusted))
-                invoke.resolve(result)
-            }
+        queryKind(client, BillingClient.ProductType.SUBS) { subs ->
+            val live = subs.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+            acknowledgeAll(client, live)
+            val annual = live.firstOrNull { it.products.contains(SKU_ANNUAL) }
+            result.put("subscribed", annual != null)
+            result.put("renewsAt", renewsAtOf(annual))
+            result.put("playAccountBound", annual != null)
+            result.put("trialStartedAt", ensureTrialStarted(trusted))
+            invoke.resolve(result)
         }
         pingIntegrity()
     }
@@ -274,58 +268,42 @@ class GrowUrDhanPlugin(private val activity: Activity) : Plugin(activity), Purch
         if (!installedFromPlay()) {
             return invoke.reject("Install GrowUrDhan from Google Play to buy a licence.")
         }
-        if (args.sku == "gud_support_annual" || args.sku == "gud_lifetime" || args.sku == "gud_gmail" || args.sku == "gud_gmail_upgrade") {
-            queryKind(client, BillingClient.ProductType.INAPP) { inapp ->
-                val ids = inapp.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                    .flatMap { it.products }.toSet()
-                val manual = ids.contains("gud_lifetime")
-                val gmailDirect = ids.contains("gud_gmail")
-                val gmailUpgrade = ids.contains("gud_gmail_upgrade")
-                val perpetual = manual || gmailDirect || gmailUpgrade
-                val gmailOn = gmailDirect || gmailUpgrade
-                if (args.sku == "gud_support_annual" && !perpetual) {
-                    invoke.reject("Buy a perpetual licence first. The annual service cannot be purchased on its own.")
-                    return@queryKind
-                }
-                if (args.sku == "gud_lifetime" && perpetual) {
-                    invoke.reject("A perpetual licence is already on this Play account.")
-                    return@queryKind
-                }
-                if (args.sku == "gud_gmail" && (manual || gmailOn)) {
-                    invoke.reject(if (gmailOn) "Gmail sync is already on this Play account." else "The ₹499 licence is closed. Use the ₹250 upgrade.")
-                    return@queryKind
-                }
-                if (args.sku == "gud_gmail_upgrade" && (!manual || gmailOn)) {
-                    invoke.reject(if (!manual) "Buy the ₹249 licence before the ₹250 upgrade." else "Gmail sync is already on this Play account.")
-                    return@queryKind
-                }
-                launchBuy(invoke, client, args)
-            }
+        if (args.sku != SKU_ANNUAL) {
+            invoke.reject("The only plan is the ₹99 yearly subscription.")
             return
         }
-        launchBuy(invoke, client, args)
+        queryKind(client, BillingClient.ProductType.SUBS) { subs ->
+            val already = subs.any {
+                it.purchaseState == Purchase.PurchaseState.PURCHASED && it.products.contains(SKU_ANNUAL)
+            }
+            if (already) {
+                invoke.reject("The annual plan is already on this Play account.")
+                return@queryKind
+            }
+            launchBuy(invoke, client, args)
+        }
     }
 
     private fun launchBuy(invoke: Invoke, client: BillingClient, args: BuyArgs) {
         pendingPurchase = invoke
-        val productType = if (args.sku == "gud_support_annual") BillingClient.ProductType.SUBS else BillingClient.ProductType.INAPP
         val product = QueryProductDetailsParams.Product.newBuilder()
-            .setProductId(args.sku)
-            .setProductType(productType)
+            .setProductId(SKU_ANNUAL)
+            .setProductType(BillingClient.ProductType.SUBS)
             .build()
         client.queryProductDetailsAsync(
             QueryProductDetailsParams.newBuilder().setProductList(listOf(product)).build()
         ) { _, details ->
             val item: ProductDetails = productDetailsListOf(details).firstOrNull()
-                ?: return@queryProductDetailsAsync invoke.reject("Product ${args.sku} is not in Play Console yet.")
+                ?: return@queryProductDetailsAsync invoke.reject("Product $SKU_ANNUAL is not in Play Console yet.")
             val paramsBuilder = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(item)
             val offers = item.subscriptionOfferDetails
             if (offers != null && offers.isNotEmpty()) {
                 val wanted = args.offer
-                val offer = offers.firstOrNull { od ->
-                    wanted != null && (od.offerId == wanted || od.basePlanId == wanted)
-                } ?: offers.firstOrNull { od -> od.offerId.isNullOrEmpty() && od.basePlanId == "standalone" }
-                    ?: offers.firstOrNull { od -> od.basePlanId == "standalone" }
+                val specific = !wanted.isNullOrEmpty() && wanted != "subscription"
+                val offer = (if (specific) {
+                    offers.firstOrNull { od -> od.offerId == wanted || od.basePlanId == wanted }
+                } else null)
+                    ?: offers.firstOrNull { od -> od.offerId.isNullOrEmpty() }
                     ?: offers.first()
                 paramsBuilder.setOfferToken(offer.offerToken)
             }
@@ -437,6 +415,18 @@ class GrowUrDhanPlugin(private val activity: Activity) : Plugin(activity), Purch
     private fun queryKind(client: BillingClient, type: String, done: (List<Purchase>) -> Unit) {
         client.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(type).build()) { _, list ->
             done(list)
+        }
+    }
+
+    /** Play's client purchase rarely carries an expiry. Use it only when the JSON has one. */
+    private fun renewsAtOf(purchase: Purchase?): String? {
+        if (purchase == null) return null
+        return try {
+            val json = JSONObject(purchase.originalJson)
+            if (!json.has("expiryTimeMillis")) return null
+            java.time.Instant.ofEpochMilli(json.getLong("expiryTimeMillis")).toString()
+        } catch (_: Exception) {
+            null
         }
     }
 

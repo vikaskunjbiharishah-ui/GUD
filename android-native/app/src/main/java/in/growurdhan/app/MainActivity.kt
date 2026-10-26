@@ -3,6 +3,7 @@ package `in`.growurdhan.app
 import android.app.Activity
 import android.app.KeyguardManager
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -43,6 +44,11 @@ import `in`.growurdhan.app.presentation.CustodyHoldingIntent
 import `in`.growurdhan.app.presentation.CustodyHoldingUiState
 import `in`.growurdhan.app.presentation.CustodyHoldingViewModel
 import `in`.growurdhan.app.presentation.AppViewModel
+import `in`.growurdhan.app.billing.PlayBillingGateway
+import `in`.growurdhan.app.presentation.BackupFolderViewModel
+import `in`.growurdhan.app.presentation.LicenceViewModel
+import `in`.growurdhan.app.presentation.screens.LicenceScreen
+import `in`.growurdhan.domain.finance.Licence
 import `in`.growurdhan.app.presentation.GrowUrDhanShell
 import `in`.growurdhan.app.presentation.StatementReviewIntent
 import `in`.growurdhan.app.presentation.StatementReviewUiState
@@ -90,6 +96,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var casReader: NativeCasPdfReader
     @Inject lateinit var repository: VaultRepository
     @Inject lateinit var appPassword: LocalAppPasswordStore
+    @Inject lateinit var playBilling: PlayBillingGateway
     private var localLoginError by mutableStateOf<String?>(null)
     private var showForgotRecovery by mutableStateOf(false)
     private var displayedRecoveryCode by mutableStateOf<String?>(null)
@@ -121,15 +128,18 @@ class MainActivity : ComponentActivity() {
     private val custodyViewModel: CustodyHoldingViewModel by viewModels()
     private val recoveryViewModel: PortableRecoveryViewModel by viewModels()
     private val manualTradeViewModel: ManualTradeViewModel by viewModels()
+    private val backupFolderViewModel: BackupFolderViewModel by viewModels()
+    private val licenceViewModel: LicenceViewModel by viewModels()
     private enum class CredentialAction {
         OPEN_VAULT, APPROVE_REVIEW, IMPORT_PDF, ADD_FAMILY_MEMBER, REGISTER_CUSTODY,
         PORTABLE_BACKUP, APPROVE_MANUAL_TRADE, ENROLL_APP_PASSWORD, INSPECT_LEGACY,
         CHANGE_APP_PASSWORD, EXPORT_DOSSIER, RESTORE_LEGACY, MANAGE_FAMILY,
-        ISSUE_RECOVERY_CODE, RECOVER_APP_PASSWORD, RESTORE_LEGACY_COMMIT,
+        ISSUE_RECOVERY_CODE, RECOVER_APP_PASSWORD, RESTORE_LEGACY_COMMIT, BACKUP_FOLDER,
     }
     private var pendingCredential: CredentialAction? = null
     private var pdfPickerOpen: Boolean = false
     private var backupPickerOpen: Boolean = false
+    private var folderPickerOpen: Boolean = false
     private var backupMode: PortableRecoveryMode? = null
     private var backupUri: Uri? = null
     private var backupPassword: CharArray? = null
@@ -259,6 +269,7 @@ class MainActivity : ComponentActivity() {
                 CredentialAction.PORTABLE_BACKUP -> recoverAfterCredential()
                 CredentialAction.APPROVE_MANUAL_TRADE ->
                     manualTradeViewModel.onIntent(ManualTradeIntent.SaveAfterCredential)
+                CredentialAction.BACKUP_FOLDER -> backupFolderViewModel.writeAfterCredential()
             }
             }
         } else {
@@ -320,6 +331,23 @@ class MainActivity : ComponentActivity() {
             legacyFileUri = uri
             legacyUiState = LegacyBackupUiState.EnterCredentials
         }
+    }
+
+    /** A folder the user picks (Drive, OneDrive, or Downloads). No password is stored. */
+    private val backupFolderPicker = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        folderPickerOpen = false
+        if (uri == null) return@registerForActivityResult
+        try {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+        } catch (_: SecurityException) {
+            return@registerForActivityResult
+        }
+        backupFolderViewModel.rememberFolder(uri, folderLabel(uri))
     }
 
     private fun clearLegacySensitive() {
@@ -629,6 +657,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        playBilling.attach(this)
         // Never allow financial rows or receipt details in OS screenshots/recents.
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         enableEdgeToEdge()
@@ -647,6 +676,8 @@ class MainActivity : ComponentActivity() {
             val custodyState by custodyViewModel.state.collectAsStateWithLifecycle()
             val recoveryState by recoveryViewModel.state.collectAsStateWithLifecycle()
             val manualTradeState by manualTradeViewModel.state.collectAsStateWithLifecycle()
+            val backupFolderState by backupFolderViewModel.state.collectAsStateWithLifecycle()
+            val licenceState by licenceViewModel.state.collectAsStateWithLifecycle()
             androidx.compose.runtime.LaunchedEffect(reviewState) {
                 if (reviewState is StatementReviewUiState.Completed) {
                     dashboardViewModel.refresh()
@@ -738,6 +769,14 @@ class MainActivity : ComponentActivity() {
                         onChange = ::handleChangeLocalPassword,
                         onBack = { lockSensitiveUi() },
                     )
+                } else if (licenceState.checking && !Licence.appUnlocked(licenceState.licence)) {
+                    androidx.compose.material3.Text("Checking Google Play…")
+                } else if (!Licence.appUnlocked(licenceState.licence)) {
+                    LicenceScreen(
+                        state = licenceState,
+                        onPurchase = licenceViewModel::purchase,
+                        onRestore = licenceViewModel::refresh,
+                    )
                 } else GrowUrDhanShell(
                     state = state,
                     onIntent = viewModel::onIntent,
@@ -768,6 +807,14 @@ class MainActivity : ComponentActivity() {
                     dossierStatus = dossierUiStatus,
                     onChooseDossierDestination = ::chooseDossierDestination,
                     onCancelDossier = ::cancelDossier,
+                    backupFolderState = backupFolderState,
+                    onPickBackupFolder = ::chooseBackupFolder,
+                    onBackupFolderEnabled = backupFolderViewModel::setEnabled,
+                    onBackupFolderNow = ::startFolderBackup,
+                    onBackupFolderRefresh = backupFolderViewModel::refresh,
+                    licenceState = licenceState,
+                    onLicencePurchase = licenceViewModel::purchase,
+                    onLicenceRefresh = licenceViewModel::refresh,
                 )
             }
         }
@@ -1236,6 +1283,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun chooseBackupFolder() {
+        if (!appPassword.hasVerifiedPassword()) {
+            lockSensitiveUi()
+            return
+        }
+        folderPickerOpen = true
+        try {
+            backupFolderPicker.launch(null)
+        } catch (_: Exception) {
+            folderPickerOpen = false
+        }
+    }
+
+    private fun startFolderBackup(password: CharArray) {
+        if (backupFolderViewModel.stage(password) == null) return
+        requestCredential(CredentialAction.BACKUP_FOLDER)
+        if (pendingCredential != CredentialAction.BACKUP_FOLDER) {
+            backupFolderViewModel.clearSensitiveState()
+        }
+    }
+
+    private fun folderLabel(uri: Uri): String {
+        val decoded = Uri.decode(uri.lastPathSegment ?: return "Chosen folder")
+        val name = decoded.substringAfterLast(':').substringAfterLast('/').trim()
+        return name.ifBlank { "Chosen folder" }
+    }
+
     private fun requestCredential(action: CredentialAction) {
         if (pendingCredential != null) return
         if (action != CredentialAction.ENROLL_APP_PASSWORD &&
@@ -1272,6 +1346,7 @@ class MainActivity : ComponentActivity() {
             CredentialAction.RESTORE_LEGACY_COMMIT -> "Commit verified migration to empty vault"
             CredentialAction.CHANGE_APP_PASSWORD -> "Change GrowUrDhan app password"
             CredentialAction.EXPORT_DOSSIER -> "Export household emergency summary"
+            CredentialAction.BACKUP_FOLDER -> "Write locked backup folder"
         }
         val explanation = when (action) {
             CredentialAction.OPEN_VAULT ->
@@ -1306,6 +1381,8 @@ class MainActivity : ComponentActivity() {
                 "Confirm your device lock to change your local GrowUrDhan password."
             CredentialAction.EXPORT_DOSSIER ->
                 "Confirm before writing a deliberately unencrypted family CSV file."
+            CredentialAction.BACKUP_FOLDER ->
+                "Confirm your device screen lock before writing a locked .kosha file. The password is not stored."
         }
         val challenge = manager.createConfirmDeviceCredentialIntent(title, explanation)
         if (challenge == null) {
@@ -1348,11 +1425,13 @@ class MainActivity : ComponentActivity() {
         custodyViewModel.clearSensitiveState()
         manualTradeViewModel.clearSensitiveState()
         recoveryViewModel.clearSensitiveState()
+        backupFolderViewModel.clearSensitiveState()
         backupPassword?.fill('\u0000')
         backupPassword = null
         backupMode = null
         backupUri = null
         backupPickerOpen = false
+        folderPickerOpen = false
         pickedPdfOwner = null
         pickedPdfPassword?.fill('\u0000')
         pickedPdfPassword = null
@@ -1363,6 +1442,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        licenceViewModel.refresh()
         timeoutHandler.removeCallbacks(timeoutCheck)
         timeoutHandler.postDelayed(timeoutCheck, 5_000L)
     }
@@ -1396,6 +1476,18 @@ class MainActivity : ComponentActivity() {
             backupPickerOpen -> {
                 // SAF destination/source selection is not a valid financial
                 // session. Password is not collected before the picker.
+                sessionGate.lock()
+                reviewViewModel.clearSensitiveState()
+                familyViewModel.clearSensitiveState()
+        familyAdminViewModel.clearSensitiveState()
+                custodyViewModel.clearSensitiveState()
+                manualTradeViewModel.clearSensitiveState()
+                vaultViewModel.onIntent(VaultIntent.Close)
+            }
+            folderPickerOpen -> {
+                // Choosing Drive or OneDrive is not a financial session.
+                // Do not log the user out, and do not keep a backup password.
+                backupFolderViewModel.clearSensitiveState()
                 sessionGate.lock()
                 reviewViewModel.clearSensitiveState()
                 familyViewModel.clearSensitiveState()
@@ -1446,6 +1538,8 @@ class MainActivity : ComponentActivity() {
         pickedPdfPassword?.fill('\u0000')
         backupPassword = null
         pickedPdfPassword = null
+        backupFolderViewModel.clearSensitiveState()
+        playBilling.shutdown()
         super.onDestroy()
     }
 }

@@ -1,9 +1,9 @@
 /**
  * GrowUrDhan commercial licence.
  *
- * Perpetual access is a one-time Google Play product. Annual support is a
- * Play subscription. A 30-day trial is started on a genuine Play install
- * (native) or a device-bound clock (web preview / device-test APK).
+ * One Google Play subscription: ₹99 a year. A 30-day trial starts on a
+ * genuine Play install (native) or a device-bound clock (web preview /
+ * device-test APK). There is no lifetime licence and no separate Gmail price.
  *
  * VITE_GUD_TEST_APK=1 is set only on the GUD-Android-APK branch so a
  * sideloaded debug APK can be tested on a phone. The Play AAB on
@@ -11,29 +11,21 @@
  */
 export const TRIAL_DAYS = 30;
 
-export const SKU_LIFETIME = 'gud_lifetime';
-export const SKU_GMAIL = 'gud_gmail';
-export const SKU_GMAIL_UPGRADE = 'gud_gmail_upgrade';
-export const SKU_SUPPORT = 'gud_support_annual';
+export const SKU_ANNUAL = 'gud_annual';
 
 export const PRICE_INR = {
-  lifetime: 249,
-  gmail: 499,
-  gmailUpgrade: 250,
-  supportAnnual: 199,
+  annual: 99,
 } as const;
 
-export type LicencePlan = 'trial' | 'lifetime' | 'lifetime_support' | 'expired';
+export type LicencePlan = 'trial' | 'annual' | 'expired';
 
 export interface LicenceState {
   plan: LicencePlan;
   trialStartedAt: string | null;
   trialEndsAt: string | null;
   daysLeft: number;
-  lifetime: boolean;
-  gmail: boolean;
-  supportActive: boolean;
-  supportRenewsAt: string | null;
+  subscribed: boolean;
+  renewsAt: string | null;
   playAccountBound: boolean;
   sideloadBlocked: boolean;
   source: 'play' | 'preview';
@@ -44,19 +36,15 @@ export const EMPTY_LICENCE: LicenceState = {
   trialStartedAt: null,
   trialEndsAt: null,
   daysLeft: TRIAL_DAYS,
-  lifetime: false,
-  gmail: false,
-  supportActive: false,
-  supportRenewsAt: null,
+  subscribed: false,
+  renewsAt: null,
   playAccountBound: false,
   sideloadBlocked: false,
   source: 'preview',
 };
 
 const LS_TRIAL = 'gud.licence.trialStartedAt';
-const LS_LIFETIME = 'gud.licence.lifetime';
-const LS_GMAIL = 'gud.licence.gmail';
-const LS_SUPPORT_UNTIL = 'gud.licence.supportUntil';
+const LS_ANNUAL_UNTIL = 'gud.licence.annualUntil';
 
 function isoDaysFrom(startIso: string, days: number): string {
   const t = Date.parse(startIso);
@@ -80,24 +68,21 @@ export function daysRemaining(trialStartedAt: string, now = new Date()): number 
 }
 
 export function derivePlan(input: {
-  lifetime: boolean;
-  supportActive: boolean;
+  subscribed: boolean;
   trialStartedAt: string | null;
   now?: Date;
 }): Pick<LicenceState, 'plan' | 'daysLeft' | 'trialEndsAt'> {
   const now = input.now || new Date();
-  if (input.lifetime && input.supportActive) {
-    return { plan: 'lifetime_support', daysLeft: 0, trialEndsAt: null };
-  }
-  if (input.lifetime) {
-    return { plan: 'lifetime', daysLeft: 0, trialEndsAt: null };
+  if (input.subscribed) {
+    return { plan: 'annual', daysLeft: 0, trialEndsAt: null };
   }
   if (input.trialStartedAt) {
     const left = daysRemaining(input.trialStartedAt, now);
     const trialEndsAt = isoDaysFrom(input.trialStartedAt, TRIAL_DAYS);
     if (left > 0) return { plan: 'trial', daysLeft: left, trialEndsAt };
+    return { plan: 'expired', daysLeft: 0, trialEndsAt };
   }
-  return { plan: 'expired', daysLeft: 0, trialEndsAt: input.trialStartedAt ? isoDaysFrom(input.trialStartedAt, TRIAL_DAYS) : null };
+  return { plan: 'expired', daysLeft: 0, trialEndsAt: null };
 }
 
 export function formatInr(n: number): string {
@@ -247,20 +232,16 @@ function readPreviewState(now = new Date()): LicenceState {
     trialStartedAt = now.toISOString();
     localStorage.setItem(LS_TRIAL, trialStartedAt);
   }
-  const lifetime = localStorage.getItem(LS_LIFETIME) === '1';
-  const gmail = localStorage.getItem(LS_GMAIL) === '1';
-  const supportUntil = localStorage.getItem(LS_SUPPORT_UNTIL);
-  const supportActive = Boolean(supportUntil && Date.parse(supportUntil) > now.getTime());
-  const derived = derivePlan({ lifetime, supportActive, trialStartedAt, now });
+  const renewsAt = localStorage.getItem(LS_ANNUAL_UNTIL);
+  const subscribed = Boolean(renewsAt && Date.parse(renewsAt) > now.getTime());
+  const derived = derivePlan({ subscribed, trialStartedAt, now });
   return {
     ...EMPTY_LICENCE,
     ...derived,
     trialStartedAt,
-    lifetime,
-    gmail,
-    supportActive,
-    supportRenewsAt: supportUntil,
-    playAccountBound: lifetime,
+    subscribed,
+    renewsAt,
+    playAccountBound: subscribed,
     source: 'preview',
   };
 }
@@ -272,23 +253,17 @@ export async function loadLicence(now = new Date()): Promise<LicenceState> {
   if (isNativeShell()) {
     try {
       const remote = await nativeCommand<Partial<LicenceState> & { ok?: boolean; integrity?: boolean }>('play_licence_status');
-      const ownsManual = Boolean(remote.lifetime);
-      const ownsGmail = Boolean(remote.gmail);
-      const lifetime = ownsManual || ownsGmail;
-      const gmail = ownsGmail;
-      const supportActive = Boolean(remote.supportActive);
+      const subscribed = Boolean(remote.subscribed);
       const trialStartedAt = remote.trialStartedAt || now.toISOString();
-      const derived = derivePlan({ lifetime, supportActive, trialStartedAt, now });
-      const sideloadBlocked = remote.integrity === false && !lifetime;
+      const derived = derivePlan({ subscribed, trialStartedAt, now });
+      const sideloadBlocked = remote.integrity === false && !subscribed;
       return {
         ...EMPTY_LICENCE,
         ...derived,
         trialStartedAt,
-        lifetime,
-        gmail,
-        supportActive,
-        supportRenewsAt: remote.supportRenewsAt || null,
-        playAccountBound: lifetime || supportActive,
+        subscribed,
+        renewsAt: remote.renewsAt || null,
+        playAccountBound: subscribed,
         sideloadBlocked,
         source: 'play',
       };
@@ -299,54 +274,20 @@ export async function loadLicence(now = new Date()): Promise<LicenceState> {
   return readPreviewState(now);
 }
 
-export async function purchaseLifetime(): Promise<LicenceState> {
+export async function purchaseAnnual(): Promise<LicenceState> {
   const current = await loadLicence();
-  if (!canPurchaseLifetime(current)) {
-    throw new Error('The ₹249 licence is not available. The Gmail licence already includes perpetual access.');
-  }
-  if (isTestApk() || !isNativeShell()) {
-    localStorage.setItem(LS_LIFETIME, '1');
-    localStorage.removeItem(LS_GMAIL);
-    return loadLicence();
-  }
-  await nativeCommand('play_purchase', { sku: SKU_LIFETIME });
-  return loadLicence();
-}
-
-export async function purchaseGmailPlan(): Promise<LicenceState> {
-  const current = await loadLicence();
-  if (current.gmail) return current;
-  if (!current.lifetime && !canPurchaseGmailDirect(current)) {
-    throw new Error('The ₹499 Gmail licence is not available after the ₹249 licence. Use the ₹250 upgrade.');
-  }
-  const upgrade = current.lifetime;
-  if (!upgrade && !canPurchaseGmailDirect(current)) {
-    throw new Error('The ₹499 Gmail licence is not available on this account.');
-  }
-  if (upgrade && !canPurchaseGmailUpgrade(current)) {
-    throw new Error('The ₹250 Gmail upgrade is only for an account that already holds the ₹249 licence.');
-  }
-  if (isTestApk() || !isNativeShell()) {
-    localStorage.setItem(LS_LIFETIME, '1');
-    localStorage.setItem(LS_GMAIL, '1');
-    return loadLicence();
-  }
-  await nativeCommand('play_purchase', { sku: upgrade ? SKU_GMAIL_UPGRADE : SKU_GMAIL });
-  return loadLicence();
-}
-
-export async function purchaseSupport(): Promise<LicenceState> {
-  const current = await loadLicence();
-  if (!canPurchaseSupport(current)) {
-    throw new Error('Buy a perpetual licence first. The annual service cannot be purchased on its own.');
+  if (!canPurchaseAnnual(current)) {
+    throw new Error(current.subscribed
+      ? 'The ₹99 yearly plan is already on this account.'
+      : 'This copy cannot buy the ₹99 yearly plan.');
   }
   if (isTestApk() || !isNativeShell()) {
     const until = new Date();
     until.setFullYear(until.getFullYear() + 1);
-    localStorage.setItem(LS_SUPPORT_UNTIL, until.toISOString());
+    localStorage.setItem(LS_ANNUAL_UNTIL, until.toISOString());
     return loadLicence();
   }
-  await nativeCommand('play_purchase', { sku: SKU_SUPPORT, offer: 'subscription' });
+  await nativeCommand('play_purchase', { sku: SKU_ANNUAL, offer: 'subscription' });
   return loadLicence();
 }
 
@@ -361,42 +302,25 @@ export function inTrial(state: LicenceState): boolean {
   return state.plan === 'trial' && state.daysLeft > 0;
 }
 
-/** New features stay on during the trial and while the annual subscription is paid. */
+/** The yearly plan includes every feature, including Gmail, while it is paid. */
 export function enhancementsEnabled(state: LicenceState): boolean {
   if (inTrial(state)) return true;
-  return state.supportActive && state.lifetime;
+  return state.subscribed;
 }
 
 export function appUnlocked(state: LicenceState): boolean {
-  if (state.sideloadBlocked && !state.lifetime) return false;
-  return state.lifetime || state.plan === 'trial' || state.plan === 'lifetime_support';
+  if (state.sideloadBlocked && !state.subscribed) return false;
+  return state.subscribed || state.plan === 'trial';
 }
 
-/** Annual service is sold only after a perpetual licence is on this Play account. */
-export function canPurchaseSupport(state: LicenceState): boolean {
-  return state.lifetime && !state.sideloadBlocked && !state.supportActive;
+/** The only paid product. Hidden once this Play account already has the year. */
+export function canPurchaseAnnual(state: LicenceState): boolean {
+  return !state.subscribed && !state.sideloadBlocked;
 }
 
-/** ₹249 is hidden once any perpetual product, including the ₹499 Gmail licence, is owned. */
-export function canPurchaseLifetime(state: LicenceState): boolean {
-  return !state.lifetime && !state.gmail && !state.sideloadBlocked;
-}
-
-/** ₹499 is only for a first purchase. After ₹249, the ₹250 upgrade is the only Gmail product. */
-export function canPurchaseGmailDirect(state: LicenceState): boolean {
-  return !state.lifetime && !state.gmail && !state.sideloadBlocked;
-}
-
-export function canPurchaseGmailUpgrade(state: LicenceState): boolean {
-  return state.lifetime && !state.gmail && !state.sideloadBlocked;
-}
-
-/**
- * Trial includes Gmail. After the trial, Gmail stays off on the ₹249 licence
- * until gud_gmail_upgrade is owned, and on when gud_gmail or the upgrade is owned.
- */
+/** Trial includes Gmail. After the trial, Gmail stays on only while ₹99 a year is active. */
 export function gmailSyncAllowed(state: LicenceState): boolean {
-  if (state.sideloadBlocked && !state.lifetime) return false;
+  if (state.sideloadBlocked && !state.subscribed) return false;
   if (inTrial(state)) return true;
-  return state.lifetime && state.gmail;
+  return state.subscribed;
 }

@@ -57,10 +57,10 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
   {
     id: 'price',
     icon: 'rupee',
-    enTitle: 'Thirty days on us. Then a licence you buy once.',
-    enBody: 'Try every feature for 30 days through Google Play. After that, a manual perpetual licence is ₹249, or ₹499 with Gmail sync. Already on ₹249? Gmail sync is a ₹250 upgrade. Annual service is ₹199 a year, only after a perpetual licence, and Play bills it as a subscription. No surprise in-app store.',
-    hiTitle: 'तीस दिन हमारे साथ। फिर एक बार का लाइसेंस।',
-    hiBody: 'Google Play से 30 दिन सब कुछ आज़माएँ। उसके बाद मैनुअल स्थायी लाइसेंस ₹249, या Gmail सिंक के साथ ₹499। ₹249 है तो Gmail सिंक ₹250 का अपग्रेड। वार्षिक सेवा ₹199, केवल स्थायी लाइसेंस के बाद, और Play इसे सदस्यता मानता है।',
+    enTitle: 'Thirty days on us. Then ₹99 a year.',
+    enBody: 'Try every feature for 30 days through Google Play. After that, one annual subscription is ₹99 a year. It renews on Google Play and includes the vault and Gmail sync. There is no lifetime licence and no other paid plan.',
+    hiTitle: 'तीस दिन हमारे साथ। फिर ₹99 सालाना।',
+    hiBody: 'Google Play से 30 दिन सब कुछ आज़माएँ। उसके बाद एक ही वार्षिक सदस्यता ₹99। यह हर साल Play पर नवीनीकृत होती है और तिजोरी तथा Gmail सिंक दोनों शामिल हैं। कोई आजीवन लाइसेंस या दूसरा प्लान नहीं है।',
   },
 ];
 

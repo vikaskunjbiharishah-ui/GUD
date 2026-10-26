@@ -3,18 +3,19 @@ package `in`.growurdhan.domain.commercial
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-/** Exact owner-approved Play product IDs; never derive entitlement from UI price text. */
+/** The only owner-approved Play product. A UI price is not a purchase. */
 enum class PlayProduct(val productId: String) {
-    LIFETIME("gud_lifetime"),
-    ANNUAL_SUPPORT("gud_support_annual"),
+    ANNUAL("gud_annual"),
 }
 
 enum class ObservedPurchaseState { PENDING, PURCHASED, CANCELLED, UNKNOWN }
 
 /**
- * This is a domain contract for a future trusted Play verification adapter.
- * A UI-controlled boolean or an unverified local preference MUST NOT be fed
- * into it. It deliberately does not call Google Play or grant live licences.
+ * A purchase observation. `verifiedByTrustedProvider` may be set only by the
+ * Play Billing client in this process. A preference, button, or old SKU is not
+ * a subscription. `liveStoreQuery` means BillingClient just returned this row.
+ * The device library often omits expiry; a live row is current, a stored row
+ * without an expiry is not.
  */
 data class PurchaseVerificationEvidence(
     val productId: String,
@@ -23,33 +24,31 @@ data class PurchaseVerificationEvidence(
     val acknowledged: Boolean,
     val checkedAt: Instant,
     val expiresAt: Instant? = null,
+    val liveStoreQuery: Boolean = false,
 )
 
-data class EntitlementDecision(
-    val lifetime: Boolean,
-    val supportActive: Boolean,
-)
+data class EntitlementDecision(val subscribed: Boolean)
 
-/** Fail-closed rules; UI/remote response alone never counts as a purchase. */
+/** Fail-closed. Only a current, verified gud_annual subscription counts. */
 object PlayEntitlementPolicy {
     fun evaluate(
         evidence: List<PurchaseVerificationEvidence>,
         now: Instant,
     ): EntitlementDecision {
-        val eligible = evidence.filter { receipt ->
-            receipt.verifiedByTrustedProvider &&
+        val subscribed = evidence.any { receipt ->
+            val periodOpen = when {
+                receipt.expiresAt != null -> receipt.expiresAt.isAfter(now)
+                receipt.liveStoreQuery -> true
+                else -> false
+            }
+            receipt.productId == PlayProduct.ANNUAL.productId &&
+                receipt.verifiedByTrustedProvider &&
                 receipt.state == ObservedPurchaseState.PURCHASED &&
                 receipt.acknowledged &&
                 !receipt.checkedAt.isAfter(now) &&
                 !receipt.checkedAt.isBefore(now.minus(1, ChronoUnit.DAYS)) &&
-                (receipt.expiresAt == null || receipt.expiresAt.isAfter(now))
+                periodOpen
         }
-        val lifetime = eligible.any {
-            it.productId == PlayProduct.LIFETIME.productId && it.expiresAt == null
-        }
-        val support = lifetime && eligible.any {
-            it.productId == PlayProduct.ANNUAL_SUPPORT.productId && it.expiresAt != null
-        }
-        return EntitlementDecision(lifetime, support)
+        return EntitlementDecision(subscribed)
     }
 }

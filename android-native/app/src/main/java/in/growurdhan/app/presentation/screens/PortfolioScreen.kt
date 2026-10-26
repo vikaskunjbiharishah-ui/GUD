@@ -76,8 +76,8 @@ fun PortfolioScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "Family assets: ${dashboard.assets.rupees().toPlainString()} INR  ·  " +
-                        "Liabilities: ${dashboard.liabilities.rupees().toPlainString()} INR",
+                    "Family assets: ${dashboard.assets.asBook()}  ·  " +
+                        "Liabilities: ${dashboard.liabilities.asBook()}",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 if (dashboard.integrityWarnings.isNotEmpty()) {

@@ -37,6 +37,8 @@ import `in`.growurdhan.app.presentation.CustodyHoldingIntent
 import `in`.growurdhan.app.presentation.CustodyHoldingUiState
 import `in`.growurdhan.domain.vault.CustodyHoldingOnboarding
 import `in`.growurdhan.domain.vault.ManualAssetOnboarding
+import `in`.growurdhan.domain.finance.HoldingView
+import `in`.growurdhan.domain.finance.toFinancialHolding
 import `in`.growurdhan.domain.market.CachedListedSecurity
 
 /** Protected CAS enrolment: only registrar names, not PAN or passwords. */
@@ -554,18 +556,20 @@ fun CustodyHoldingScreen(
                         Card(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(holding.name, style = MaterialTheme.typography.titleSmall)
+                                val financial = holding.toFinancialHolding()
+                                val unitWord = HoldingView.unitWord(financial)
+                                Text(HoldingView.displayName(holding.name), style = MaterialTheme.typography.titleSmall)
                                 Text(holding.assetCategory.replace('_', ' ') +
                                     (profile?.subCategory?.let { " · " + it } ?: ""))
-                                Text("Recorded units: " + holding.quantity.units().toPlainString())
-                                Text("Last recorded price: " +
-                                    holding.currentUnitPrice.rupees().toPlainString() + " INR")
+                                if (unitWord.isNotEmpty()) {
+                                    Text("Recorded $unitWord: " + bookQuantity(holding.quantity.raw))
+                                }
+                                Text("Last recorded price: " + holding.currentUnitPrice.asBook())
                                 Text("Price as-of/source: " +
                                     (profile?.priceAsOf ?: "not recorded") + " · " +
                                     (profile?.priceSource ?: "unknown"))
                                 Text("Acquisition cost: " +
-                                    (profile?.verifiedCostPerUnit?.rupees()?.toPlainString()
-                                        ?: "UNKNOWN"))
+                                    (profile?.verifiedCostPerUnit?.asBook() ?: "UNKNOWN"))
                                 Text("Related custody account: " +
                                     (book.accounts.firstOrNull { it.id == holding.accountId }
                                         ?.identifierMasked ?: "No linked account"))
@@ -583,9 +587,9 @@ fun CustodyHoldingScreen(
                                     }.sortedWith(compareBy({ it.eventDate }, { it.id }))
                                     if (timeline.isEmpty()) Text("No recorded transactions.")
                                     timeline.forEach { event ->
-                                        Text(event.eventDate + " · " + event.kind.name +
-                                            " · units " + event.quantityDeltaScaled.toString() +
-                                            " · INR " + event.amount.rupees().toPlainString())
+                                        Text(event.eventDate + " · " + event.kind.asBookLabel() +
+                                            " · " + bookQuantity(event.quantityDeltaScaled) +
+                                            " · " + event.amount.asBook())
                                         event.supersedesEventId?.let {
                                             Text("Supersedes original event " + it)
                                         }

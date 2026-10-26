@@ -83,7 +83,7 @@ fun HomeScreen(
                 Text("Your financial overview", style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer)
                 Text(when (dashboardState) {
-                    is HouseholdDashboardUiState.Ready -> "Recorded net worth: " + dashboardState.dashboard.netWorth.rupees().toPlainString() + " INR; recorded assets: " + dashboardState.dashboard.assets.rupees().toPlainString() + " INR; recorded liabilities: " + dashboardState.dashboard.liabilities.rupees().toPlainString() + " INR. Values use stored unit prices, not live market quotes. " + dashboardState.dashboard.memberCount + " family members; " + dashboardState.dashboard.holdingCount + " holdings." + (if (dashboardState.dashboard.unknownCostHoldings > 0) " Historical cost unknown for " + dashboardState.dashboard.unknownCostHoldings + " holdings." else "") + (if (!dashboardState.dashboard.isReliable) " Financial integrity review required; totals may be incomplete." else "")
+                    is HouseholdDashboardUiState.Ready -> "Recorded net worth: " + dashboardState.dashboard.netWorth.asBook() + "; recorded assets: " + dashboardState.dashboard.assets.asBook() + "; recorded liabilities: " + dashboardState.dashboard.liabilities.asBook() + ". Values use stored unit prices, not live market quotes. " + dashboardState.dashboard.memberCount + " family members; " + dashboardState.dashboard.holdingCount + " holdings." + (if (dashboardState.dashboard.unknownCostHoldings > 0) " Historical cost unknown for " + dashboardState.dashboard.unknownCostHoldings + " holdings." else "") + (if (!dashboardState.dashboard.isReliable) " Financial integrity review required; totals may be incomplete." else "")
                     HouseholdDashboardUiState.Loading -> "Calculating your household overview."
                     HouseholdDashboardUiState.Unavailable -> "Overview unavailable. Please retry after unlocking."
                     HouseholdDashboardUiState.Locked -> "Unlock the vault to view your family wealth."
@@ -127,9 +127,9 @@ fun HomeScreen(
                     }
                     val selected = dashboard.byMember.firstOrNull { it.ownerId == ownerLens }
                     if (selected != null) {
-                        Text("Recorded assets: " + selected.assets.rupees().toPlainString() + " INR")
-                        Text("Recorded liabilities: " + selected.liabilities.rupees().toPlainString() + " INR")
-                        Text("Recorded net worth: " + selected.netWorth.rupees().toPlainString() + " INR")
+                        Text("Recorded assets: " + selected.assets.asBook())
+                        Text("Recorded liabilities: " + selected.liabilities.asBook())
+                        Text("Recorded net worth: " + selected.netWorth.asBook())
                         Text("Holdings: " + selected.holdings)
                     }
                     OutlinedButton(onClick = onManageFamily) {
@@ -170,7 +170,7 @@ fun HomeScreen(
                     Text("Assets by category", style = MaterialTheme.typography.titleMedium)
                     Text(
                         "Recorded valuations, not live market quotes. " +
-                            "Total assets: " + dashboardState.dashboard.assets.rupees().toPlainString() +
+                            "Total assets: " + dashboardState.dashboard.assets.asBook() +
                             " INR across " + dashboardState.dashboard.byCategory.sumOf { it.holdingCount } +
                             " asset holdings.",
                         style = MaterialTheme.typography.bodySmall,
@@ -187,7 +187,7 @@ fun HomeScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             Text(
-                                category.value.rupees().toPlainString() + " INR (" +
+                                category.value.asBook() + " (" +
                                     category.holdingCount + ")",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
@@ -242,9 +242,9 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.titleSmall,
                             )
                             Text(
-                                "Assets: " + member.assets.rupees().toPlainString() +
-                                    " INR; liabilities: " + member.liabilities.rupees().toPlainString() +
-                                    " INR; net worth: " + member.netWorth.rupees().toPlainString() +
+                                "Assets: " + member.assets.asBook() +
+                                    "; liabilities: " + member.liabilities.asBook() +
+                                    "; net worth: " + member.netWorth.asBook() +
                                     " INR; holdings: " + member.holdings,
                                 style = MaterialTheme.typography.bodyMedium,
                             )
