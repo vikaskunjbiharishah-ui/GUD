@@ -33,7 +33,7 @@ fun PrivacyScreen() {
         )
         Text(
             "Native financial records can be held in an encrypted on-device SQLCipher vault. " +
-                "This development build has no Gmail or analytics integration.",
+                "This development build reads statement mail only after you connect Gmail. It does not upload your books.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         PrivacyFact(

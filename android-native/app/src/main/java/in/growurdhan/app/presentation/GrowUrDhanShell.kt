@@ -67,6 +67,7 @@ import `in`.growurdhan.app.presentation.screens.InsightsScreen
 import `in`.growurdhan.app.presentation.screens.TaxOwnerScopeScreen
 import `in`.growurdhan.app.presentation.screens.StatementReviewScreen
 import `in`.growurdhan.app.presentation.screens.PrivacyScreen
+import `in`.growurdhan.app.gmail.GmailUiState
 import `in`.growurdhan.app.presentation.screens.LicenceScreen
 import `in`.growurdhan.app.presentation.screens.SettingsScreen
 import `in`.growurdhan.app.presentation.screens.VaultScreen
@@ -142,6 +143,9 @@ fun GrowUrDhanShell(
     licenceState: LicenceUiState = LicenceUiState(),
     onLicencePurchase: () -> Unit = {},
     onLicenceRefresh: () -> Unit = {},
+    gmail: GmailUiState = GmailUiState(),
+    onGmailConnect: () -> Unit = {},
+    onGmailDisconnect: (String) -> Unit = {},
 ) {
     val controller = rememberNavController()
     val currentBackStackEntry by controller.currentBackStackEntryAsState()
@@ -523,6 +527,9 @@ fun GrowUrDhanShell(
                             onOpenBackupFolder = { navigate(BACKUP_FOLDER_ROUTE) },
                             licence = licenceState.licence,
                             onOpenLicence = { navigate(LICENCE_ROUTE) },
+                            gmail = gmail,
+                            onGmailConnect = onGmailConnect,
+                            onGmailDisconnect = onGmailDisconnect,
                         )
                     }
                 }

@@ -46,6 +46,7 @@ import `in`.growurdhan.app.presentation.CustodyHoldingViewModel
 import `in`.growurdhan.app.presentation.AppViewModel
 import `in`.growurdhan.app.billing.PlayBillingGateway
 import `in`.growurdhan.app.presentation.BackupFolderViewModel
+import `in`.growurdhan.app.gmail.GmailSignInHost
 import `in`.growurdhan.app.presentation.LicenceViewModel
 import `in`.growurdhan.app.presentation.screens.LicenceScreen
 import `in`.growurdhan.domain.finance.Licence
@@ -130,6 +131,7 @@ class MainActivity : ComponentActivity() {
     private val manualTradeViewModel: ManualTradeViewModel by viewModels()
     private val backupFolderViewModel: BackupFolderViewModel by viewModels()
     private val licenceViewModel: LicenceViewModel by viewModels()
+    private lateinit var gmailSignIn: GmailSignInHost
     private enum class CredentialAction {
         OPEN_VAULT, APPROVE_REVIEW, IMPORT_PDF, ADD_FAMILY_MEMBER, REGISTER_CUSTODY,
         PORTABLE_BACKUP, APPROVE_MANUAL_TRADE, ENROLL_APP_PASSWORD, INSPECT_LEGACY,
@@ -657,6 +659,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        gmailSignIn = GmailSignInHost(this, lifecycleScope)
         playBilling.attach(this)
         // Never allow financial rows or receipt details in OS screenshots/recents.
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -678,6 +681,7 @@ class MainActivity : ComponentActivity() {
             val manualTradeState by manualTradeViewModel.state.collectAsStateWithLifecycle()
             val backupFolderState by backupFolderViewModel.state.collectAsStateWithLifecycle()
             val licenceState by licenceViewModel.state.collectAsStateWithLifecycle()
+            val gmailState by gmailSignIn.state.collectAsStateWithLifecycle()
             androidx.compose.runtime.LaunchedEffect(reviewState) {
                 if (reviewState is StatementReviewUiState.Completed) {
                     dashboardViewModel.refresh()
@@ -815,6 +819,9 @@ class MainActivity : ComponentActivity() {
                     licenceState = licenceState,
                     onLicencePurchase = licenceViewModel::purchase,
                     onLicenceRefresh = licenceViewModel::refresh,
+                    gmail = gmailState,
+                    onGmailConnect = gmailSignIn::connect,
+                    onGmailDisconnect = gmailSignIn::disconnect,
                 )
             }
         }

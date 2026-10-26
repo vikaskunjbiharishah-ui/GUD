@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import `in`.growurdhan.app.presentation.AppIntent
 import `in`.growurdhan.core.model.AppearanceSettings
 import `in`.growurdhan.core.model.ThemeMode
+import `in`.growurdhan.app.gmail.GmailUiState
+import `in`.growurdhan.domain.finance.Licence
 import `in`.growurdhan.domain.finance.LicenceState
 
 @Composable
@@ -43,6 +45,9 @@ fun SettingsScreen(
     onOpenBackupFolder: () -> Unit = {},
     licence: LicenceState? = null,
     onOpenLicence: () -> Unit = {},
+    gmail: GmailUiState = GmailUiState(),
+    onGmailConnect: () -> Unit = {},
+    onGmailDisconnect: (String) -> Unit = {},
 ) {
     val haptics = LocalHapticFeedback.current
     Column(
@@ -135,18 +140,50 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    "One plan only. There is no lifetime licence and no second product. " +
-                        "Gmail account connection is not enabled yet.",
+                    "One plan only. There is no lifetime licence and no second product.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedButton(onClick = onOpenLicence) { Text("Yearly plan") }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Gmail", style = MaterialTheme.typography.titleMedium)
+                val gmailAllowed = licence != null && Licence.gmailSyncAllowed(licence)
                 Text(
-                    "Native financial access requires both the local GrowUrDhan " +
-                        "app password and Android device credential. The app password " +
-                        "is an authorization gate, not the SQLCipher decryption key.",
+                    if (gmailAllowed) {
+                        "Read-only access to statement mail on this phone. Your books are not uploaded."
+                    } else {
+                        "Gmail stays off until the 30-day trial or the ₹99 year is active."
+                    },
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                gmail.emails.forEach { email ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(email, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        OutlinedButton(onClick = { onGmailDisconnect(email) }, enabled = !gmail.busy) {
+                            Text("Disconnect")
+                        }
+                    }
+                }
+                if (gmailAllowed) {
+                    OutlinedButton(onClick = onGmailConnect, enabled = !gmail.busy) {
+                        Text(if (gmail.busy) "Waiting for Google…" else "Connect Gmail")
+                    }
+                }
+                gmail.message?.let { note ->
+                    Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
             }
         }
 

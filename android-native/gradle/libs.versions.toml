@@ -17,6 +17,8 @@ espresso = "3.6.1"
 javaxInject = "1"
 sqlcipher = "4.17.0"
 billing = "7.1.1"
+playServicesAuth = "21.3.0"
+securityCrypto = "1.1.0-alpha06"
 androidxSqlite = "2.7.0"
 
 [libraries]
@@ -44,6 +46,8 @@ javax-inject = { module = "javax.inject:javax.inject", version.ref = "javaxInjec
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
+security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit5" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit5" }
 junit4 = { module = "junit:junit", version.ref = "junit4" }

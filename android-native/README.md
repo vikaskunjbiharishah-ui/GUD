@@ -433,7 +433,7 @@ current verified `gud_annual` subscription unlocks after the trial. Old
 lifetime, Gmail and support product ids do not. The app asks Play Billing
 for that one subscription. A preference cannot set `subscribed`. A debug
 build may start the same 30-day trial; a release sideload stays locked
-until that Play subscription is active. Gmail OAuth is still not connected.
+until that Play subscription is active. Settings can connect Gmail with read-only scope. Statement download is not wired yet. The sideload debug build is signed with `src-tauri/keystore/gud-test.keystore` so the Android OAuth client matches.
 
 **Production release must still remain blocked:** The manual
 `native-signed-aab.yml` workflow additionally runs

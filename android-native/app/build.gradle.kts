@@ -30,6 +30,16 @@ android {
     }
     buildFeatures { compose = true }
     signingConfigs {
+        val deviceTestKeystore = rootProject.file("../src-tauri/keystore/gud-test.keystore")
+        if (deviceTestKeystore.isFile) {
+            // Sideload test key registered with the Android OAuth client. Debug password only.
+            create("deviceTest") {
+                storeFile = deviceTestKeystore
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
         if (releaseSigningConfigured) {
             create("playUpload") {
                 storeFile = file(System.getenv("GUD_UPLOAD_KEYSTORE_PATH"))
@@ -50,7 +60,10 @@ android {
             }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
-        debug { isMinifyEnabled = false }
+        debug {
+            isMinifyEnabled = false
+            signingConfigs.findByName("deviceTest")?.let { signingConfig = it }
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -81,6 +94,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.billing)
+    implementation(libs.play.services.auth)
+    implementation(libs.security.crypto)
     implementation(libs.dagger.hilt.android)
     kapt(libs.dagger.hilt.compiler)
     debugImplementation(libs.androidx.ui.tooling)
