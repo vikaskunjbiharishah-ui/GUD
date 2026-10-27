@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -213,7 +214,13 @@ fun GrowUrDhanShell(
                 containerColor = MaterialTheme.colorScheme.background,
                 topBar = {
                     Column {
-                        CenterAlignedTopAppBar(title = { Text("GrowUrDhan") })
+                        CenterAlignedTopAppBar(
+                            title = { Text("GrowUrDhan") },
+                            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        )
                         if (visibleMembers.size > 1) {
                             Row(
                                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
@@ -235,7 +242,7 @@ fun GrowUrDhanShell(
                 snackbarHost = { SnackbarHost(snackbars) },
                 bottomBar = {
                     if (!extended) {
-                        NavigationBar {
+                        NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
                             MainDestination.entries.forEach { destination ->
                                 NavigationBarItem(
                                     selected = currentRoute == destination.route,

@@ -10,9 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.ArrowForward
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Button
@@ -27,10 +24,6 @@ import androidx.compose.material3.Text
 import `in`.growurdhan.app.presentation.HouseholdDashboardUiState
 import `in`.growurdhan.core.model.OwnerId
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,49 +54,65 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Text(
-            text = "Family wealth, with clarity.",
+            text = "Your family's money, in one place.",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = "Private by design. Your financial books remain on this device.",
+            text = "The numbers stay on this phone. They are the values saved in your book, not today's market price.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        Surface(
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                modifier = Modifier.padding(22.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text("Your financial overview", style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer)
-                Text(when (dashboardState) {
-                    is HouseholdDashboardUiState.Ready -> "Recorded net worth: " + dashboardState.dashboard.netWorth.asBook() + "; recorded assets: " + dashboardState.dashboard.assets.asBook() + "; recorded liabilities: " + dashboardState.dashboard.liabilities.asBook() + ". Values use stored unit prices, not live market quotes. " + dashboardState.dashboard.memberCount + " family members; " + dashboardState.dashboard.holdingCount + " holdings." + (if (dashboardState.dashboard.unknownCostHoldings > 0) " Historical cost unknown for " + dashboardState.dashboard.unknownCostHoldings + " holdings." else "") + (if (!dashboardState.dashboard.isReliable) " Financial integrity review required; totals may be incomplete." else "")
-                    HouseholdDashboardUiState.Loading -> "Calculating your household overview."
-                    HouseholdDashboardUiState.Unavailable -> "Overview unavailable. Please retry after unlocking."
-                    HouseholdDashboardUiState.Locked -> "Unlock the vault to view your family wealth."
-                },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer)
+        when (dashboardState) {
+            is HouseholdDashboardUiState.Ready -> {
+                val dashboard = dashboardState.dashboard
+                Text("What the family owns today", style = MaterialTheme.typography.titleLarge)
+                MetricTile(
+                    label = "Net worth",
+                    value = dashboard.netWorth.asBook(),
+                    note = "${dashboard.memberCount} people · ${dashboard.holdingCount} holdings",
+                    container = MaterialTheme.colorScheme.primaryContainer,
+                    ink = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = onOpenVault) {
-                        Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null)
-                        Text("Open vault", modifier = Modifier.padding(start = 8.dp))
-                    }
-                    if (dashboardState is HouseholdDashboardUiState.Ready ||
-                        dashboardState is HouseholdDashboardUiState.Unavailable
-                    ) {
-                        OutlinedButton(onClick = onRefreshDashboard) {
-                            Text(if (dashboardState is HouseholdDashboardUiState.Unavailable)
-                                "Retry overview" else "Refresh totals")
-                        }
-                    }
+                    MetricTile(
+                        label = "What you own",
+                        value = dashboard.assets.asBook(),
+                        note = "Saved value",
+                        container = MaterialTheme.colorScheme.tertiaryContainer,
+                        ink = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MetricTile(
+                        label = "What you owe",
+                        value = dashboard.liabilities.asBook(),
+                        note = "Loans",
+                        container = MaterialTheme.colorScheme.secondaryContainer,
+                        ink = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
+                if (!dashboard.isReliable) {
+                    Text(
+                        "Some totals may be incomplete. Open the holdings that need a look.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = onOpenVault) { Text("Open vault") }
+                    OutlinedButton(onClick = onRefreshDashboard) { Text("Refresh totals") }
+                }
+            }
+            HouseholdDashboardUiState.Loading -> Text("Adding up the family book.")
+            HouseholdDashboardUiState.Unavailable -> {
+                Text("The overview did not load. Unlock the vault and try again.")
+                OutlinedButton(onClick = onRefreshDashboard) { Text("Retry overview") }
+            }
+            HouseholdDashboardUiState.Locked -> {
+                Text("Unlock the vault to see the family's money.")
+                Button(onClick = onOpenVault) { Text("Open vault") }
             }
         }
 
@@ -113,9 +122,8 @@ fun HomeScreen(
                 dashboard.byMember.firstOrNull()?.ownerId
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Family ownership lens", style = MaterialTheme.typography.titleMedium)
-                    Text("Household totals above include everyone. Select a member for their " +
-                        "own recorded assets, liabilities and holdings.",
+                    Text("Who is this for?", style = MaterialTheme.typography.titleMedium)
+                    Text("The tiles above are the whole family. Pick a person to see only their money.",
                         style = MaterialTheme.typography.bodySmall)
                     Row(Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -147,12 +155,10 @@ fun HomeScreen(
                     modifier = Modifier.padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Historical purchase cost unavailable", style = MaterialTheme.typography.titleMedium)
+                    Text("Purchase price not saved yet", style = MaterialTheme.typography.titleMedium)
                     Text(
                         dashboardState.dashboard.unknownCostHoldings.toString() +
-                            " holding(s) have no verified historical purchase cost. " +
-                            "Recorded valuations are shown, but unrealised gains " +
-                            "must not be inferred from these balances.",
+                            " holding(s) have no purchase price. We can show what they are worth now, but not the gain or loss.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -167,12 +173,9 @@ fun HomeScreen(
                     modifier = Modifier.padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("Assets by category", style = MaterialTheme.typography.titleMedium)
+                    Text("How the money is spread", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Recorded valuations, not live market quotes. " +
-                            "Total assets: " + dashboardState.dashboard.assets.asBook() +
-                            " INR across " + dashboardState.dashboard.byCategory.sumOf { it.holdingCount } +
-                            " asset holdings.",
+                        "Saved values, not today's market price.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -206,15 +209,14 @@ fun HomeScreen(
                     modifier = Modifier.padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Financial data needs review", style = MaterialTheme.typography.titleMedium)
+                    Text("Please check a few holdings", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Some records could not be included reliably in your totals. " +
-                            "Review the affected holdings before relying on this overview.",
+                        "Some rows could not be added into the totals. Look at those holdings before you rely on this page.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
                         dashboardState.dashboard.integrityWarnings.size.toString() +
-                            " calculation or ownership warning(s).",
+                            " item(s) need a look.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
@@ -229,9 +231,9 @@ fun HomeScreen(
                     modifier = Modifier.padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("Family breakdown", style = MaterialTheme.typography.titleMedium)
+                    Text("Each person", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Recorded net worth by member. Names are shown only while the vault is unlocked.",
+                        "Names show only while the vault is open.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -242,10 +244,10 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.titleSmall,
                             )
                             Text(
-                                "Assets: " + member.assets.asBook() +
-                                    "; liabilities: " + member.liabilities.asBook() +
-                                    "; net worth: " + member.netWorth.asBook() +
-                                    " INR; holdings: " + member.holdings,
+                                "Owns " + member.assets.asBook() +
+                                    " · owes " + member.liabilities.asBook() +
+                                    " · net " + member.netWorth.asBook() +
+                                    " · " + member.holdings + " holdings",
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
@@ -291,41 +293,23 @@ fun HomeScreen(
                 Text("Privacy", modifier = Modifier.padding(start = 6.dp))
             }
         }
+    }
+}
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.padding(22.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null)
-                    Text(
-                        "Portfolio development status",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                Text(
-                    "Your recorded household totals and asset categories are available after " +
-                        "unlocking the native vault. These are not live market valuations. " +
-                        "Existing React/Tauri books are not automatically migrated. " +
-                        "CAS PDF imports require enrolled family members and holding mappings; " +
-                        "verified parsing is supported on ARM64 release builds. " +
-                        "Full portfolio and onboarding parity remain in development.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = onOpenSettings) {
-                Text("Personalize")
-                Icon(Icons.Outlined.ArrowForward, contentDescription = null, modifier = Modifier.padding(start = 6.dp))
-            }
-            OutlinedButton(onClick = onOpenPrivacy) {
-                Icon(Icons.Outlined.Lock, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
-                Text("Privacy")
-            }
+@Composable
+private fun MetricTile(
+    label: String,
+    value: String,
+    note: String,
+    container: androidx.compose.ui.graphics.Color,
+    ink: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(color = container, shape = RoundedCornerShape(20.dp), modifier = modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(label, style = MaterialTheme.typography.labelLarge, color = ink)
+            Text(value, style = MaterialTheme.typography.titleLarge, color = ink, fontWeight = FontWeight.Bold)
+            Text(note, style = MaterialTheme.typography.bodySmall, color = ink)
         }
     }
 }

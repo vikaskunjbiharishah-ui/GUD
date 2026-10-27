@@ -36,7 +36,7 @@ class DataStoreAppearanceRepository @Inject constructor(
         .map { values ->
             AppearanceSettings(
                 theme = ThemeMode.fromStorage(values[THEME]),
-                dynamicColor = values[DYNAMIC] ?: true,
+                dynamicColor = values[DYNAMIC] ?: false,
             )
         }
 

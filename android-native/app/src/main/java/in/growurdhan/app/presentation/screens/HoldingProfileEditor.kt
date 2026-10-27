@@ -254,10 +254,7 @@ fun HoldingProfileEditor(
                 OutlinedTextField(
                     value = edits[key] ?: initial,
                     onValueChange = { edits = edits + (key to it.take(300)) },
-                    label = { Text((if (key in detailMoneyKeys) key + " (INR)"
-                        else key) + (enumSelections[key]?.let { values ->
-                        " (" + values.joinToString(" / ") + ")"
-                    } ?: "")) }, modifier = Modifier.fillMaxWidth()
+                    label = { Text(plainDetailLabel(key, key in detailMoneyKeys, enumSelections[key])) }, modifier = Modifier.fillMaxWidth()
                         .testTag("HoldingDetails_" + key),
                 )
             }
@@ -282,12 +279,7 @@ fun HoldingProfileEditor(
                     else -> source.toString()
                 }
             } else ""
-            val label = when {
-                key in HoldingRichMetadataContract.moneyColumns -> key + " (INR)"
-                key in HoldingRichMetadataContract.rateColumns -> key + " (percent p.a.)"
-                key in HoldingRichMetadataContract.jsonColumns -> key + " (JSON array)"
-                else -> key
-            }
+            val label = plainRichLabel(key)
             OutlinedTextField(
                 value = richEdits[key] ?: initial,
                 onValueChange = { richEdits = richEdits + (key to it.take(4000)) },
@@ -295,11 +287,7 @@ fun HoldingProfileEditor(
             )
         }
         if (profile.assetCategory == "LIABILITY") {
-            Text("Loan amounts: set monthly_emi_scaled, remaining_emi_count, " +
-                "interest_rate_bps, nextEmiDate and EMI status when known. " +
-                "The original outstanding balance is entered separately through " +
-                "a reviewed OPENING_BALANCE ledger entry (exactly 1 unit). " +
-                "Repayments never automatically imply principal reduction.",
+            Text("For a loan, fill the monthly EMI, how many EMIs are left, the interest rate, the next EMI date, and whether it is current. The opening balance is a separate reviewed entry. Paying an EMI does not by itself reduce the principal.",
                 style = MaterialTheme.typography.bodySmall)
         }
         if (profile.assetCategory == "FIXED_INCOME") {
@@ -531,4 +519,26 @@ fun HoldingProfileEditor(
                 "Review holding edits with device lock")
         }
     }
+}
+
+private fun plainDetailLabel(key: String, money: Boolean, choices: Collection<String>?): String {
+    val name = friendlyField(key)
+    val unit = if (money && !name.contains("₹")) "$name (₹)" else name
+    return if (choices.isNullOrEmpty()) unit else "$unit (${choices.joinToString(" / ")})"
+}
+
+private fun plainRichLabel(key: String): String = when {
+    key in HoldingRichMetadataContract.moneyColumns -> friendlyField(key) + " (₹)"
+    key in HoldingRichMetadataContract.rateColumns -> friendlyField(key) + " (% a year)"
+    key in HoldingRichMetadataContract.jsonColumns -> friendlyField(key)
+    else -> friendlyField(key)
+}
+
+private fun friendlyField(key: String): String = when (key) {
+    "monthly_emi_scaled" -> "Monthly EMI"
+    "interest_rate_bps" -> "Interest rate"
+    "remaining_emi_count" -> "EMIs left"
+    "fmv_31jan2018_scaled" -> "Value on 31 Jan 2018"
+    "nextEmiDate" -> "Next EMI date"
+    else -> key.replace('_', ' ')
 }

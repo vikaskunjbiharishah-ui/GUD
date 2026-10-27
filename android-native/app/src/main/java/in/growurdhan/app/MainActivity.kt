@@ -67,6 +67,9 @@ import `in`.growurdhan.app.presentation.ManualTradeUiState
 import `in`.growurdhan.app.presentation.LocalAppPasswordStore
 import `in`.growurdhan.app.presentation.LocalLoginStatus
 import `in`.growurdhan.app.presentation.screens.LocalLoginScreen
+import `in`.growurdhan.app.presentation.screens.OnboardingScreen
+import `in`.growurdhan.app.presentation.screens.TermsGateScreen
+import `in`.growurdhan.app.welcome.WelcomeMemory
 import `in`.growurdhan.app.presentation.screens.RecoveryEnrollmentScreen
 import `in`.growurdhan.app.presentation.screens.OneTimeRecoveryCodeScreen
 import `in`.growurdhan.app.presentation.screens.ForgottenPasswordRecoveryScreen
@@ -131,6 +134,9 @@ class MainActivity : ComponentActivity() {
     private val manualTradeViewModel: ManualTradeViewModel by viewModels()
     private val backupFolderViewModel: BackupFolderViewModel by viewModels()
     private val licenceViewModel: LicenceViewModel by viewModels()
+    private lateinit var welcome: WelcomeMemory
+    private var showOnboarding by mutableStateOf(true)
+    private var showTerms by mutableStateOf(true)
     private lateinit var gmailSignIn: GmailSignInHost
     private enum class CredentialAction {
         OPEN_VAULT, APPROVE_REVIEW, IMPORT_PDF, ADD_FAMILY_MEMBER, REGISTER_CUSTODY,
@@ -659,6 +665,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        welcome = WelcomeMemory(this)
+        showOnboarding = !welcome.onboardingSeen()
+        showTerms = !welcome.termsAccepted()
         gmailSignIn = GmailSignInHost(this, lifecycleScope)
         playBilling.attach(this)
         // Never allow financial rows or receipt details in OS screenshots/recents.
@@ -733,7 +742,20 @@ class MainActivity : ComponentActivity() {
                 }
             }
             GrowUrDhanTheme(state.appearance) {
-                if (loginStatus != LocalLoginStatus.VERIFIED) {
+                if (showOnboarding) {
+                    OnboardingScreen(onFinished = {
+                        welcome.markOnboardingSeen()
+                        showOnboarding = false
+                    })
+                } else if (showTerms) {
+                    TermsGateScreen(
+                        onAccept = {
+                            welcome.acceptTerms()
+                            showTerms = false
+                        },
+                        onDecline = { finish() },
+                    )
+                } else if (loginStatus != LocalLoginStatus.VERIFIED) {
                     if (showForgotRecovery && loginStatus == LocalLoginStatus.LOCKED) {
                         ForgottenPasswordRecoveryScreen(
                             message = localLoginError,

@@ -210,9 +210,9 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Dynamic color", style = MaterialTheme.typography.titleMedium)
+                    Text("Wallpaper colours", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        if (dynamicAvailable) "Use your device wallpaper colors."
+                        if (dynamicAvailable) "Off keeps the GrowUrDhan green, gold, and indigo. On uses your wallpaper."
                         else "Available on Android 12 and newer.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

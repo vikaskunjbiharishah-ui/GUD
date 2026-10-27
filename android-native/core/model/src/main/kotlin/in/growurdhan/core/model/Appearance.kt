@@ -14,5 +14,5 @@ enum class ThemeMode(val storageKey: String) {
 
 data class AppearanceSettings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
-    val dynamicColor: Boolean = true,
+    val dynamicColor: Boolean = false,
 )

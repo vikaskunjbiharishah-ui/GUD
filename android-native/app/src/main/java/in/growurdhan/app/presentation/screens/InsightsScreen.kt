@@ -38,10 +38,10 @@ fun InsightsScreen(
         Text("Insights", style = MaterialTheme.typography.headlineMedium)
         when (state) {
             HouseholdDashboardUiState.Locked -> {
-                Text("Unlock the vault to view your family's private financial insights.")
+                Text("Unlock the vault to see how the family's money is split.")
                 Button(onClick = onOpenVault) { Text("Open vault") }
             }
-            HouseholdDashboardUiState.Loading -> Text("Calculating insights from encrypted records.")
+            HouseholdDashboardUiState.Loading -> Text("Adding up the book.")
             HouseholdDashboardUiState.Unavailable -> {
                 Text("Insights cannot be calculated from this book right now.")
                 Button(onClick = onRefresh) { Text("Retry insights") }
@@ -50,8 +50,7 @@ fun InsightsScreen(
                 val dashboard = state.dashboard
                 val result = remember(dashboard) { PortfolioInsightsProjector.from(dashboard) }
                 Text(
-                    "Snapshot calculated ${dashboard.asOf}; valuations use stored prices " +
-                        "and may be stale. No internet connection is required.",
+                    "As of ${dashboard.asOf}. These are saved values, not today's market price.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -67,11 +66,10 @@ fun InsightsScreen(
                         val debtRatio = result.debtToAssetsPercent
                         if (result.reconciled && debtRatio != null) {
                             Text(
-                                "Debt-to-assets: ${debtRatio.toPlainString()}% " +
-                                    "(recorded balances only)",
+                                "Loans are ${debtRatio.toPlainString()}% of what you own.",
                             )
                         } else if (result.reconciled) {
-                            Text("Debt-to-assets percentage unavailable: no recorded assets.")
+                            Text("Loans compared with savings cannot be shown until something is owned.")
                         }
                     }
                 }
@@ -81,13 +79,12 @@ fun InsightsScreen(
                             modifier = Modifier.padding(18.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text("Allocation withheld", style = MaterialTheme.typography.titleMedium)
+                            Text("The mix is paused", style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "Household totals, category values, or recorded holdings do not " +
-                                    "reconcile. No percentages will be shown until the book is checked.",
+                                "The totals do not add up yet, so percentages stay hidden.",
                             )
                             if (result.warningCount > 0) {
-                                Text("${result.warningCount} integrity warning(s) need review.")
+                                Text("${result.warningCount} item(s) need a look.")
                             }
                         }
                     }
@@ -101,8 +98,7 @@ fun InsightsScreen(
                         ) {
                             Text("Asset allocation", style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "Percentages are independently rounded; stored prices are " +
-                                    "not live market quotes.",
+                                "Saved values, not today's market price. Each bar is rounded on its own.",
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             result.allocations.forEach { item ->
@@ -112,6 +108,8 @@ fun InsightsScreen(
                                 LinearProgressIndicator(
                                     progress = { item.shareBasisPoints / 10_000f },
                                     modifier = Modifier.fillMaxWidth(),
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    trackColor = MaterialTheme.colorScheme.tertiaryContainer,
                                 )
                                 Text(
                                     "${item.value.asBook()} · " +
@@ -125,20 +123,18 @@ fun InsightsScreen(
                 if (result.unknownHistoricalCostHoldings > 0) {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            "Historical acquisition cost is unverified for " +
-                                "${result.unknownHistoricalCostHoldings} asset holding(s). " +
-                                "Total unrealised gain and return percentages are intentionally unavailable.",
+                            "Purchase price is missing for " +
+                                "${result.unknownHistoricalCostHoldings} holding(s), so gain is not shown.",
                             modifier = Modifier.padding(18.dp),
                         )
                     }
                 }
                 Text(
-                    "Not provided: investment returns, XIRR, tax advice or forecasts. " +
-                        "Those require verified dated cash flows and up-to-date valuations.",
+                    "This page does not guess yearly returns or tax. Those need dated cash and today's prices.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Button(onClick = onRefresh) { Text("Recalculate from encrypted book") }
+                Button(onClick = onRefresh) { Text("Refresh") }
             }
         }
     }
