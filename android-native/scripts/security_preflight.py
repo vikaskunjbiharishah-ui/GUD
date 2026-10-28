@@ -114,7 +114,7 @@ def ui_publication_guard_errors(sources: dict[str, str]) -> list[str]:
     """
     required = {
         "VaultViewModel.kt": ("originalRevision", 8),
-        "HouseholdDashboardViewModel.kt": ("originalRevision", 5),
+        "HouseholdDashboardViewModel.kt": ("originalRevision", 6),
         "StatementReviewViewModel.kt": ("originalRevision", 3),
         "FamilyMemberViewModel.kt": ("originalRevision", 2),
         "CustodyHoldingViewModel.kt": ("originalRevision", 2),
