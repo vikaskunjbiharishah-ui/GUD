@@ -1,7 +1,9 @@
 # GrowUrDhan
 
-Working repository: https://github.com/vikaskunjbiharishah-ui/GUD.git, branch main.
+Working repository: https://github.com/vikaskunjbiharishah-ui/GUD.git, branch `main` only. Never commit to `shahvikask/kosha`.
 
-Development restarts from the existing Tauri app in src/ and src-tauri/. Do not follow the removed native-redevelopment instruction set. Do not commit to shahvikask/kosha.
+The frozen parser under `src/casparser-main` must not be edited.
 
-Keep the original product notes in docs/ (Android, Play, architecture, security, testing, CAS). The frozen parser under src/casparser-main must not be edited.
+The original app in `src/` is the functional reference. Do not migrate it wholesale.
+
+Follow `docs/PLAYBOOK.md` (owner-authorized 2026-10-28) and keep `docs/STATE.md` current. Keep the original product notes in `docs/`.
