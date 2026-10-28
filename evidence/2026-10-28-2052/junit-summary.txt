@@ -1,0 +1,38 @@
+GUD run 2 instrumented summaries (x86 emulator gud_x86, API 35 aosp_atd). Not Gradle-connected; adb am instrument after assemble.
+
+APP in.growurdhan.app.test 2026-10-28 ~20:35Z OK 77/77
+NativeCasIdentityBridgeInstrumentedTest 5/5
+PydanticCoreImportTest 3/3
+CustodyHoldingShellTest 13/13
+EmergencyExportShellTest 2/2
+FamilyOnboardingShellTest 4/4
+FirstRunIdentityShellTest 1/1
+LegacyBackupShellTest 4/4
+LocalAppPasswordInstrumentedTest 7/7
+LocalLoginShellTest 5/5
+ManualTradeShellTest 6/6
+NativeShellTest 16/16
+OfficialAmfiCatalogGatewayInstrumentedTest 1/1
+OwnerLensShellTest 2/2
+PortableRecoveryShellTest 2/2
+PortfolioInsightsShellTest 6/6
+
+DATA in.growurdhan.data.test 2026-10-28 ~20:39-20:52Z 81/82 failures 1
+FamilyAdministrationInstrumentedTest 8/8
+FirstRunIdentityInstrumentedTest 1/1
+LegacyBackupInspectorInstrumentedTest 3/3
+LegacyVaultMigrationInstrumentedTest 10/10
+NativeAuthorizationInstrumentedTest 3/3
+NativeCipherIntegrityInstrumentedTest 1/1
+NativeCustodyHoldingInstrumentedTest 20/21
+  FAIL allOriginalHoldingDetailKeysPersistWithTheirHistoricalValueTypes
+  (fixture value "synthetic" is not a legal enum; validation kept)
+NativeFamilyOnboardingInstrumentedTest 4/4
+NativeFinancialPersistenceInstrumentedTest 5/5
+NativeManualTradeInstrumentedTest 6/6
+NativeMutationAuthorizationInstrumentedTest 2/2
+NativeParitySchemaInstrumentedTest 5/5
+NativeStatementApprovalInstrumentedTest 6/6
+NativeVaultInstrumentedTest 7/7
+
+JVM domain FirstRunRegistrationTest 3/3 LOCAL (2026-10-28T20:09:50Z).

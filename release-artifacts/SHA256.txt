@@ -1,6 +1,6 @@
 apk=release-artifacts/gud-arm64-debug.apk
-sha256=348db66ad45ceb8960fa90c0886c9d5de817b2950f1dc2df95fd01cc16c07a8b
-commit=225337556583862fc9f8ce469efd22167135db15
+sha256=fd1be32b168df7b434dc4c9866805541de4677a68605ae1483652f20a1713d31
+commit=3b9e8c0d191ec9d2a2979ad7f63e849e2b793056
 abi=arm64-v8a
-built=2026-10-28T11:55:00Z
-parser=assets/chaquopy/requirements-common.imy contains pydantic_core/_pydantic_core.cpython-313-aarch64-linux-android.so (4839112 bytes) and pypdfium2_raw/libpdfium.so (6393344 bytes). They are not under lib/arm64-v8a/. Not run on a phone.
+built=2026-10-28T20:52:00Z
+parser=assets/chaquopy/requirements-common.imy contains pydantic_core/_pydantic_core.cpython-313-aarch64-linux-android.so (4839112 bytes) and pypdfium2_raw/libpdfium.so (6393344 bytes). stdlib-arm64-v8a.imy holds the CPython arm64 modules. They are not under lib/arm64-v8a/. Not run on a phone.
