@@ -75,24 +75,20 @@ fun HomeScreen(
                     container = MaterialTheme.colorScheme.primaryContainer,
                     ink = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MetricTile(
-                        label = "What you own",
-                        value = dashboard.assets.asBook(),
-                        note = "Saved value",
-                        container = MaterialTheme.colorScheme.tertiaryContainer,
-                        ink = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.weight(1f),
-                    )
-                    MetricTile(
-                        label = "What you owe",
-                        value = dashboard.liabilities.asBook(),
-                        note = "Loans",
-                        container = MaterialTheme.colorScheme.secondaryContainer,
-                        ink = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                MetricTile(
+                    label = "What you own",
+                    value = dashboard.assets.asBook(),
+                    note = "Saved value",
+                    container = MaterialTheme.colorScheme.tertiaryContainer,
+                    ink = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                MetricTile(
+                    label = "What you owe",
+                    value = dashboard.liabilities.asBook(),
+                    note = "Loans",
+                    container = MaterialTheme.colorScheme.secondaryContainer,
+                    ink = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
                 if (!dashboard.isReliable) {
                     Text(
                         "Some totals may be incomplete. Open the holdings that need a look.",
@@ -308,7 +304,15 @@ private fun MetricTile(
     Surface(color = container, shape = RoundedCornerShape(20.dp), modifier = modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(label, style = MaterialTheme.typography.labelLarge, color = ink)
-            Text(value, style = MaterialTheme.typography.titleLarge, color = ink, fontWeight = FontWeight.Bold)
+            Text(
+                value,
+                style = MaterialTheme.typography.titleLarge,
+                color = ink,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            )
             Text(note, style = MaterialTheme.typography.bodySmall, color = ink)
         }
     }
