@@ -110,11 +110,11 @@ class NativeShellTest {
         }
         // M26 displays the owner in both the selection chip and the family
         // breakdown. Assert the breakdown entry, not an ambiguous text match.
-        compose.onNodeWithText("Family breakdown").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Each person").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic Member").onLast()
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(
-            "Assets: 25.0000 INR; liabilities: 7.5000 INR; net worth: 17.5000 INR; holdings: 2",
+            "Owns ₹ 25.00 · owes ₹ 7.50 · net ₹ 17.50 · 2 holdings",
         ).performScrollTo().assertIsDisplayed()
     }
 
@@ -150,7 +150,7 @@ class NativeShellTest {
         compose.onNodeWithText("Historical cost unknown; gain unavailable")
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Synthetic Home Loan").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Outstanding liability: 5.0000 INR")
+        compose.onNodeWithText("Outstanding liability: ₹ 5.00")
             .performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("synthetic-owner").assertCountEquals(0)
     }
@@ -182,7 +182,7 @@ class NativeShellTest {
             }
         }
         compose.onNodeWithText("Synthetic Verified Cost Asset").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Unrealised gain/loss: 4.5000 INR")
+        compose.onNodeWithText("Unrealised gain/loss: ₹ 4.50")
             .performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Historical purchase cost unavailable").assertCountEquals(0)
     }
@@ -284,7 +284,7 @@ class NativeShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Unlock the vault to view your family wealth.").assertIsDisplayed()
+        compose.onNodeWithText("Unlock the vault to see the family's money.").assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic Member").assertCountEquals(0)
     }
 
@@ -352,7 +352,7 @@ class NativeShellTest {
             .assertIsDisplayed()
         compose.onNodeWithContentDescription("Insights").performClick()
         compose.onNodeWithText(
-            "Unlock the vault to view your family's private financial insights.",
+            "Unlock the vault to see how the family's money is split.",
         ).assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic private holding").assertCountEquals(0)
     }

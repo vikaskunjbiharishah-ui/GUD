@@ -157,7 +157,7 @@ class PortfolioInsightsShellTest {
             }
         }
         compose.onNodeWithText(
-            "Unlock the vault to view your family's private financial insights.",
+            "Unlock the vault to see how the family's money is split.",
         ).assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic private fund").assertCountEquals(0)
         compose.onAllNodesWithText("Household position").assertCountEquals(0)
