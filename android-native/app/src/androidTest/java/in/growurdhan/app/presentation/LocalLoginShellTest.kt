@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import `in`.growurdhan.app.presentation.screens.LocalLoginScreen
@@ -37,7 +38,7 @@ class LocalLoginShellTest {
         compose.onNodeWithTag("LocalAppPassword").performTextInput("Synthetic!Pass123")
         compose.onNodeWithTag("LocalAppPasswordRepeat").performTextInput("Synthetic!Pass123")
         compose.waitForIdle()
-        compose.onNodeWithTag("LocalLoginSubmit").assertIsEnabled().performClick()
+        compose.onNodeWithTag("LocalLoginSubmit").performScrollTo().assertIsEnabled().performClick()
         compose.runOnIdle {
             assertEquals("Synthetic!Pass123" to "Synthetic!Pass123", entered)
         }

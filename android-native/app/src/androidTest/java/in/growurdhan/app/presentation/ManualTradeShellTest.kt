@@ -3,8 +3,9 @@ package `in`.growurdhan.app.presentation
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -68,7 +69,7 @@ class ManualTradeShellTest {
                 onIntent = { request = it }, onReturn = {},
             )
         }
-        compose.onNodeWithText("Total paid: 102.0000 INR")
+        compose.onNodeWithText("Reviewed cash or stated amount: ₹ 102.00")
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Confirm transaction with device lock")
             .performScrollTo().performClick()
@@ -93,8 +94,11 @@ class ManualTradeShellTest {
             )
         }
         compose.onNodeWithTag("ManualTradeKindPicker").performScrollTo().performClick()
-        compose.onNodeWithText("OPENING_BALANCE").performClick()
-        compose.onNodeWithText("To establish an existing loan", substring = true)
+        compose.onAllNodesWithText("BUY").assertCountEquals(0)
+        compose.onAllNodesWithText("SELL").assertCountEquals(0)
+        compose.onAllNodesWithText("OPENING_BALANCE").assertCountEquals(2)
+        compose.onAllNodesWithText("OPENING_BALANCE")[1].performClick()
+        compose.onNodeWithText("For an existing loan, choose OPENING_BALANCE", substring = true)
             .performScrollTo().assertIsDisplayed()
     }
 
@@ -139,8 +143,9 @@ class ManualTradeShellTest {
             .performTextInput("9876")
         compose.onNodeWithTag("ManualTradeHoldingPicker").performScrollTo().performClick()
         compose.onNodeWithText(loan.name).performClick()
-        compose.onNodeWithTag("ManualTradeUnits").assertIsDisplayed()
-        compose.onNodeWithTag("ManualTradePrice").assertIsDisplayed()
+        compose.onNodeWithTag("ManualTradeUnits").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("ManualTradePrice").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("9876", substring = true).assertCountEquals(0)
         compose.onNodeWithText("OPENING_BALANCE").assertIsDisplayed()
         compose.onNodeWithTag("ManualTradeKindPicker").performScrollTo().performClick()
         compose.onAllNodesWithText("BUY").assertCountEquals(0)

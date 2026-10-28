@@ -1,5 +1,10 @@
 package `in`.growurdhan.app.presentation
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -18,6 +23,7 @@ import `in`.growurdhan.app.presentation.screens.CustodyHoldingScreen
 import `in`.growurdhan.core.model.*
 import `in`.growurdhan.domain.market.CachedListedSecurity
 import `in`.growurdhan.domain.market.OfficialMarketSource
+import `in`.growurdhan.domain.vault.ManualAssetOnboarding
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -53,6 +59,27 @@ class CustodyHoldingShellTest {
         compose.onNodeWithText(
             "Save a CAMS or KFINTECH registrar account first.", substring = true,
         ).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun newHoldingOffersAllEightCanonicalCategories() {
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings()) {
+                CustodyHoldingScreen(
+                    state = CustodyHoldingUiState.Ready(book()),
+                    onIntent = {},
+                    onBackToVault = {},
+                    onContinueToStatements = {},
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Manual asset category selector")
+            .performScrollTo().performClick()
+        // The closed selector already shows EQUITY, so that label is the button plus the menu row.
+        ManualAssetOnboarding.canonicalCategories.forEach { category ->
+            val label = category.replace('_', ' ')
+            val expected = if (category == "EQUITY") 2 else 1
+            compose.onAllNodesWithText(label).assertCountEquals(expected)
+        }
     }
 
     @Test fun accountNeedsNicknameAndOnlyStagesUserRequestedWrite() {
@@ -316,14 +343,16 @@ class CustodyHoldingShellTest {
         var staged: HoldingProfileEdit? = null
         compose.setContent {
             GrowUrDhanTheme(AppearanceSettings()) {
-                HoldingProfileEditor(
-                    profile = HoldingProfileSnapshot(
-                        HoldingId("draft-aif"), owner, "Synthetic AIF",
-                        "SPECIALISED", "AIF",
-                    ),
-                    creating = true,
-                    onStage = { staged = it },
-                )
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                    HoldingProfileEditor(
+                        profile = HoldingProfileSnapshot(
+                            HoldingId("draft-aif"), owner, "Synthetic AIF",
+                            "SPECIALISED", "AIF",
+                        ),
+                        creating = true,
+                        onStage = { staged = it },
+                    )
+                }
             }
         }
         compose.onNodeWithTag("HoldingDetails_aifCategory")

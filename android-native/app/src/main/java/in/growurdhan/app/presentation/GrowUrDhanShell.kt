@@ -319,6 +319,7 @@ fun GrowUrDhanShell(
                             state = dashboardState,
                             onOpenVault = { navigate(VAULT_ROUTE) },
                             onRefresh = onDashboardRefresh,
+                            selectedOwnerId = selectedOwner,
                         )
                     }
                     composable(VAULT_ROUTE) {
@@ -461,6 +462,7 @@ fun GrowUrDhanShell(
                             state = manualTradeState,
                             onIntent = onManualTradeIntent,
                             preselectedHoldingId = pendingOpeningHoldingId,
+                            selectedOwnerId = selectedOwner,
                             onReturn = {
                                 pendingOpeningHoldingId = null
                                 onManualTradeIntent(ManualTradeIntent.Cancel)

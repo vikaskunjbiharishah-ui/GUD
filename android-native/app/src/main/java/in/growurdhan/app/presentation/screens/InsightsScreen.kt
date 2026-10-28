@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.app.presentation.HouseholdDashboardUiState
+import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.domain.finance.PortfolioInsightsProjector
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -30,6 +31,7 @@ fun InsightsScreen(
     state: HouseholdDashboardUiState,
     onOpenVault: () -> Unit,
     onRefresh: () -> Unit,
+    selectedOwnerId: OwnerId? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -48,6 +50,26 @@ fun InsightsScreen(
             }
             is HouseholdDashboardUiState.Ready -> {
                 val dashboard = state.dashboard
+                val focused = selectedOwnerId?.let { id ->
+                    dashboard.byMember.firstOrNull { it.ownerId == id }
+                }
+                if (selectedOwnerId != null) {
+                    if (focused == null) {
+                        Text("That person is not in this open book.")
+                    } else {
+                        Text("Showing one person only: ${focused.displayName ?: "Member"}.")
+                        Text(
+                            "Owns ${focused.assets.asBook()} · owes ${focused.liabilities.asBook()} · net ${focused.netWorth.asBook()}.",
+                        )
+                        val own = dashboard.recordedHoldings.filter {
+                            focused.displayName != null && it.ownerName == focused.displayName
+                        }
+                        if (own.isEmpty()) Text("No recorded holding for this person.")
+                        own.forEach { holding -> Text(holding.name) }
+                        Text("Other people's holdings stay hidden in this view.")
+                    }
+                    Button(onClick = onRefresh) { Text("Refresh") }
+                } else {
                 val result = remember(dashboard) { PortfolioInsightsProjector.from(dashboard) }
                 Text(
                     "As of ${dashboard.asOf}. These are saved values, not today's market price.",
@@ -135,6 +157,7 @@ fun InsightsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Button(onClick = onRefresh) { Text("Refresh") }
+                }
             }
         }
     }

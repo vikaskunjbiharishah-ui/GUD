@@ -29,6 +29,7 @@ import `in`.growurdhan.domain.finance.ManualTradeDraft
 import `in`.growurdhan.domain.finance.ManualTradeKind
 import `in`.growurdhan.domain.finance.ManualTradePlanner
 import `in`.growurdhan.core.model.HoldingId
+import `in`.growurdhan.core.model.OwnerId
 import java.time.LocalDate
 
 /** A visible review step precedes the separate OS device-credential challenge. */
@@ -38,6 +39,7 @@ fun ManualTradeScreen(
     onIntent: (ManualTradeIntent) -> Unit,
     onReturn: () -> Unit,
     preselectedHoldingId: HoldingId? = null,
+    selectedOwnerId: OwnerId? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -110,8 +112,12 @@ fun ManualTradeScreen(
                     modifier = Modifier.fillMaxWidth().testTag("ManualHoldingSearch"))
                 val eligible = state.book.holdings.filter {
                     state.book.members.any { member -> member.id == it.ownerId } &&
+                        (selectedOwnerId == null || it.ownerId == selectedOwnerId) &&
                         (search.isBlank() || it.name.contains(search, ignoreCase = true) ||
                             it.assetCategory.contains(search, ignoreCase = true))
+                }
+                if (selectedOwnerId != null) {
+                    Text("Showing one person's holdings only.")
                 }
                 if (eligible.isEmpty()) {
                     Text("No enrolled asset holding exists. Enrol a family account or fund first.")

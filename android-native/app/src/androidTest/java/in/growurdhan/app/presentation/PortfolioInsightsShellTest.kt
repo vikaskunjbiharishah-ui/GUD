@@ -99,7 +99,7 @@ class PortfolioInsightsShellTest {
             .performScrollTo().performClick()
         compose.onNodeWithText("Synthetic housing debt").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic private fund").assertCountEquals(0)
-        compose.onNodeWithText("Family assets: 30.0000 INR", substring = true)
+        compose.onNodeWithText("Family assets: ₹ 30.00", substring = true)
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(
             "1 of 3 recorded holdings match the filters. Filters do not change family totals.",
@@ -132,7 +132,7 @@ class PortfolioInsightsShellTest {
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("GOLD · 33.3%")
             .performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Debt-to-assets: 33.3% (recorded balances only)")
+        compose.onNodeWithText("Loans are 33.3% of what you own.")
             .performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Allocation withheld").assertCountEquals(0)
     }
@@ -146,7 +146,9 @@ class PortfolioInsightsShellTest {
                 InsightsScreen(HouseholdDashboardUiState.Ready(invalid), {}, {})
             }
         }
-        compose.onNodeWithText("Allocation withheld").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("The mix is paused").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("The totals do not add up yet, so percentages stay hidden.")
+            .performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("MUTUAL FUND · 66.7%").assertCountEquals(0)
     }
 

@@ -957,7 +957,18 @@ class SqlCipherVaultRepository(
         edit.notes?.let { require(it.length <= 4_000) }
         edit.location?.let { require(it.length <= 300) }
         edit.symbolOrFolio?.let { require(it.length <= 120) }
-        edit.isin?.let { require(Regex("[A-Z0-9]{12}").matches(it)) }
+        edit.isin?.let { isin ->
+            require(Regex("[A-Z0-9]{12}").matches(isin))
+            db.rawQuery(
+                "SELECT count(*) FROM holding_profile WHERE owner_id=? AND isin=? AND holding_id!=?",
+                arrayOf(edit.ownerId.raw, isin, edit.holdingId.raw),
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                require(cursor.getLong(0) == 0L) {
+                    "This owner already records that ISIN."
+                }
+            }
+        }
         val verifiedCas = readCasIdentities(db).firstOrNull { it.holdingId == edit.holdingId }
         require(verifiedCas == null || edit.isin == null || edit.isin == verifiedCas.isin) {
             "A registrar-verified CAS identity cannot be edited here."
