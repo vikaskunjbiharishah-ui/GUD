@@ -1,0 +1,12 @@
+Observed 2026-10-28 UTC on this machine. Not a full regression.
+
+validate_schema.py: PASS (v1–v4, ledger triggers, CAS identity).
+python -m unittest discover android-native/scripts test_*.py: 35 passed, 0 failed.
+gradle :domain:test :app:testDebugUnitTest --offline --no-daemon: BUILD SUCCESSFUL.
+  domain 253 tests, 0 failures (49 classes).
+  app 110 tests, 0 failures (17 classes).
+Emulator gud_x86 (android-35 aosp_atd, x86_64, KVM): NativeShellTest 16/16 in 31.46s.
+  Class: in.growurdhan.app.presentation.NativeShellTest
+  First attempt failed 5 tests on retired copy ("4.5000 INR", "Family breakdown").
+  After the assertion update, the rerun was OK (16 tests).
+ARM64 APK: see release-artifacts/SHA256.txt when the phone build finishes.

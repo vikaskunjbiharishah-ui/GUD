@@ -15,3 +15,5 @@ src-tauri/gen/
 src-tauri/keystore.properties
 *.jks
 *.keystore
+/growurdhan-debug-*.apk
+/release-artifacts/*.apk
