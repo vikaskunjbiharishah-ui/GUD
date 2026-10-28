@@ -23,7 +23,11 @@ import androidx.compose.ui.unit.dp
 
 /** Code shown once, only in memory. FLAG_SECURE is active on MainActivity. */
 @Composable
-fun OneTimeRecoveryCodeScreen(code: String, onAcknowledged: () -> Unit) {
+fun OneTimeRecoveryCodeScreen(
+    code: String,
+    onAcknowledged: () -> Unit,
+    notice: String? = null,
+) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Text("Save your recovery code", style = MaterialTheme.typography.headlineMedium)
@@ -31,6 +35,7 @@ fun OneTimeRecoveryCodeScreen(code: String, onAcknowledged: () -> Unit) {
             "You will need BOTH this code and your Android device screen lock " +
             "if you forget the GrowUrDhan app password. It is never stored in plaintext.")
         Text(code, style = MaterialTheme.typography.titleLarge)
+        notice?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Text("This code does not decrypt an old phone's missing Android Keystore. " +
             "Keep a separate encrypted portable backup for migration to another device.")
         Button(onClick = onAcknowledged) { Text("I have saved this code") }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -126,6 +127,7 @@ fun FamilyAdministrationScreen(
                             var q2 by remember { mutableStateOf("city") }
                             var answer1 by remember { mutableStateOf("") }
                             var answer2 by remember { mutableStateOf("") }
+                            var consent by remember { mutableStateOf(false) }
                             Card(Modifier.fillMaxWidth()) {
                                 Column(Modifier.padding(14.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -167,17 +169,22 @@ fun FamilyAdministrationScreen(
                                         label = { Text("Second security answer") },
                                         visualTransformation = PasswordVisualTransformation(),
                                         modifier = Modifier.fillMaxWidth())
+                                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                        Checkbox(checked = consent, onCheckedChange = { consent = it })
+                                        Text("I agree to store this profile only in the encrypted vault on this phone.")
+                                    }
                                     Button(
                                         enabled = first.isNotBlank() && last.isNotBlank() &&
                                             email.isNotBlank() && pan.length == 10 && dob.length == 10 &&
-                                            q1 != q2 && answer1.length >= 3 && answer2.length >= 3,
+                                            q1 != q2 && answer1.length >= 3 && answer2.length >= 3 &&
+                                            consent,
                                         onClick = {
                                             val cmd = FamilyAdminChange.RegisterOwnerIdentity(
                                                 first,last,email,pan,dob,q1,answer1.toCharArray(),
-                                                q2,answer2.toCharArray(),
+                                                q2,answer2.toCharArray(), registrationConsent = consent,
                                             )
                                             first="";last="";email="";pan="";dob=""
-                                            answer1="";answer2=""
+                                            answer1="";answer2="";consent=false
                                             onIntent(FamilyAdminIntent.Stage(cmd))
                                         },
                                     ) { Text("Register account with new device approval") }

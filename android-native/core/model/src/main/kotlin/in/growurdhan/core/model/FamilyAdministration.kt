@@ -64,6 +64,7 @@ sealed interface FamilyAdminChange {
         val firstAnswer: CharArray,
         val secondQuestionId: String,
         val secondAnswer: CharArray,
+        val registrationConsent: Boolean = true,
     ) : FamilyAdminChange {
         fun wipeSecrets() {
             firstAnswer.fill('\u0000')

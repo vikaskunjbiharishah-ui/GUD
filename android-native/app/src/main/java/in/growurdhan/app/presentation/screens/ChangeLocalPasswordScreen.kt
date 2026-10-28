@@ -42,6 +42,11 @@ fun ChangeLocalPasswordScreen(
                 "erase the Keystore-wrapped SQLCipher key. A new Android device " +
                 "credential is required. You must sign in again afterward.",
         )
+        Text(
+            "The app asks for a new password every 180 days. You still need the " +
+                "current password and this phone's screen lock. A forgotten password " +
+                "uses the offline recovery code. It does not reset the vault.",
+        )
         OutlinedTextField(
             value = current, onValueChange = { if (it.length <= 128) current = it },
             label = { Text("Current app password") },

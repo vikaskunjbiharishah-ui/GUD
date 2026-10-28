@@ -235,6 +235,7 @@ internal object FamilyAdministrationSql {
             c.secondQuestionId in securityQuestionIds) {
             "Two distinct registered security questions are required."
         }
+        require(c.registrationConsent) { "Registration consent is required." }
         val firstHash = hashAnswer(c.firstAnswer)
         val secondHash = hashAnswer(c.secondAnswer)
         db.execSQL(
@@ -245,7 +246,7 @@ internal object FamilyAdministrationSql {
                VALUES(1,?,?,?,?,?,?,?,?,?,?,?,?)""",
             arrayOf(email,first,last,pan.take(5)+"****"+pan.takeLast(1),pan,dob,
                 c.firstQuestionId,firstHash,c.secondQuestionId,secondHash,
-                Instant.now().toString(),"""{"native_identity":true}"""),
+                Instant.now().toString(),"""{"native_identity":true,"registration_consent":true}"""),
         )
         // The local app password verifier remains Keystore-HMAC bound, not
         // an exportable legacy password hash. Native backups carry the identity

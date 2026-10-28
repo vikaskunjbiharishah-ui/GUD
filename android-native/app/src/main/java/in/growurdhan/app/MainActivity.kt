@@ -28,6 +28,7 @@ import `in`.growurdhan.domain.finance.PortfolioEngine
 import `in`.growurdhan.domain.finance.HouseholdDashboardProjector
 import `in`.growurdhan.domain.finance.EmergencyDossierCsv
 import java.time.LocalDate
+import `in`.growurdhan.domain.vault.FirstRunRegistration
 import `in`.growurdhan.domain.vault.LegacyRestoreIdentity
 import `in`.growurdhan.domain.vault.VaultRepository
 import `in`.growurdhan.app.presentation.FamilyAdminIntent
@@ -67,6 +68,7 @@ import `in`.growurdhan.app.presentation.ManualTradeUiState
 import `in`.growurdhan.app.presentation.LocalAppPasswordStore
 import `in`.growurdhan.app.presentation.LocalLoginStatus
 import `in`.growurdhan.app.presentation.screens.LocalLoginScreen
+import `in`.growurdhan.app.presentation.screens.FirstRunIdentityScreen
 import `in`.growurdhan.app.presentation.screens.OnboardingScreen
 import `in`.growurdhan.app.presentation.screens.TermsGateScreen
 import `in`.growurdhan.app.welcome.WelcomeMemory
@@ -84,7 +86,9 @@ import java.io.ByteArrayOutputStream
 import `in`.growurdhan.domain.vault.LocalPasswordRules
 import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import `in`.growurdhan.app.presentation.theme.GrowUrDhanTheme
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -108,6 +112,8 @@ class MainActivity : ComponentActivity() {
     private var pendingRecoveredPassword: CharArray? = null
     private var pendingEnrollmentPassword: CharArray? = null
     private var pendingEnrollmentEmail: String? = null
+    private var showFirstRunIdentity by mutableStateOf(false)
+    private var pendingFirstRunIdentity: PendingFirstRunIdentity? = null
     private var pendingPreviousPassword: CharArray? = null
     private var pendingReplacementPassword: CharArray? = null
     private var dossierPickerOpen = false
@@ -191,14 +197,50 @@ class MainActivity : ComponentActivity() {
                                 appPassword.setup(pending, pendingEmail)
                             }
                             if (generation != loginOperationGeneration) {
+                                pendingFirstRunIdentity?.wipe()
+                                pendingFirstRunIdentity = null
                                 appPassword.lock()
                             } else {
                                 if (completed) {
+                                    val identity = pendingFirstRunIdentity
+                                    pendingFirstRunIdentity = null
+                                    var identityNote: String? = null
+                                    if (identity != null) {
+                                        try {
+                                            sessionGate.grantDeviceCredential()
+                                            vaultViewModel.onIntent(VaultIntent.OpenOrCreate)
+                                            val opened = withTimeoutOrNull(25_000) {
+                                                vaultViewModel.state.first {
+                                                    it is VaultUiState.Ready || it is VaultUiState.Error
+                                                }
+                                            }
+                                            if (opened is VaultUiState.Ready) {
+                                                withContext(Dispatchers.IO) {
+                                                    val snap = repository.familyAdministration()
+                                                    if (snap.ownerIdentity == null) {
+                                                        if (snap.family.none { it.primary }) {
+                                                            val display = (identity.firstName.trim() + " " +
+                                                                identity.lastName.trim()).trim().take(100)
+                                                            repository.registerFamilyMember(display, "Self")
+                                                        }
+                                                        repository.applyFamilyAdministration(identity.toChange())
+                                                    }
+                                                }
+                                            } else {
+                                                identityNote = "The password is saved, but the name and security questions were not stored. Finish them under Family after you open the vault."
+                                            }
+                                        } catch (_: Exception) {
+                                            identityNote = "The password is saved, but the name and security questions were not stored. Finish them under Family after you open the vault."
+                                        } finally {
+                                            identity.wipe()
+                                        }
+                                    }
                                     displayedRecoveryCode = withContext(Dispatchers.Default) {
                                         appPassword.issueRecoveryCodeAfterDeviceApproval()
                                     }
+                                    localLoginError = identityNote
                                 }
-                                localLoginError = if (completed) null else
+                                localLoginError = if (completed) localLoginError else
                                     "Local password storage is unavailable; records have been preserved."
                             }
                         } catch (_: Exception) {
@@ -755,6 +797,13 @@ class MainActivity : ComponentActivity() {
                         },
                         onDecline = { finish() },
                     )
+                } else if (showFirstRunIdentity && loginStatus == LocalLoginStatus.NEEDS_SETUP) {
+                    FirstRunIdentityScreen(
+                        email = pendingEnrollmentEmail.orEmpty(),
+                        message = localLoginError,
+                        onCancel = { lockSensitiveUi() },
+                        onContinue = ::stageFirstRunIdentity,
+                    )
                 } else if (loginStatus != LocalLoginStatus.VERIFIED) {
                     if (showForgotRecovery && loginStatus == LocalLoginStatus.LOCKED) {
                         ForgottenPasswordRecoveryScreen(
@@ -782,7 +831,11 @@ class MainActivity : ComponentActivity() {
                 } else if (displayedRecoveryCode != null) {
                     OneTimeRecoveryCodeScreen(
                         code = displayedRecoveryCode ?: "",
-                        onAcknowledged = { displayedRecoveryCode = null },
+                        notice = localLoginError,
+                        onAcknowledged = {
+                            displayedRecoveryCode = null
+                            localLoginError = null
+                        },
                     )
                 } else if (!appPassword.hasRecoveryCode()) {
                     RecoveryEnrollmentScreen(
@@ -870,7 +923,7 @@ class MainActivity : ComponentActivity() {
                     pendingEnrollmentPassword = secret.copyOf()
                     pendingEnrollmentEmail = email.trim().lowercase()
                     localLoginError = null
-                    requestCredential(CredentialAction.ENROLL_APP_PASSWORD)
+                    showFirstRunIdentity = true
                 }
                 LocalLoginStatus.LOCKED -> {
                     val generation = ++loginOperationGeneration
@@ -900,6 +953,27 @@ class MainActivity : ComponentActivity() {
         } finally {
             secret.fill('\u0000')
         }
+    }
+
+    /** Profile is held only in memory until the same device-lock result that creates the password. */
+    private fun stageFirstRunIdentity(draft: FirstRunRegistration.Draft) {
+        if (appPassword.status.value != LocalLoginStatus.NEEDS_SETUP ||
+            pendingEnrollmentPassword == null ||
+            FirstRunRegistration.issues(draft).isNotEmpty()
+        ) {
+            localLoginError = "Enter your name, date of birth, two different security answers, and consent."
+            return
+        }
+        pendingFirstRunIdentity?.wipe()
+        pendingFirstRunIdentity = PendingFirstRunIdentity(
+            draft.firstName.trim(), draft.lastName.trim(), draft.email.trim().lowercase(),
+            draft.pan.trim().uppercase(), draft.dateOfBirth.trim(),
+            draft.firstQuestionId, draft.firstAnswer.toCharArray(),
+            draft.secondQuestionId, draft.secondAnswer.toCharArray(),
+        )
+        showFirstRunIdentity = false
+        localLoginError = null
+        requestCredential(CredentialAction.ENROLL_APP_PASSWORD)
     }
 
     /** Never executes the reset without a NEW OS credential result. */
@@ -1432,6 +1506,9 @@ class MainActivity : ComponentActivity() {
         pendingEnrollmentPassword?.fill('\u0000')
         pendingEnrollmentPassword = null
         pendingEnrollmentEmail = null
+        showFirstRunIdentity = false
+        pendingFirstRunIdentity?.wipe()
+        pendingFirstRunIdentity = null
         pendingRecoveryCodeInput?.fill('\u0000')
         pendingRecoveredPassword?.fill('\u0000')
         pendingRecoveryCodeInput = null
@@ -1554,6 +1631,9 @@ class MainActivity : ComponentActivity() {
         showForgotRecovery = false
         pendingEnrollmentPassword?.fill('\u0000')
         pendingEnrollmentPassword = null
+        showFirstRunIdentity = false
+        pendingFirstRunIdentity?.wipe()
+        pendingFirstRunIdentity = null
         pendingPreviousPassword?.fill('\u0000')
         pendingReplacementPassword?.fill('\u0000')
         pendingPreviousPassword = null
@@ -1571,4 +1651,26 @@ class MainActivity : ComponentActivity() {
         playBilling.shutdown()
         super.onDestroy()
     }
+}
+
+private class PendingFirstRunIdentity(
+    val firstName: String,
+    val lastName: String,
+    val email: String,
+    val pan: String,
+    val dateOfBirth: String,
+    val firstQuestionId: String,
+    val firstAnswer: CharArray,
+    val secondQuestionId: String,
+    val secondAnswer: CharArray,
+) {
+    fun wipe() {
+        firstAnswer.fill('\u0000')
+        secondAnswer.fill('\u0000')
+    }
+    fun toChange() = FamilyAdminChange.RegisterOwnerIdentity(
+        firstName, lastName, email, pan, dateOfBirth,
+        firstQuestionId, firstAnswer, secondQuestionId, secondAnswer,
+        registrationConsent = true,
+    )
 }
