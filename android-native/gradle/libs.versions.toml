@@ -20,6 +20,7 @@ billing = "7.1.1"
 playServicesAuth = "21.3.0"
 securityCrypto = "1.1.0-alpha06"
 androidxSqlite = "2.7.0"
+work = "2.10.0"
 
 [libraries]
 sqlcipher-android = { module = "net.zetetic:sqlcipher-android", version.ref = "sqlcipher" }
@@ -48,6 +49,7 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
+androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit5" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit5" }
 junit4 = { module = "junit:junit", version.ref = "junit4" }

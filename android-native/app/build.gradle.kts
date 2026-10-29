@@ -96,6 +96,7 @@ dependencies {
     implementation(libs.billing)
     implementation(libs.play.services.auth)
     implementation(libs.security.crypto)
+    implementation(libs.androidx.work.runtime)
     implementation(libs.dagger.hilt.android)
     kapt(libs.dagger.hilt.compiler)
     debugImplementation(libs.androidx.ui.tooling)

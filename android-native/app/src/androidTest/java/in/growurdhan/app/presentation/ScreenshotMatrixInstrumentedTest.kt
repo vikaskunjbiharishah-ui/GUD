@@ -55,16 +55,35 @@ class ScreenshotMatrixInstrumentedTest {
         show(dark = false, fontScale = 1f) { OnboardingScreen(onFinished = {}) }
         compose.onNodeWithText("A family vault. Not another brokerage login.").assertIsDisplayed()
         assertTouch("Next")
+        assertTouch("Skip")
         assertTouch("हिन्दी")
         save("onboarding-en-light-font1")
+    }
+
+    @Test fun onboardingEnglishLargeTypeShowsAScrollCueWhenTheBodyDoesNotFit() {
+        show(dark = false, fontScale = 2f) { OnboardingScreen(onFinished = {}) }
+        compose.onNodeWithText("A family vault. Not another brokerage login.").assertIsDisplayed()
+        assertTouch("Next")
+        assertTouch("Skip")
+        assertFitsOrShowsCue(
+            "GrowUrDhan is built so Indian families can see every member’s holdings in one private place.",
+            "Scroll for the rest of this slide.",
+        )
+        save("onboarding-en-light-font2")
     }
 
     @Test fun onboardingHindiStaysReadableAtDoubleFont() {
         show(dark = false, fontScale = 2f) { OnboardingScreen(onFinished = {}) }
         compose.onNodeWithText("हिन्दी").performClick()
-        compose.onNodeWithText("परिवार की तिजोरी। ब्रोकर का लॉगिन नहीं।").assertIsDisplayed()
-        assertTouch("English")
-        assertTouch("Next")
+        compose.onNodeWithText("परिवार का वॉल्ट — एक और ब्रोकर लॉगिन नहीं।").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("तिजोरी", substring = true).fetchSemanticsNodes().size)
+        assertTouch("अंग्रेज़ी")
+        assertTouch("आगे")
+        assertTouch("छोड़ें")
+        assertFitsOrShowsCue(
+            "GrowUrDhan इसलिए बना है कि भारतीय परिवार सभी सदस्यों के निवेश एक ही निजी जगह पर देख सकें।",
+            "और पढ़ने के लिए ऊपर खिसकाएँ।",
+        )
         save("onboarding-hi-light-font2")
     }
 
@@ -109,6 +128,7 @@ class ScreenshotMatrixInstrumentedTest {
             TermsGateScreen(onAccept = {}, onDecline = {})
         }
         compose.onNodeWithText("GrowUrDhan Terms and Conditions").assertIsDisplayed()
+        compose.onNodeWithText("The Terms of Use are in English.", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Don't accept").assertIsDisplayed()
         assertTouch("Don't accept")
         assertTouch("Accept")
@@ -147,6 +167,17 @@ class ScreenshotMatrixInstrumentedTest {
         assertEquals(0, compose.onAllNodesWithText("gud_lifetime").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("gud_gmail").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("gud_support_annual").fetchSemanticsNodes().size)
+    }
+
+    private fun assertFitsOrShowsCue(text: String, cue: String) {
+        compose.waitForIdle()
+        val root = compose.onNodeWithTag("shot").fetchSemanticsNode().boundsInRoot
+        val body = compose.onNodeWithText(text, substring = true).fetchSemanticsNode().boundsInRoot
+        val clipped = body.top < root.top - 1f || body.bottom > root.bottom + 1f ||
+            body.left < root.left - 1f || body.right > root.right + 1f
+        if (clipped) {
+            compose.onNodeWithText(cue).assertIsDisplayed()
+        }
     }
 
     private fun assertTouch(label: String) {

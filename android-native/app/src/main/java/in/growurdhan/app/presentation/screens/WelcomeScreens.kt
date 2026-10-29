@@ -1,8 +1,10 @@
 package `in`.growurdhan.app.presentation.screens
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -38,6 +40,8 @@ fun OnboardingScreen(onFinished: () -> Unit) {
     val pager = rememberPagerState { slides.size }
     val scope = rememberCoroutineScope()
     var hindi by remember { mutableStateOf(false) }
+    val chrome = Onboarding.chrome(hindi)
+    val pageScroll = remember { List(slides.size) { ScrollState(0) } }
     val colors = listOf(
         MaterialTheme.colorScheme.primaryContainer,
         MaterialTheme.colorScheme.tertiaryContainer,
@@ -52,7 +56,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
             TextButton(
                 onClick = { hindi = !hindi },
                 modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp),
-            ) { Text(if (hindi) "English" else "हिन्दी") }
+            ) { Text(chrome.languageToggle) }
         }
         LinearProgressIndicator(
             progress = { (pager.currentPage + 1f) / slides.size },
@@ -74,7 +78,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                 modifier = Modifier.fillMaxSize().padding(end = 8.dp),
             ) {
                 Column(
-                    Modifier.padding(22.dp).verticalScroll(rememberScrollState()),
+                    Modifier.padding(22.dp).verticalScroll(pageScroll[page]),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
@@ -90,13 +94,24 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (pageScroll[pager.currentPage].canScrollForward) {
+            Text(chrome.scrollCue, style = MaterialTheme.typography.labelLarge)
+        }
+        FlowRow(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TextButton(
+                onClick = onFinished,
+                modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp),
+            ) { Text(chrome.skip) }
             if (pager.currentPage > 0) {
                 OutlinedButton(
                     onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) {
-                    Text("Back")
+                    Text(chrome.back)
                 }
             }
             Button(
@@ -104,8 +119,8 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                     if (pager.currentPage == slides.lastIndex) onFinished()
                     else scope.launch { pager.animateScrollToPage(pager.currentPage + 1) }
                 },
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-            ) { Text(if (pager.currentPage == slides.lastIndex) "Continue" else "Next") }
+                modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp),
+            ) { Text(if (pager.currentPage == slides.lastIndex) "Continue" else chrome.next) }
         }
     }
 }
@@ -117,7 +132,7 @@ fun TermsGateScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(Terms.TITLE, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
         Text(
-            "Effective ${Terms.EFFECTIVE}. Scroll to the end, then accept. English controls if Hindi and English differ.",
+            "Effective ${Terms.EFFECTIVE}. Scroll to the end, then accept. The Terms of Use are in English.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
