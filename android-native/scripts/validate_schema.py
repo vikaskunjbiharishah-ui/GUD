@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile native SQL and test v1/v2/v3->v4, fresh installs and rollback offline.
+"""Compile native SQL and test v1/v2/v3/v4->v5, fresh installs and rollback offline.
 
 The SQL statements are extracted from VaultSchema.kt itself (no duplicated
 schema). This preflight tests ordinary SQLite constraints and atomic migration.
@@ -35,6 +35,7 @@ V1_STATEMENT_COUNT = 14
 MIGRATION_STATEMENT_COUNT = 6
 V3_MIGRATION_STATEMENT_COUNT = 4
 V4_MIGRATION_STATEMENT_COUNT = 26
+V5_MIGRATION_STATEMENT_COUNT = 5
 RICH_COLUMNS = {
     "financial_kind", "unit_price_scaled", "charges_scaled", "supersedes_event_id",
 }
@@ -353,6 +354,67 @@ def check_v4(db: sqlite3.Connection) -> None:
         raise AssertionError("v4 owner references invalid")
 
 
+def check_v5(db: sqlite3.Connection) -> None:
+    if db.execute("PRAGMA user_version").fetchone() != (5,):
+        raise AssertionError("Expected schema version 5")
+    cols = {row[1] for row in db.execute("PRAGMA table_info('ledger_profile')")}
+    needed = {"settlement_date", "unit_balance_after", "description", "entered_by"}
+    if not needed.issubset(cols):
+        raise AssertionError(f"ledger_profile missing legacy columns: {needed - cols}")
+    triggers = {row[0] for row in db.execute(
+        "SELECT name FROM sqlite_master WHERE type='trigger'"
+    )}
+    if "validate_ledger_profile_settlement" not in triggers:
+        raise AssertionError("Missing settlement-date trigger")
+    row = db.execute(
+        "SELECT kind,quantity_delta_scaled,amount_scaled FROM ledger_event WHERE id='original'"
+    ).fetchone()
+    if row != ("BUY", 100000000, 10000):
+        raise AssertionError("Original financial record mutated during v5")
+    saved = db.execute(
+        "SELECT source_ref,settlement_date,unit_balance_after,description,entered_by "
+        "FROM ledger_profile WHERE event_id='original'"
+    ).fetchone()
+    if saved != ("synthetic", None, None, None, "owner"):
+        raise AssertionError(f"Existing ledger profile was rewritten: {saved}")
+    db.execute(
+        "INSERT INTO ledger_event(id,owner_id,holding_id,kind,event_date,"
+        "quantity_delta_scaled,amount_scaled) VALUES('late','self','holding','BUY',"
+        "'2026-02-01',1,1)"
+    )
+    assert_rejected(
+        db,
+        "INSERT INTO ledger_profile(event_id,owner_id,holding_id,settlement_date) "
+        "VALUES('late','self','holding','2026-01-01')",
+    )
+    db.execute(
+        "INSERT INTO ledger_profile(event_id,owner_id,holding_id,settlement_date,"
+        "unit_balance_after,description) VALUES('late','self','holding','2026-02-02',"
+        "100000000,'Synthetic note')"
+    )
+    kept = db.execute(
+        "SELECT settlement_date,unit_balance_after,description,entered_by "
+        "FROM ledger_profile WHERE event_id='late'"
+    ).fetchone()
+    if kept != ("2026-02-02", 100000000, "Synthetic note", "owner"):
+        raise AssertionError(f"New ledger profile columns were not stored: {kept}")
+    db.execute(
+        "INSERT INTO ledger_event(id,owner_id,holding_id,kind,event_date,"
+        "quantity_delta_scaled,amount_scaled) VALUES('clerk','self','holding','BUY',"
+        "'2026-03-01',1,1)"
+    )
+    assert_rejected(
+        db,
+        "INSERT INTO ledger_profile(event_id,owner_id,holding_id,entered_by) "
+        "VALUES('clerk','self','holding','clerk')",
+    )
+    assert_rejected(db, "UPDATE ledger_profile SET description='changed'")
+    if db.execute("PRAGMA integrity_check").fetchone() != ("ok",):
+        raise AssertionError("v5 SQLite integrity failed")
+    if db.execute("PRAGMA foreign_key_check").fetchall():
+        raise AssertionError("v5 references invalid")
+
+
 def main() -> None:
     source = SCHEMA_FILE.read_text(encoding="utf-8")
     v1 = statements_from_kotlin(source, "ddl", V1_STATEMENT_COUNT)
@@ -363,8 +425,11 @@ def main() -> None:
     parity_upgrade = statements_from_kotlin(
         source, "migrationToV4", V4_MIGRATION_STATEMENT_COUNT
     )
+    profile_upgrade = statements_from_kotlin(
+        source, "migrationToV5", V5_MIGRATION_STATEMENT_COUNT
+    )
     if any(not s.startswith(("CREATE ", "ALTER TABLE "))
-           for s in v1 + upgrade + identity_upgrade + parity_upgrade):
+           for s in v1 + upgrade + identity_upgrade + parity_upgrade + profile_upgrade):
         raise AssertionError("Unexpected statement in schema migration.")
     # Old v1 data is not rewritten and the v2 operation is crash-atomic.
     with sqlite3.connect(":memory:") as db:
@@ -416,6 +481,19 @@ def main() -> None:
         db.execute("PRAGMA user_version = 4")
         db.commit()
         check_v4(db)
+        db.commit()
+        db.execute("BEGIN")
+        run_statements(db, profile_upgrade[:1], "interrupted v5 migration")
+        db.rollback()
+        if "settlement_date" in {
+            row[1] for row in db.execute("PRAGMA table_info('ledger_profile')")
+        }:
+            raise AssertionError("Interrupted v5 migration left a partial column")
+        db.execute("BEGIN")
+        run_statements(db, profile_upgrade, "v4->v5 migration")
+        db.execute("PRAGMA user_version = 5")
+        db.commit()
+        check_v5(db)
 
     # Fresh installs follow the production current==0 path: v1 DDL + v2 + v3.
     with sqlite3.connect(":memory:") as db:
@@ -425,13 +503,17 @@ def main() -> None:
         run_statements(db, upgrade, "fresh vault v2")
         run_statements(db, identity_upgrade, "fresh vault v3")
         run_statements(db, parity_upgrade, "fresh vault v4")
-        db.execute("PRAGMA user_version = 4")
+        run_statements(db, profile_upgrade, "fresh vault v5")
+        db.execute("PRAGMA user_version = 5")
         db.commit()
         prepare_tables = {name for (name,) in db.execute(
             "SELECT name FROM sqlite_master WHERE type='table'"
         ) if not name.startswith("sqlite_")}
         if prepare_tables != EXPECTED_TABLES:
-            raise AssertionError("Fresh v4 vault missing tables.")
+            raise AssertionError("Fresh v5 vault missing tables.")
+        profile_cols = {row[1] for row in db.execute("PRAGMA table_info('ledger_profile')")}
+        if not {"settlement_date", "unit_balance_after", "description", "entered_by"}.issubset(profile_cols):
+            raise AssertionError("Fresh vault missing ledger profile columns.")
         if not RICH_COLUMNS.issubset({
             row[1] for row in db.execute("PRAGMA table_info('ledger_event')")
         }):
@@ -445,8 +527,9 @@ def main() -> None:
 
     print(
         f"PASS: {len(v1)} v1 DDL + {len(upgrade)} v2 + "
-        f"{len(identity_upgrade)} v3 + {len(parity_upgrade)} v4 migrations; "
-        "v1/v2/v3 upgrade, rollback, "
+        f"{len(identity_upgrade)} v3 + {len(parity_upgrade)} v4 + "
+        f"{len(profile_upgrade)} v5 migrations; "
+        "v1/v2/v3/v4 upgrade, rollback, "
         "CAS identity ownership, immutable ledger and backup-compatible columns."
     )
 

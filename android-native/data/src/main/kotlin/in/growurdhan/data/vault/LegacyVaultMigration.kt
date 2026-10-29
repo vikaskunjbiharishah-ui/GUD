@@ -502,6 +502,18 @@ object LegacyVaultMigration {
                 "charges_scaled" to (e.integerString("chargesMinor", false) ?: "0"),
                 "supersedes_event_id" to old,
             ))
+            val settlement = e.optionalString("settlementDate")
+            if (settlement != null) {
+                require(datePattern.matches(settlement) && settlement >= date) {
+                    "Settlement date is before the trade date."
+                }
+            }
+            val enteredBy = e.optionalString("enteredBy") ?: "owner"
+            require(enteredBy == "owner") { "Unsupported ledger entrant." }
+            val description = e.optionalString("description")
+            if (description != null) require(description.length in 1..500) {
+                "Ledger description is empty or too long."
+            }
             put("ledger_profile", mapOf(
                 "event_id" to e.requiredString("id"), "owner_id" to owner,
                 "holding_id" to holding,
@@ -511,6 +523,10 @@ object LegacyVaultMigration {
                 "notes" to e.optionalString("notes"),
                 "legacy_created_at" to e.optionalString("createdAt"),
                 "extra_json" to e.toString(),
+                "settlement_date" to settlement,
+                "unit_balance_after" to e.integerString("unitBalanceAfter"),
+                "description" to description,
+                "entered_by" to enteredBy,
             ))
         }
         val goalIds = mutableSetOf<String>()

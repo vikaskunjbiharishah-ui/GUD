@@ -2,9 +2,9 @@ package `in`.growurdhan.data.vault
 
 import net.zetetic.database.sqlcipher.SQLiteDatabase
 
-/** Native schema v4; rollback-safe upgrades v1/v2/v3 without rewriting immutable ledger rows. */
+/** Native schema v5; rollback-safe upgrades v1–v4 without rewriting immutable ledger rows. */
 internal object VaultSchema {
-    const val VERSION = 4
+    const val VERSION = 5
 
     fun initializeOrValidate(db: SQLiteDatabase) {
         // SQLCipher returns a result row for secure_delete even when setting it.
@@ -26,14 +26,15 @@ internal object VaultSchema {
             cursor.getInt(0)
         }
         when (current) {
-            0, 1, 2, 3 -> {
-                // v1/v2/v3 -> v4, and fresh installs, are one rollback-safe transaction.
+            in 0..4 -> {
+                // v1–v4 -> v5, and fresh installs, are one rollback-safe transaction.
                 db.beginTransaction()
                 try {
                     if (current == 0) for (sql in ddl) db.execSQL(sql)
                     if (current <= 1) for (sql in migrationToV2) db.execSQL(sql)
                     if (current <= 2) for (sql in migrationToV3) db.execSQL(sql)
                     if (current <= 3) for (sql in migrationToV4) db.execSQL(sql)
+                    if (current <= 4) for (sql in migrationToV5) db.execSQL(sql)
                     db.execSQL("PRAGMA user_version = $VERSION")
                     db.setTransactionSuccessful()
                 } finally {
@@ -56,6 +57,12 @@ internal object VaultSchema {
         check(mappingColumns.containsAll(setOf(
             "holding_id", "owner_id", "account_id", "isin", "folio",
         ))) { "Native CAS identity table is missing or incomplete." }
+        val profileColumns = db.rawQuery("PRAGMA table_info(ledger_profile)", null).use { cursor ->
+            buildSet { while (cursor.moveToNext()) add(cursor.getString(1)) }
+        }
+        check(profileColumns.containsAll(setOf(
+            "settlement_date", "unit_balance_after", "description", "entered_by",
+        ))) { "Native ledger profile is missing the legacy event columns." }
         // The extension tables preserve original React/Tauri fields without replacing
         // existing native model tables, financial rows or v1 ledger triggers.
         val parityTables = setOf(
@@ -79,7 +86,8 @@ internal object VaultSchema {
             "deny_ledger_update", "deny_ledger_delete", "validate_rich_ledger_insert",
             "cas_holding_account_match", "deny_cas_mapping_update", "deny_cas_mapping_delete",
             "validate_ledger_profile_owner", "deny_ledger_profile_update",
-            "deny_ledger_profile_delete", "validate_holding_goal_owner",
+            "deny_ledger_profile_delete", "validate_ledger_profile_settlement",
+            "validate_holding_goal_owner",
             "deny_tax_rule_profile_update", "deny_tax_rule_profile_delete",
         )
         val triggerNames = db.rawQuery(
@@ -431,6 +439,37 @@ internal object VaultSchema {
         CREATE TABLE setting_profile (
           key TEXT PRIMARY KEY NOT NULL, value_json TEXT NOT NULL
         )
+        """.trimIndent(),
+    )
+
+    /**
+     * Original ledger_event stores settlement_date, unit_balance_after, description
+     * and entered_by (src/db/schema.ts). They live on ledger_profile so the
+     * append-only ledger_event table is not rebuilt. Existing rows keep NULL
+     * for the three optional fields and the schema default entered_by 'owner'.
+     * A settlement date, when present, must be on or after that event's trade date.
+     */
+    internal val migrationToV5 = listOf(
+        """ALTER TABLE ledger_profile ADD COLUMN settlement_date TEXT
+           CHECK(settlement_date IS NULL OR (
+             length(settlement_date) = 10 AND
+             settlement_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND
+             settlement_date >= '1900-01-01' AND settlement_date <= '2300-12-31'))""",
+        "ALTER TABLE ledger_profile ADD COLUMN unit_balance_after INTEGER",
+        """ALTER TABLE ledger_profile ADD COLUMN description TEXT
+           CHECK(description IS NULL OR length(description) BETWEEN 1 AND 500)""",
+        """ALTER TABLE ledger_profile ADD COLUMN entered_by TEXT NOT NULL DEFAULT 'owner'
+           CHECK(entered_by = 'owner')""",
+        """
+        CREATE TRIGGER validate_ledger_profile_settlement BEFORE INSERT ON ledger_profile
+        WHEN NEW.settlement_date IS NOT NULL
+        BEGIN
+          SELECT RAISE(ABORT, 'settlement_date must be on or after the trade date')
+          WHERE NOT EXISTS (
+            SELECT 1 FROM ledger_event
+            WHERE id = NEW.event_id AND NEW.settlement_date >= event_date
+          );
+        END
         """.trimIndent(),
     )
 

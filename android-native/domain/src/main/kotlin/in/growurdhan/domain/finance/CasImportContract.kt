@@ -91,31 +91,15 @@ object CasImportContract {
                 // fallback in the Android PDF-import boundary.
                 existing[identity(entry.name, entry.category)].orEmpty()
             } else {
-                if (report.fileType !in setOf("CAMS", "KFINTECH")) {
-                    throw CasValidationException("An enrolled CAS registrar is required.")
-                }
-                val isin = entry.isin?.trim()?.uppercase(Locale.ROOT)
-                val folio = entry.folio?.trim()
-                if (isin == null || !isinPattern.matches(isin) ||
-                    folio == null || !folioPattern.matches(folio)
-                ) throw CasValidationException("Parsed CAS row has no trustworthy ISIN/folio.")
-                enrolledIdentities.filter { mapping ->
-                    mapping.ownerId == owner &&
-                        mapping.accountType == report.fileType &&
-                        mapping.isin == isin &&
-                        mapping.folio == folio
-                }.mapNotNull { mapping ->
-                    holdingsById[mapping.holdingId]?.takeIf {
-                        it.ownerId == owner && it.category == "MUTUAL_FUND"
-                    }
-                }
+                matchEnrolled(report.fileType, entry, owner, enrolledIdentities, holdingsById)
             }
             if (matched.size != 1) {
                 throw CasValidationException(
                     "CAS holding is not uniquely enrolled for this owner, registrar, ISIN and folio."
                 )
             }
-            if (enrolledIdentities != null &&
+            val nameIsIdentity = enrolledIdentities != null && report.fileType != "CDSL"
+            if (nameIsIdentity &&
                 canonicalName(matched.single().name) != canonicalName(entry.name)
             ) {
                 // The frozen CAMS/KFINTECH parser classifies a mutual-fund scheme
@@ -154,6 +138,43 @@ object CasImportContract {
         // SnapshotReconciler, which checks owner/date and arithmetic overflow.
         SnapshotReconciler.coalesce(lines)
         return CasValidatedPreview(owner, report.sourceSha256, date, lines.toList())
+    }
+
+    private fun matchEnrolled(
+        fileType: String,
+        entry: CasParsedHolding,
+        owner: OwnerId,
+        enrolledIdentities: List<CasHoldingIdentity>,
+        holdingsById: Map<HoldingId, FinancialHolding>,
+    ): List<FinancialHolding> {
+        val isin = entry.isin?.trim()?.uppercase(Locale.ROOT)
+        val folio = entry.folio?.trim()
+        if (isin == null || !isinPattern.matches(isin) ||
+            folio == null || !folioPattern.matches(folio)
+        ) throw CasValidationException("Parsed CAS row has no trustworthy ISIN/folio.")
+        val allowedCategory = when (fileType) {
+            "CAMS", "KFINTECH" -> setOf("MUTUAL_FUND")
+            // A depository row is the ISIN plus the BO/client id. The printed
+            // security name is not an identifier and is not compared.
+            "CDSL" -> setOf("EQUITY", "GOLD_SGB", "MUTUAL_FUND")
+            // One PRAN holds many schemes. The scheme code (isin) and the
+            // scheme name both have to match; a PRAN alone is not enough.
+            "NPS" -> setOf("FIXED_INCOME")
+            else -> throw CasValidationException("An enrolled CAS registrar is required.")
+        }
+        if (fileType == "NPS" && !Regex("^[0-9]{12}$").matches(folio)) {
+            throw CasValidationException("NPS row has no 12-digit PRAN.")
+        }
+        return enrolledIdentities.filter { mapping ->
+            mapping.ownerId == owner &&
+                mapping.accountType == fileType &&
+                mapping.isin == isin &&
+                mapping.folio == folio
+        }.mapNotNull { mapping ->
+            holdingsById[mapping.holdingId]?.takeIf {
+                it.ownerId == owner && it.category in allowedCategory
+            }
+        }
     }
 
     private fun parseDecimal(input: String, decimals: Int, field: String): BigDecimal {

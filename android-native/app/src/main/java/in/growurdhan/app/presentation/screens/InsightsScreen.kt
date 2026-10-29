@@ -12,12 +12,17 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.app.presentation.HouseholdDashboardUiState
 import `in`.growurdhan.core.model.OwnerId
+import `in`.growurdhan.domain.finance.InsightsDrilldown
 import `in`.growurdhan.domain.finance.PortfolioInsightsProjector
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -50,6 +55,7 @@ fun InsightsScreen(
             }
             is HouseholdDashboardUiState.Ready -> {
                 val dashboard = state.dashboard
+                var drilledCategory by remember(dashboard, selectedOwnerId) { mutableStateOf<String?>(null) }
                 val focused = selectedOwnerId?.let { id ->
                     dashboard.byMember.firstOrNull { it.ownerId == id }
                 }
@@ -61,8 +67,21 @@ fun InsightsScreen(
                         Text(
                             "Owns ${focused.assets.asBook()} · owes ${focused.liabilities.asBook()} · net ${focused.netWorth.asBook()}.",
                         )
-                        val own = dashboard.recordedHoldings.filter {
-                            focused.displayName != null && it.ownerName == focused.displayName
+                        val own = InsightsDrilldown.holdings(
+                            dashboard, selectedOwnerId, focused.displayName, drilledCategory,
+                        )
+                        val groups = InsightsDrilldown.holdings(
+                            dashboard, selectedOwnerId, focused.displayName,
+                        ).map { it.category }.distinct()
+                        groups.forEach { category ->
+                            TextButton(onClick = { drilledCategory = category }) {
+                                Text(category.replace('_', ' '))
+                            }
+                        }
+                        if (drilledCategory != null) {
+                            TextButton(onClick = { drilledCategory = null }) {
+                                Text("Back to this person's holdings")
+                            }
                         }
                         if (own.isEmpty()) Text("No recorded holding for this person.")
                         own.forEach { holding -> Text(holding.name) }
@@ -126,7 +145,9 @@ fun InsightsScreen(
                             result.allocations.forEach { item ->
                                 val pct = BigDecimal.valueOf(item.shareBasisPoints.toLong(), 2)
                                     .setScale(1, RoundingMode.HALF_UP).toPlainString()
-                                Text("${item.category.replace('_', ' ')} · $pct%")
+                                TextButton(onClick = { drilledCategory = item.category }) {
+                                    Text("${item.category.replace('_', ' ')} · $pct%")
+                                }
                                 LinearProgressIndicator(
                                     progress = { item.shareBasisPoints / 10_000f },
                                     modifier = Modifier.fillMaxWidth(),
@@ -138,6 +159,29 @@ fun InsightsScreen(
                                         "${item.holdingCount} holding(s)",
                                     style = MaterialTheme.typography.bodySmall,
                                 )
+                            }
+                        }
+                    }
+                }
+                if (drilledCategory != null) {
+                    val rows = InsightsDrilldown.holdings(dashboard, category = drilledCategory)
+                    val total = dashboard.byCategory.firstOrNull { it.category == drilledCategory }
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                "Inside ${drilledCategory!!.replace('_', ' ')}",
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            if (total != null) {
+                                Text("Recorded in this group: ${total.value.asBook()}")
+                            }
+                            if (rows.isEmpty()) Text("No recorded holding in this group.")
+                            rows.forEach { holding -> Text(holding.name) }
+                            TextButton(onClick = { drilledCategory = null }) {
+                                Text("Back to the full mix")
                             }
                         }
                     }

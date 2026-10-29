@@ -24,7 +24,7 @@ data class CachedListedSecurity(
             "Only a twelve-character uppercase security identity is accepted."
         }
         require(name.trim().length in 1..200 && name.none { it.isISOControl() })
-        require(category in setOf("EQUITY", "MUTUAL_FUND"))
+        require(category in setOf("EQUITY", "MUTUAL_FUND", "GOLD_SGB"))
         require(closePrice.raw > 0L)
         require(symbol == null || (symbol.length <= 64 &&
             symbol.none { it.isISOControl() }))
@@ -48,7 +48,7 @@ object LocalOfficialSecurityCatalog {
         limit: Int = 20,
     ): List<CachedListedSecurity> {
         require(limit in 1..100)
-        if (category !in setOf("EQUITY", "MUTUAL_FUND")) return emptyList()
+        if (category !in setOf("EQUITY", "MUTUAL_FUND", "GOLD_SGB")) return emptyList()
         val q = query.trim().take(100)
         if (q.length < 2) return emptyList()
         return rows.asSequence()

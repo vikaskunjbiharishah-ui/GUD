@@ -36,7 +36,11 @@ internal object VaultBackupTables {
         "custody_profile" to listOf("account_id", "owner_id", "custodian", "identifier_full", "dp_id", "client_id", "bo_id", "base_currency", "nominee", "opened_on", "closed_on", "created_at", "extra_json"),
         "instrument_profile" to listOf("id", "name", "category", "sub_category", "symbol_or_folio", "isin", "currency", "exposure_node", "l2_node", "wrapper", "allocation_split_json", "fmv_31jan2018_scaled", "amc", "rta", "amfi_code", "advisor", "scheme_type", "ucc", "exchange", "dp_name", "is_user_created", "created_at", "extra_json"),
         "holding_profile" to listOf("holding_id", "owner_id", "instrument_id", "symbol_or_folio", "isin", "sub_category", "average_cost_per_unit_scaled", "cost_unknown", "benchmark_price_scaled", "issue_price_scaled", "coupon_rate_bps", "next_coupon_date", "maturity_date", "interest_rate_bps", "institution_name", "account_number_masked", "monthly_emi_scaled", "emi_status", "remaining_emi_count", "acquired_on", "details_json", "last_price_updated", "is_price_stale", "price_source", "needs_review", "review_reasons_json", "fmv_31jan2018_scaled", "exposure_node", "l2_node", "wrapper", "allocation_split_json", "notes", "location", "tag", "tags_json", "extra_json"),
-        "ledger_profile" to listOf("event_id", "owner_id", "holding_id", "holding_name", "account_id", "import_batch_id", "source_ref", "notes", "legacy_created_at", "extra_json"),
+        "ledger_profile" to listOf(
+            "event_id", "owner_id", "holding_id", "holding_name", "account_id",
+            "import_batch_id", "source_ref", "notes", "legacy_created_at", "extra_json",
+            "settlement_date", "unit_balance_after", "description", "entered_by",
+        ),
         "family_goal" to listOf("id", "owner_id", "name", "target_scaled", "target_date", "priority", "created_at", "extra_json"),
         "holding_goal" to listOf("goal_id", "holding_id", "owner_id"),
         "import_batch_profile" to listOf("id", "owner_id", "filename", "kind", "statement_date", "period_from", "period_to", "investor_name", "investor_pan_masked", "investor_email", "cas_id", "statement_type", "rows_new", "rows_conflict", "rows_duplicate", "committed_at", "source_sha256", "extra_json"),
@@ -88,6 +92,7 @@ internal object VaultBackupTables {
         "unit_price_scaled", "current_value_scaled", "close_scaled",
         "request_bytes", "response_bytes", "allow_listed",
         "page_count", "byte_length", "rows_conflict", "gmail_sync",
+        "unit_balance_after",
     )
     private const val MAX_ROWS_PER_TABLE = 100_000
     private val legacyLedgerColumns = columns.getValue("ledger_event").take(8)
@@ -172,7 +177,7 @@ internal object VaultBackupTables {
         // Restore v1/v2/v3 backups into v4 without inventing missing fields.
         // New parity extension tables are present only in format 4 exports.
         require(
-            (format == 4 && databaseVersion == VaultSchema.VERSION) ||
+            (format == 4 && (databaseVersion == VaultSchema.VERSION || databaseVersion == 4)) ||
                 (format == 3 && databaseVersion == 3) ||
                 (format == 2 && databaseVersion == 2) ||
                 (format == 1 && databaseVersion == 1)
@@ -188,6 +193,11 @@ internal object VaultBackupTables {
             if (format < 3 && table == "holding_cas_identity") continue
             if (format < 4 && table in parityTables) continue
             val names = if (format == 1 && table == "ledger_event") legacyLedgerColumns
+                else if (format == 4 && databaseVersion == 4 && table == "ledger_profile")
+                    // v4 exports predate the four legacy columns. Leave them unset
+                    // so SQLite applies NULL and the entered_by default. Do not invent
+                    // a settlement date, a unit balance, or a description.
+                    availableNames.dropLast(4)
                 else availableNames
             val rows = payload.getJSONArray(table)
             require(rows.length() <= MAX_ROWS_PER_TABLE) { "Too many backup records." }

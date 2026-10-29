@@ -61,6 +61,8 @@ data class RecordedHoldingDashboard(
     /** Archive hides from quick lists, never from household financial totals. */
     val archived: Boolean = false,
     val closedOn: String? = null,
+    /** Set by the portfolio engine. Null only on hand-built previews. */
+    val ownerId: OwnerId? = null,
 )
 
 /**
@@ -105,6 +107,7 @@ object HouseholdDashboardProjector {
                     isLiability = liability,
                     archived = profileById[position.holding.holdingId]?.archived == true,
                     closedOn = profileById[position.holding.holdingId]?.closedOn,
+                    ownerId = member.ownerId,
                 )
             }
         }.sortedWith(compareBy<RecordedHoldingDashboard>({ it.isLiability }, { it.category },
