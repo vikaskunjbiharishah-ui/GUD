@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -74,12 +75,18 @@ fun InsightsScreen(
                             dashboard, selectedOwnerId, focused.displayName,
                         ).map { it.category }.distinct()
                         groups.forEach { category ->
-                            TextButton(onClick = { drilledCategory = category }) {
+                            TextButton(
+                                onClick = { drilledCategory = category },
+                                modifier = Modifier.heightIn(min = 48.dp),
+                            ) {
                                 Text(category.replace('_', ' '))
                             }
                         }
                         if (drilledCategory != null) {
-                            TextButton(onClick = { drilledCategory = null }) {
+                            TextButton(
+                                onClick = { drilledCategory = null },
+                                modifier = Modifier.heightIn(min = 48.dp),
+                            ) {
                                 Text("Back to this person's holdings")
                             }
                         }
@@ -145,7 +152,10 @@ fun InsightsScreen(
                             result.allocations.forEach { item ->
                                 val pct = BigDecimal.valueOf(item.shareBasisPoints.toLong(), 2)
                                     .setScale(1, RoundingMode.HALF_UP).toPlainString()
-                                TextButton(onClick = { drilledCategory = item.category }) {
+                                TextButton(
+                                    onClick = { drilledCategory = item.category },
+                                    modifier = Modifier.heightIn(min = 48.dp),
+                                ) {
                                     Text("${item.category.replace('_', ' ')} · $pct%")
                                 }
                                 LinearProgressIndicator(
@@ -180,7 +190,10 @@ fun InsightsScreen(
                             }
                             if (rows.isEmpty()) Text("No recorded holding in this group.")
                             rows.forEach { holding -> Text(holding.name) }
-                            TextButton(onClick = { drilledCategory = null }) {
+                            TextButton(
+                                onClick = { drilledCategory = null },
+                                modifier = Modifier.heightIn(min = 48.dp),
+                            ) {
                                 Text("Back to the full mix")
                             }
                         }

@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -47,7 +49,10 @@ fun OnboardingScreen(onFinished: () -> Unit) {
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("GrowUrDhan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            TextButton(onClick = { hindi = !hindi }) { Text(if (hindi) "English" else "हिन्दी") }
+            TextButton(
+                onClick = { hindi = !hindi },
+                modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp),
+            ) { Text(if (hindi) "English" else "हिन्दी") }
         }
         LinearProgressIndicator(
             progress = { (pager.currentPage + 1f) / slides.size },
@@ -87,7 +92,10 @@ fun OnboardingScreen(onFinished: () -> Unit) {
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (pager.currentPage > 0) {
-                OutlinedButton(onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } }) {
+                OutlinedButton(
+                    onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
                     Text("Back")
                 }
             }
@@ -96,7 +104,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                     if (pager.currentPage == slides.lastIndex) onFinished()
                     else scope.launch { pager.animateScrollToPage(pager.currentPage + 1) }
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
             ) { Text(if (pager.currentPage == slides.lastIndex) "Continue" else "Next") }
         }
     }
@@ -123,8 +131,15 @@ fun TermsGateScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onDecline, modifier = Modifier.weight(1f)) { Text("Don't accept") }
-            Button(onClick = onAccept, enabled = atEnd, modifier = Modifier.weight(1f)) { Text("Accept") }
+            OutlinedButton(
+                onClick = onDecline,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+            ) { Text("Don't accept") }
+            Button(
+                onClick = onAccept,
+                enabled = atEnd,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+            ) { Text("Accept") }
         }
     }
 }

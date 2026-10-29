@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -67,14 +68,18 @@ fun LicenceScreen(
                     Button(
                         onClick = onPurchase,
                         enabled = !state.busy && Licence.canPurchaseAnnual(licence),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
                         Text(if (state.busy) "Opening Play…" else "Subscribe $price / year")
                     }
                 }
             }
         }
-        OutlinedButton(onClick = onRestore, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = onRestore,
+            enabled = !state.busy,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) {
             Text("Restore purchases on this Play account")
         }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -84,7 +89,7 @@ fun LicenceScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (onBack != null) {
-            OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
+            OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Back") }
         }
     }
 }
