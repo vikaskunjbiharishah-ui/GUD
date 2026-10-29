@@ -4,3 +4,12 @@ commit=491ec676e241130b1b9207a77d307b9d196682e8
 abi=arm64-v8a
 built=2026-10-29T17:29:00Z
 parser=assets/chaquopy/requirements-common.imy contains pydantic_core/_pydantic_core.cpython-313-aarch64-linux-android.so (4839112 bytes) and pypdfium2_raw/libpdfium.so (6393344 bytes). They are not under lib/arm64-v8a/. Not run on a phone.
+
+apk=release-artifacts/gud-arm64-release-testkey.apk
+sha256=22986ce158be88ddd693f6089e3a37ac3246802a8848a383a763bf45721dfabc
+commit=491ec676e241130b1b9207a77d307b9d196682e8
+abi=arm64-v8a
+built=2026-10-29T17:38:35Z
+minify=R8, mapping not committed
+signing=local test keystore only, not a Play upload key
+parser=same requirements-common.imy sizes as the debug APK. Not run on a phone.
