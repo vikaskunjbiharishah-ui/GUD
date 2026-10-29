@@ -1,12 +1,12 @@
 # STATE
 
 ## HEADER
-- Date: 2026-10-29 16:51–17:39 UTC. Run 5. Code head `491ec67`. Docs commit follows.
+- Date: 2026-10-29 16:51–17:48 UTC. Run 5. Code head `c9623bc`. Docs commit follows.
 - Emulator `gud_x86` API 35 at 1080×1920 / 480 dpi (360×640 dp). Gradle was stopped before `adb instrument`.
-- Domain JVM `:domain:test` 266/266 (54 classes, 0 fail) at 17:20:37Z.
-- Data 93/93 (482s) and app 94/94 (132s), both OK, finished 17:19:31Z. Evidence `evidence/2026-10-29-1708/`.
-- ARM64 debug APK from this tree, built 17:29:00Z, sha256 `d58cf9f5…f13d`. Phone not used.
-- Q10: `:app:assembleRelease` with `GUD_PHONE_PARSER=1` BUILD SUCCESSFUL in 3m 43s at 17:38:35Z. Minified, arm64-v8a, test keystore only. Mapping exists and was not committed. `validate_schema.py` and `security_preflight.py` were not re-run.
+- Domain JVM `:domain:test` 270/270 (55 classes, 0 fail) at 17:46Z. The earlier 266 count was before `FyTaxEstimateTest`.
+- Data 93/93 and app 94/94 finished 17:19:31Z, before the tax screen. Those counts do not include P21.
+- ARM64 debug APK rebuilt 17:47:55Z from `c9623bc`, sha256 `ae0f08c2…cf8c`. Phone not used.
+- Q10 release APK is the earlier tree `491ec67` (sha256 `22986ce1…fabc`). It does not include P21. `validate_schema.py` and `security_preflight.py` were not re-run.
 
 ## MATRIX
 - P01 EMULATOR FirstRunIdentityInstrumentedTest, FirstRunIdentityShellTest, FirstRunIdentityHandoffInstrumentedTest — gap: phone install.
@@ -29,7 +29,7 @@
 - P18 EMULATOR NativeStatementApprovalInstrumentedTest, SyntheticIssuerImportInstrumentedTest — gap: real PDF BLOCKED-OWNER.
 - P19 EMULATOR SyntheticIssuerImportInstrumentedTest (CDSL+NPS) and NativeCasIdentityBridgeInstrumentedTest; LOCAL CasIdentityMatchingTest — gap: NSDL hits `An enrolled CAS registrar is required.`; real PDF BLOCKED-OWNER.
 - P20 EMULATOR NativeStatementApprovalInstrumentedTest — gap: history screen is thin.
-- P21 LOCAL FinancialGoldenTest `fiscalYearAndTaxRulesMatchLegacyOracles` — gap: TaxOwnerScopeScreen says it is not a tax calculation and has no FY estimate labelled “estimate, not advice”.
+- P21 LOCAL FyTaxEstimateTest 4/4 inside domain 270/270. Screen text is `FyTaxEstimate.Summary.lines()`, first line “estimate, not advice”. HouseholdDashboardViewModel wires it. The ViewModel unit test was not observed: the Gradle test worker died on a daemon handshake. Not on the emulator. Slab and property tax are not computed.
 - P22 LOCAL InterestCatchUpTest, SavingsProjectionParityTest — gap: no interest screen.
 - P23 LOCAL EmiPlanTest, FinanceParityExtensionsTest — gap: no EMI screen.
 - P24 LOCAL ReturnMetricsTest, InsightsDrilldownTest; EMULATOR PortfolioInsightsShellTest — gap: InsightsScreen does not show XIRR.
@@ -68,16 +68,16 @@
 - E18 LOCAL no cloud book — gap: egress inventory is not written.
 
 ## QUEUE
-1. P21 FY tax estimate on the tax screen, labelled “estimate, not advice”. No invented rates. Q10 minify compiled (test key only).
-2. P21 FY tax estimate on the tax screen, labelled “estimate, not advice”. No invented rates.
-3. P22 interest screen over InterestCatchUp.
-4. P23 EMI screen over EmiPlan.
-5. P13/P14 save-restart for DIVIDEND, INTEREST, BONUS, REPAYMENT, SPLIT, CORRECTION, OPENING_BALANCE.
-6. NSDL staged import (CDSL and NPS synthetic path is in).
-7. Manual price override next to the close cache. A missing close stays missing.
-8. TalkBack on the screenshot screens.
-9. Credential-screen Activity UI test.
-10. Home and Settings in the screenshot matrix.
+1. Emulator check of the tax screen. The ViewModel unit test did not finish.
+2. P22 interest screen over InterestCatchUp.
+3. P23 EMI screen over EmiPlan.
+4. P13/P14 save-restart for DIVIDEND, INTEREST, BONUS, REPAYMENT, SPLIT, CORRECTION, OPENING_BALANCE.
+5. NSDL staged import (CDSL and NPS synthetic path is in).
+6. Manual price override next to the close cache. A missing close stays missing.
+7. TalkBack on the screenshot screens.
+8. Credential-screen Activity UI test.
+9. Home and Settings in the screenshot matrix.
+10. Rebuild the minified APK so it includes P21. The current release file is `491ec67`.
 
 ## DECISIONS
 - Hindi vault word is वॉल्ट. Statement is स्टेटमेंट. Cloud is क्लाउड. Banned: तिजोरी, बयान, बादल.
@@ -96,4 +96,5 @@
 - Hindi body at 200% is still cut inside the card. The cue is the affordance. Do not claim “no clipping”.
 - Q10 minify compiled. It was not run on the emulator or a phone. R8 keep rules were not loosened.
 - NSDL enrolled import is still rejected. CAMS and KFINTECH are in the matcher but were not the synthetic emulator import.
+- The minified APK on disk is still `491ec67` and does not include the tax screen.
 - ARM64 parser behaviour is DEVICE: pending owner.
