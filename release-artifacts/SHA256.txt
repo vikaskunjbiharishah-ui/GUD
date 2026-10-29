@@ -1,17 +1,17 @@
 apk=release-artifacts/gud-arm64-debug.apk
-sha256=ae0f08c2a18384c5b501bbae07ce76fe364fc8f15d85651698df3077eb4dcf8c
-commit=c9623bc5306b4c6826d476e1f0e2162c7e65a54c
+sha256=b2ce9de727cbec82caaa0353d10dc3b19df0117598abaa407ff024ecbb5cb2ab
+commit=407bcf5d340d7c8db309da331e66dbc81cddc67e
 abi=arm64-v8a
-built=2026-10-29T17:47:55Z
-size=57549864
+built=2026-10-29T23:10:42Z
+size=50741232
 parser=assets/chaquopy/requirements-common.imy contains pydantic_core/_pydantic_core.cpython-313-aarch64-linux-android.so (4839112 bytes) and pypdfium2_raw/libpdfium.so (6393344 bytes). They are not under lib/arm64-v8a/. Not run on a phone.
 
 apk=release-artifacts/gud-arm64-release-testkey.apk
-sha256=22986ce158be88ddd693f6089e3a37ac3246802a8848a383a763bf45721dfabc
-commit=491ec676e241130b1b9207a77d307b9d196682e8
+sha256=3b2cdd29e68322c3837f94a02c341a859b9078739b4fa2f248ba469edaa37a38
+commit=407bcf5d340d7c8db309da331e66dbc81cddc67e
 abi=arm64-v8a
-built=2026-10-29T17:38:35Z
+built=2026-10-29T23:15:41Z
 minify=R8, mapping not committed
 signing=local test keystore only, not a Play upload key
-note=This release file does not include the later P21 tax screen.
+note=Built from 407bcf5. Includes the FY 2024-25 unknown-tax note and the interest/EMI review screens. Not installed.
 parser=same requirements-common.imy sizes as the debug APK. Not run on a phone.

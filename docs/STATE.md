@@ -1,12 +1,12 @@
 # STATE
 
 ## HEADER
-- Date: 2026-10-29 22:25–23:09 UTC. Run 6. Code commit follows. Docs commit follows the arm64 rebuild.
+- Date: 2026-10-29 22:25–23:16 UTC. Run 6. Code head `407bcf5`. Docs commit follows.
 - Emulator `gud_x86` API 35 at 1080×1920 / 480 dpi. Gradle was stopped before `adb instrument`.
 - Domain JVM `:domain:test` 271/271 (55 classes, 0 fail) at 23:09Z.
 - Data 93/93 (475.981s) and app 97/97 (126.883s) finished 23:08:29Z. Those counts include the tax screen, the scrolled onboarding shots, and the interest/EMI review tests.
 - `HouseholdDashboardViewModelTest` was not observed. The Gradle test worker died before any assertion (type tag 71).
-- ARM64 debug and release on disk are still `c9623bc` and `491ec67`. Rebuild is the next step. `validate_schema.py` and `security_preflight.py` were not re-run.
+- ARM64 debug sha256 `b2ce9de7…b2ab` and minified release sha256 `3b2cdd29…7a38`, both from `407bcf5`, native-code arm64-v8a. Phone not used. `validate_schema.py` and `security_preflight.py` were not re-run.
 
 ## MATRIX
 - P01 EMULATOR FirstRunIdentityInstrumentedTest, FirstRunIdentityShellTest, FirstRunIdentityHandoffInstrumentedTest — gap: phone install.
@@ -76,7 +76,7 @@
 6. Credential-screen Activity UI test.
 7. Home and Settings in the screenshot matrix.
 8. ViewModel unit test. On this host the worker dies with type tag 71.
-9. Rebuild the minified APK from this commit. The file on disk is still `491ec67`.
+9. P16 sale P&L screen is still domain-only.
 10. `security_preflight.py` was not re-run.
 
 ## DECISIONS
@@ -98,7 +98,7 @@
 ## KNOWN GAPS
 - The 200% onboarding shot is scrolled to the end. The last sentence is fully visible. The first lines are off the top. Do not call the unscrolled position unclipped.
 - Interest and EMI from Home do not read the vault. The instrumented tests pass a synthetic engine plan.
-- Q10 minify on disk is still `491ec67` until this run’s rebuild finishes. It was not run on a phone.
+- Q10 minify compiled from `407bcf5` and was not installed. The keystore is the test key, not a Play upload key. R8 keep rules were not loosened.
 - NSDL enrolled import is still rejected. CAMS and KFINTECH are in the matcher but were not the synthetic emulator import.
 - ARM64 parser behaviour is DEVICE: pending owner.
 

@@ -1,9 +1,9 @@
-RUN: 5 · TIME USED: 57 min (16:51:10Z–17:48:05Z) · COMMITS: code 491ec67, c9623bc; docs a2b3ef1, c0ee122, plus this note
-DONE (stage): P33 EMULATOR owner Hindi, scroll cue, आगे/पीछे/छोड़ें, ScreenshotMatrix 7/7 · Q8 EMULATOR fake mailbox sync · Q10 release minify compiled from 491ec67, not installed · P21 LOCAL FY equity estimate labelled “estimate, not advice”
-TESTS: domain 270/270 (55 classes, 17:46Z) · data 93/93 and app 94/94 at 17:19Z, before P21 · FyTaxEstimateTest 4/4 · HouseholdDashboardViewModelTest not observed (Gradle test worker died) · tax screen not on the emulator
-PARTIAL / NOT DONE: P21 emulator proof, P13/P14 remaining save-restarts, P22/P23 screens, NSDL, manual price override, TalkBack, credential Activity UI test, release APK still at 491ec67
+RUN: 6 · TIME USED: 51 min (22:25:42Z–23:16Z) · COMMITS: code 407bcf5; docs follow
+DONE (stage): P21 EMULATOR FY 2024-25 gains with unknown tax · P33 EMULATOR slide scrolls, last sentence visible · P22/P23 EMULATOR review screens, not posted · Q8 already covered by MailboxSyncSchedulerInstrumentedTest
+TESTS: domain 271/271 (55 classes, 23:09Z) · app 97/97 (126.883s) · data 93/93 (475.981s) at 23:08:29Z · FyTaxEstimateTest inside the 271 · HouseholdDashboardViewModelTest not observed
+PARTIAL / NOT DONE: interest and EMI Home routes pass a null plan · P13/P14 remaining save-restarts · NSDL · manual price override · TalkBack · credential Activity UI test · P16 sale screen
 BLOCKED-OWNER: Gmail consent, Play purchase, production signing, phone install, real CAS PDF, pen test, owner sign-off
-FAILED & FIXED: OnboardingTest assertFalse argument order. First debug assemble died on a leftover Kotlin daemon; retry at -Xmx1280m succeeded. First release attempt was killed at low RAM; the retry compiled. No test was weakened. No ProGuard rule was loosened.
-OPEN RISKS: Gradle beside the emulator kills the host. The unit-test worker can die on a daemon handshake (type tag 71) without an assertion failure. x86 cannot load PDFium. Hindi body at 200% still scrolls. security_preflight.py was not re-run. Release APK is the test keystore, not an upload key, and predates P21.
-NEXT RUN STARTS AT: emulator check of the tax screen, then P22 interest
-ARTIFACTS: evidence/2026-10-29-1708/ · debug sha256 ae0f08c2a18384c5b501bbae07ce76fe364fc8f15d85651698df3077eb4dcf8c commit c9623bc · release sha256 22986ce158be88ddd693f6089e3a37ac3246802a8848a383a763bf45721dfabc commit 491ec67
+FAILED & FIXED: Tax instrumented test missed assertIsDisplayed. First 200% shots were taken before the slide reached the end; the recapture shows the last sentence. EMI test matched three identical notes; the assertion now counts them. No test was weakened.
+OPEN RISKS: Gradle beside the emulator kills the host. The unit-test worker dies on type tag 71. x86 cannot load PDFium. Home interest/EMI do not read the vault. security_preflight.py was not re-run. Release APK is the test keystore, not an upload key.
+NEXT RUN STARTS AT: load interest and EMI from the open vault, then P13/P14 save-restarts
+ARTIFACTS: evidence/2026-10-29-2247/ · debug sha256 b2ce9de727cbec82caaa0353d10dc3b19df0117598abaa407ff024ecbb5cb2ab · release sha256 3b2cdd29e68322c3837f94a02c341a859b9078739b4fa2f248ba469edaa37a38 · both commit 407bcf5
