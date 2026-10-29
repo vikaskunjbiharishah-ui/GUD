@@ -49,34 +49,98 @@ class NativeCustodyHoldingInstrumentedTest {
 
     @Test fun allOriginalHoldingDetailKeysPersistWithTheirHistoricalValueTypes(): Unit = runBlocking {
         val registered = seed()
-        val holding = vault.registerDetailedAsset(
-            registered.ownerId, "Synthetic multi-field fixture",
-            "SPECIALISED", "AIF",
+        val ownerId = registered.ownerId
+        // src/types.ts enums. One row cannot legally hold NSDL and CDSL together,
+        // and linkedHoldingId is only valid between a property and a loan.
+        val loan = vault.registerDetailedAsset(ownerId, "Synthetic link loan", "LIABILITY", "Home loan")
+        val property = vault.registerDetailedAsset(ownerId, "Synthetic link home", "REAL_ESTATE", "Residential")
+        val equityNsdl = vault.registerDetailedAsset(ownerId, "Synthetic nsdl shares", "EQUITY", "Large cap")
+        val equityCdsl = vault.registerDetailedAsset(ownerId, "Synthetic cdsl shares", "EQUITY", "Mid cap")
+        val fund = vault.registerDetailedAsset(ownerId, "Synthetic fund facts", "MUTUAL_FUND", "Equity fund")
+        val gold = vault.registerDetailedAsset(ownerId, "Synthetic gold facts", "GOLD_SGB", "Sovereign Gold Bond")
+        val nps = vault.registerDetailedAsset(ownerId, "Synthetic nps facts", "FIXED_INCOME", "NPS")
+        val aif = vault.registerDetailedAsset(ownerId, "Synthetic aif facts", "SPECIALISED", "AIF")
+        val cash = vault.registerDetailedAsset(ownerId, "Synthetic cash facts", "CASH_BANK", "Savings account")
+        val expected = mapOf(
+            equityNsdl.id to JSONObject()
+                .put("depository", "NSDL")
+                .put("dpId", "IN300214")
+                .put("clientId", "12345678"),
+            equityCdsl.id to JSONObject()
+                .put("depository", "CDSL")
+                .put("boId", "1203456789012345"),
+            fund.id to JSONObject()
+                .put("mfPlan", "DIRECT")
+                .put("mfOption", "GROWTH")
+                .put("mfHeldAs", "FOLIO"),
+            gold.id to JSONObject()
+                .put("goldHoldMode", "DEMAT")
+                .put("goldPurity", "24K")
+                .put("goldHallmark", "BIS")
+                .put("earlyExitDate", "2030-06-15")
+                .put("faceValueMinor", "10000"),
+            nps.id to JSONObject()
+                .put("compounding", "CUMULATIVE")
+                .put("tdsApplicable", true)
+                .put("npsTier", "I")
+                .put("npsCra", "CAMS")
+                .put("npsPfm", "Synthetic PFM")
+                .put("annualContributionMinor", "10000")
+                .put("contributionOn", "2020-04-05")
+                .put("rateType", "FIXED")
+                .put("originalTenorMonths", 1),
+            property.id to JSONObject()
+                .put("areaSqFt", 1)
+                .put("ownership", "SELF")
+                .put("ownershipPercent", 1)
+                .put("monthlyIncomeMinor", "10000")
+                .put("incomeDay", 1)
+                .put("incomeStart", "2020-01-01")
+                .put("incomeEnd", "2030-01-01")
+                .put("linkedHoldingId", loan.id.raw),
+            aif.id to JSONObject()
+                .put("aifCategory", "II")
+                .put("commitmentMinor", "10000")
+                .put("capitalCalledMinor", "10000")
+                .put("strategyName", "Synthetic strategy")
+                .put("custodian", "Synthetic custodian")
+                .put("altHoldMode", "LUMPSUM"),
+            cash.id to JSONObject().put("ifsc", "SYNB0000001"),
         )
-        val fields = JSONObject()
-        for (key in ReactV9HoldingDetailsContract.fields) {
-            val value: Any = when (key) {
-                "tdsApplicable" -> true
-                "areaSqFt", "ownershipPercent", "originalTenorMonths", "incomeDay" -> 1
-                "annualContributionMinor", "faceValueMinor", "commitmentMinor",
-                "capitalCalledMinor", "monthlyIncomeMinor" -> "10000"
-                else -> "synthetic"
-            }
-            fields.put(key, value)
+        val subCategory = mapOf(
+            equityNsdl.id to "Large cap",
+            equityCdsl.id to "Mid cap",
+            fund.id to "Equity fund",
+            gold.id to "Sovereign Gold Bond",
+            nps.id to "NPS",
+            property.id to "Residential",
+            aif.id to "AIF",
+            cash.id to "Savings account",
+        )
+        expected.forEach { (id, facts) ->
+            val holding = vault.holdings().single { it.id == id }
+            vault.updateHoldingProfile(HoldingProfileEdit(
+                holding.id, ownerId, holding.name, subCategory.getValue(id), facts.toString(),
+            ))
         }
-        vault.updateHoldingProfile(HoldingProfileEdit(
-            holding.id, registered.ownerId, holding.name,
-            "AIF", fields.toString(),
-        ))
+        val seen = HashSet<String>()
+        expected.values.forEach { facts ->
+            val keys = facts.keys()
+            while (keys.hasNext()) seen += keys.next()
+        }
+        assertEquals(ReactV9HoldingDetailsContract.fields, seen)
         vault.close()
         vault.openOrCreate()
-        val restored = JSONObject(vault.holdingProfiles().single().detailsJson)
-        assertEquals(ReactV9HoldingDetailsContract.fields.size, restored.length())
-        for (key in ReactV9HoldingDetailsContract.fields) {
-            assertTrue("Missing original v9 key " + key, restored.has(key))
-            assertEquals(fields.get(key), restored.get(key))
+        val restored = vault.holdingProfiles().associateBy { it.holdingId }
+        expected.forEach { (id, facts) ->
+            val saved = JSONObject(restored.getValue(id).detailsJson)
+            val keys = facts.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                assertEquals(key, facts.get(key), saved.get(key))
+            }
+            assertNull(restored.getValue(id).verifiedCostPerUnit)
         }
-        assertNull(vault.holdingProfiles().single().verifiedCostPerUnit)
         assertTrue(vault.events().isEmpty())
     }
 
