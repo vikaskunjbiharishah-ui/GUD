@@ -1,0 +1,8 @@
+Run 3 emulator, adb instrument, Gradle not running.
+Data in.growurdhan.data.test:
+  EightCategoryRestartInstrumentedTest 9/9
+  NativeCustodyHoldingInstrumentedTest.allOriginalHoldingDetailKeysPersistWithTheirHistoricalValueTypes PASS
+App in.growurdhan.app.test:
+  FirstRunIdentityHandoffInstrumentedTest 1/1
+  OwnerLensShellTest 8/8 (custody rechecked after a duplicate-node assertion; the other seven passed in the same hour)
+Full :data and :app suites were not repeated. Run 2 was data 81/82 and app 77/77. The only data failure from that run passed here.
