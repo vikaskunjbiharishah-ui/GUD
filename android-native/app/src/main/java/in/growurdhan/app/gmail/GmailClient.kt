@@ -3,7 +3,6 @@ package `in`.growurdhan.app.gmail
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -35,10 +34,7 @@ class GmailClient(private val context: Context) {
         prefs().edit().putString("emails", next.joinToString("\n")).apply()
     }
 
-    fun profileEmail(token: String): String {
-        val body = httpGet("https://gmail.googleapis.com/gmail/v1/users/me/profile", token)
-        return JSONObject(body).optString("emailAddress")
-    }
+    fun profileEmail(token: String): String = GmailProfile.readEmail(token, ::httpGet)
 
     private fun httpGet(url: String, token: String): String {
         val conn = URL(url).openConnection() as HttpURLConnection
