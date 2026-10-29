@@ -15,6 +15,9 @@ Then about 15 minutes:
 - Add one holding in each of the eight kinds (shares, mutual fund, gold, fixed income, property, specialised, bank cash, loan).
 - Record a buy and a sell on one holding.
 - Look at Home. Amounts should stay on one line. They are saved book values, not today’s market price.
+- The first open can switch to हिन्दी. The yearly plan on the licence screen is ₹99 a year, and it is the only plan.
+- Open Insights. Tap one group, such as mutual fund. You should see that group’s holdings and the same saved total, not a guessed price. Go back to the full mix.
+- If you refresh prices, that is a button you press. A missing price stays missing. It must not become zero.
 - Import your own CAS PDF if you want. It is not uploaded by this checklist. Do not send the PDF to anyone.
 - Make an encrypted backup and restore it only on a spare copy or after you understand that restore replaces the books.
 - Turn on dark mode. Enlarge system font. Turn on TalkBack and move through Home and Settings.

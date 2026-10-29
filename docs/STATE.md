@@ -1,44 +1,55 @@
 # STATE
 
 ## HEADER
-- Date: 2026-10-29 02:58–03:20 UTC. Run 3. Code head `b153968` (docs commit follows).
-- Emulator `gud_x86` API 35. Gradle was stopped before `adb instrument`.
-- Observed: data fixture + eight-category class 10/10; first-run handoff 1/1; owner lens 8/8.
-- Full suites not repeated. Run 2 was app 77/77 and data 81/82. ARM64 APK rebuilt. Phone not used.
+- Date: 2026-10-29 08:04–09:02 UTC. Run 4. Code head `cbee32e` (docs commit follows).
+- Emulator `gud_x86` API 35 at 1080×1920 / 480 dpi (360×640 dp). Gradle was stopped before `adb instrument`.
+- Clean full run before the 48dp change: data 93/93, app 86/86. After that change, only the touched UI classes were re-run (not the whole app suite).
+- Domain JVM: touched classes only, not the whole `:domain` suite.
+- ARM64 APK rebuilt from `cbee32e`. Phone not used.
 
 ## MATRIX
-- P01 handoff: EMULATOR `FirstRunIdentityHandoffInstrumentedTest`. `FirstRunIdentityCommit.saveIfAbsent` requires a fresh device credential, then writes identity. Logcat contained a marker and not the email, date of birth, or either answer.
-- P09/P12: EMULATOR `EightCategoryRestartInstrumentedTest` 9/9. Each of the 8 categories creates specialist fields, closes, reopens, and refuses a bad date, negative units, and a cross-owner edit. Equity edit/archive/close reopens with no ledger event.
-- Holding details: EMULATOR `allOriginalHoldingDetailKeysPersistWithTheirHistoricalValueTypes`. Was the only data failure in run 2.
-- P15 owner lens: EMULATOR `OwnerLensShellTest` 8/8. Home, Portfolio, Custody, Tax, Statements, Family administration, plus Insights and Manual trade from run 2.
-- Untouched instrumented classes from run 2 were not executed again.
-- Evidence: `evidence/2026-10-29-0317/junit-summary.txt`.
+- P04 ledger profile: EMULATOR `v4LedgerProfileGainsLegacyColumnsWithoutRewritingEvents` inside `NativeParitySchemaInstrumentedTest` 6/6. v4 rows keep null settlement, balance, and description, and entered_by `owner`. A settlement before the trade date is rejected. Close/reopen keeps the row. An old short format-4 backup still restores. `validate_schema.py` PASS.
+- Q4: EMULATOR `SyntheticIssuerImportInstrumentedTest` 1/1. Synthetic CDSL and NPS text: parse, review, one opening each, second commit `ALREADY_IMPORTED`, second prepare rejected, wrong owner rejected before a write. CDSL cost is the printed ₹800, not the ₹100 price. Real PDFs stay BLOCKED-OWNER. NSDL enrolled import is still rejected.
+- Q5: LOCAL `InsightsDrilldownTest`. EMULATOR `PortfolioInsightsShellTest` 6/6 and `OwnerLensShellTest` 8/8, re-run after the 48dp buttons.
+- Q6: LOCAL `OfficialBhavcopyParserTest`. EMULATOR `OfficialExchangeCloseGatewayInstrumentedTest` 2/2. Mock NSE zip and BSE CSV, as-of date from the file, offline cache, HTML does not replace the cache.
+- Q7: EMULATOR `ScreenshotMatrixInstrumentedTest` 6/6. Captures at 1080×1920 (360×640 dp): onboarding English font 1 light, Hindi font 2 light, licence trial font 1 light and font 2 dark, terms font 2 dark, insights font 2 dark. Buttons asserted at least 48dp. Evidence `evidence/2026-10-29-0900/screens/`. Hindi body at 200% scrolls inside the card. TalkBack not run.
+- Q8 profile: LOCAL `GmailProfileTest` (token stays out of the URL; HTML and a missing email are refused). Not in the 86. Real consent stays BLOCKED-OWNER.
+- Q9: EMULATOR the same licence shots. Screen says one yearly plan at ₹99 and no lifetime licence. `Licence.SKU_ANNUAL` is still `gud_annual` and is not painted. No Play purchase.
+- Evidence for the full suites: `evidence/2026-10-29-0824/junit-summary.txt`.
 - BLOCKED-OWNER: real Gmail consent, Play purchases, production signing, phone install, real CAS PDFs, pen test, owner visual sign-off. DEVICE/OWNER none.
 
+## INSTRUMENTED COUNTS
+- data 93/93: EightCategoryRestart 9, FamilyAdministration 8, FirstRunIdentity 1, LegacyBackupInspector 3, LegacyVaultMigration 10, NativeAuthorization 3, NativeCipherIntegrity 1, NativeCustodyHolding 21, NativeFamilyOnboarding 4, NativeFinancialPersistence 5, NativeManualTrade 6, NativeMutationAuthorization 2, NativeParitySchema 6, NativeStatementApproval 6, NativeVault 7, SyntheticIssuerImport 1.
+- app 86/86 before the 48dp change: FirstRunIdentityHandoff 1, NativeCasIdentityBridge 5, PydanticCoreImport 3, OfficialExchangeCloseGateway 2, CustodyHoldingShell 13, EmergencyExportShell 2, FamilyOnboardingShell 4, FirstRunIdentityShell 1, LegacyBackupShell 4, LocalAppPassword 7, LocalLoginShell 5, ManualTradeShell 6, NativeShell 16, OfficialAmfiCatalogGateway 1, OwnerLensShell 8, PortableRecoveryShell 2, PortfolioInsightsShell 6.
+- Re-run after 48dp: ScreenshotMatrix 6, PortfolioInsightsShell 6, OwnerLensShell 8. The other app classes were not repeated.
+
 ## QUEUE
-1. Q1 schema: `ledger_profile` still lacks settlement_date, unit_balance_after, description, entered_by.
-2. Q4 NPS/CDSL staged import with synthetic contracts.
-3. Q5 Insights drill-down is still read-only outside the owner filter.
-4. Q6 NSE/BSE fetch beside AMFI.
-5. Q7 Hindi onboarding and 200% font screenshots.
-6. Q8 fake Gmail gateway.
-7. Q9 `gud_annual` trial clock.
-8. Q10 full regression and release minify.
-9. Screenshot matrix at 360dp, 200% font, light and dark.
-10. Activity UI test of the credential screen itself (the handoff after grant is what this run proved).
+1. Q8 fake mailbox sync, WorkManager, quarantine. Profile parse is LOCAL. Real OAuth stays blocked.
+2. Q10 release minify.
+3. NSDL staged import (CDSL and NPS synthetic path is in).
+4. Activity UI test of the credential screen itself.
+5. Full `:domain:test` was not re-run this run.
+6. Manual price override UI next to the close cache.
+7. Full `:app` suite was not repeated after the 48dp change.
+8. TalkBack pass on the screenshot screens.
+9. Do not treat a missing close as zero.
+10. Home and Settings are not in the screenshot matrix yet.
 
 ## DECISIONS
-- `allOriginalHoldingDetailKeys…` no longer writes `"synthetic"` into enums. Values are the `src/types.ts` sets (NSDL/CDSL, DIRECT/GROWTH/FOLIO, 24K, CUMULATIVE, NPS I/CAMS, SELF, AIF II, LUMPSUM, FLOATING). NSDL and CDSL stay on two equity rows. `linkedHoldingId` stays on a residential property pointing at a loan. Validation was not loosened.
+- New ledger columns are on `ledger_profile` via migration v5, not a rebuilt `ledger_event`. Fresh installs ALTER after DDL. `entered_by` stays `'owner'` only, matching `src/db/repository.ts`.
+- Backup envelope stays format 4. `databaseVersion` 5 is the new export. A version-4 export omits the four new columns and restores them as null / `owner`.
+- CDSL matches enrolled ISIN + BO id, not the printed name. NPS matches PRAN + scheme code + scheme name. Email is not an identity.
+- NSE/BSE prices are parsed from the official UDiFF close column only. Series GB is `GOLD_SGB`. Empty or HTML files do not invent a price.
 - Parser libraries remain inside `assets/chaquopy/*.imy`, not `lib/arm64-v8a`.
-- PAN stays on first-run. Consent stays `registration_consent` in `extra_json`. Licence stays one yearly `gud_annual`.
-- Vault, Settings, Privacy, Licence, and Emergency export do not list another person's holdings, so they have no owner filter.
-- Home hides household category mix and the other person's tiles when one person is selected. Statements list only that person.
+- Licence stays one yearly `gud_annual`. The screen says the price, not the SKU.
+- Screenshot width is the emulator logical size (1080 px at 480 dpi), not a cropped bitmap.
 
 ## BLOCKERS
 - Host RAM: assemble with the emulator killed. The emulator raises `-memory 2048` to 2560 MB.
 - `pypdfium2` is arm64-only. x86 CAS tests stay synthetic.
 
 ## KNOWN GAPS
-- Full instrumented suites were not repeated after these slices.
-- 360dp / 200% / dark screenshot matrix not saved.
+- Not every screen was shot in both themes. TalkBack was not run.
 - ARM64 parser behaviour is DEVICE: pending owner.
+- The whole domain JVM suite was not repeated after these slices.
+- The full app instrumented suite was not repeated after the 48dp buttons.
