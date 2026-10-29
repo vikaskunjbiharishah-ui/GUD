@@ -91,6 +91,7 @@ class HouseholdDashboardViewModelTest {
         assertEquals(150_000L, ready.dashboard.netWorth.raw)
         assertEquals(1, ready.dashboard.memberCount)
         assertEquals("Synthetic Member", ready.dashboard.byMember.single().displayName)
+        assertEquals("estimate, not advice", ready.dashboard.taxEstimates.single().summary.label)
         assertEquals(1, ready.dashboard.unknownCostHoldings)
         assertEquals("MUTUAL_FUND", ready.dashboard.byCategory.single().category)
         coVerify(exactly = 1) { repo.readBook() }

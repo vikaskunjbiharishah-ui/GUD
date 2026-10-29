@@ -3,13 +3,18 @@ package `in`.growurdhan.app.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import `in`.growurdhan.domain.finance.FyTaxEstimate
 import `in`.growurdhan.domain.finance.HouseholdDashboard
 import `in`.growurdhan.domain.finance.HouseholdDashboardProjector
+import `in`.growurdhan.domain.finance.LotEngine
+import `in`.growurdhan.domain.finance.OwnerFyTax
 import `in`.growurdhan.domain.finance.PortfolioEngine
 import `in`.growurdhan.domain.finance.toFinancialEvent
 import `in`.growurdhan.domain.finance.toFinancialHolding
+import `in`.growurdhan.core.model.MoneyScaled
 import `in`.growurdhan.domain.vault.VaultRepository
 import java.time.LocalDate
+import org.json.JSONObject
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -62,10 +67,20 @@ class HouseholdDashboardViewModel @Inject constructor(
                 check(session.isCurrentSession(originalRevision))
                 val holdingProfiles = repository.holdingProfiles()
                 check(session.isCurrentSession(originalRevision))
+                val asOf = LocalDate.now()
+                val profilesById = holdingProfiles.associateBy { it.holdingId }
+                val financialHoldings = book.holdings.map { holding ->
+                    val profile = profilesById[holding.id]
+                    holding.toFinancialHolding(
+                        subCategory = profile?.subCategory.orEmpty(),
+                        goldHoldMode = profile?.detailsJson?.let(::goldHoldModeOrNull),
+                    )
+                }
+                val financialEvents = book.events.map { it.toFinancialEvent() }
                 val report = PortfolioEngine.derive(
-                    holdings = book.holdings.map { it.toFinancialHolding() },
-                    events = book.events.map { it.toFinancialEvent() },
-                    asOf = LocalDate.now(),
+                    holdings = financialHoldings,
+                    events = financialEvents,
+                    asOf = asOf,
                     knownMembers = book.members.map { it.id },
                     enforceKnownMembers = true,
                 )
@@ -77,7 +92,10 @@ class HouseholdDashboardViewModel @Inject constructor(
                 val dashboard = HouseholdDashboardProjector.from(
                     report, book.members.associate { it.id to it.displayName },
                     profiles = holdingProfiles,
-                )
+                ).copy(taxEstimates = taxEstimates(
+                    book.members.map { it.id }, financialHoldings, financialEvents,
+                    holdingProfiles, asOf,
+                ))
                 if (request != generation) return@launch
                 if (session.isCurrentSession(originalRevision)) {
                     mutableState.value = HouseholdDashboardUiState.Ready(dashboard)
@@ -93,4 +111,39 @@ class HouseholdDashboardViewModel @Inject constructor(
             }
         }
     }
+}
+
+private fun taxEstimates(
+    members: List<`in`.growurdhan.core.model.OwnerId>,
+    holdings: List<`in`.growurdhan.domain.finance.FinancialHolding>,
+    events: List<`in`.growurdhan.domain.finance.FinancialEvent>,
+    profiles: List<`in`.growurdhan.core.model.HoldingProfileSnapshot>,
+    asOf: LocalDate,
+): List<OwnerFyTax> {
+    val year = LotEngine.fiscalYear(asOf)
+    val fmv = profiles.mapNotNull { profile ->
+        fmvOrNull(profile.richMetadataJson)?.let { profile.holdingId to it }
+    }.toMap()
+    return members.map { owner ->
+        OwnerFyTax(owner, FyTaxEstimate.summarize(
+            holdings = holdings.filter { it.ownerId == owner },
+            events = events.filter { it.ownerId == owner },
+            financialYear = year,
+            asOf = asOf,
+            fmvByHolding = fmv,
+        ))
+    }
+}
+
+private fun goldHoldModeOrNull(detailsJson: String): String? = try {
+    JSONObject(detailsJson).optString("goldHoldMode").ifBlank { null }
+} catch (_: Exception) {
+    null
+}
+
+private fun fmvOrNull(richMetadataJson: String): MoneyScaled? = try {
+    val json = JSONObject(richMetadataJson)
+    if (!json.has("fmv_31jan2018_scaled")) null else MoneyScaled(json.getLong("fmv_31jan2018_scaled"))
+} catch (_: Exception) {
+    null
 }

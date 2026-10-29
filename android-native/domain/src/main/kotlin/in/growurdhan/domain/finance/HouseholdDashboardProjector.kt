@@ -24,6 +24,8 @@ data class HouseholdDashboard(
     val byMember: List<MemberDashboard>,
     val byCategory: List<CategoryDashboard> = emptyList(),
     val recordedHoldings: List<RecordedHoldingDashboard> = emptyList(),
+    /** One FY equity estimate per member. Empty on hand-built previews. */
+    val taxEstimates: List<OwnerFyTax> = emptyList(),
 ) {
     val isReliable: Boolean get() = integrityWarnings.isEmpty()
 }

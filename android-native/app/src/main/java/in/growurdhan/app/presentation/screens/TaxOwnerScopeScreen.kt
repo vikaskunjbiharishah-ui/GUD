@@ -29,8 +29,24 @@ fun TaxOwnerScopeScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text("Tax records • family scope", style = MaterialTheme.typography.headlineMedium)
-        Text("Your selected owner scope also applies here. This is recorded " +
-            "position information, not a tax calculation.")
+        val estimates = (state as? HouseholdDashboardUiState.Ready)?.dashboard?.taxEstimates
+            ?.filter { ownerId == null || it.ownerId == ownerId }
+            .orEmpty()
+        if (estimates.isEmpty()) {
+            Text("Your selected owner scope also applies here. This is recorded " +
+                "position information, not a tax calculation.")
+        } else {
+            estimates.forEach { estimate ->
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        estimate.summary.lines().forEach { line ->
+                            Text(line)
+                        }
+                    }
+                }
+            }
+        }
         when (state) {
             is HouseholdDashboardUiState.Ready -> {
                 val members = state.dashboard.byMember.filter {
@@ -57,8 +73,10 @@ fun TaxOwnerScopeScreen(
             }
             else -> Text("Unlock the vault to view your family's recorded scope.")
         }
-        Text("Detailed capital gains and tax calculations require later tax milestones.",
-            style = MaterialTheme.typography.bodySmall)
+        if (estimates.isEmpty()) {
+            Text("Detailed capital gains and tax calculations require later tax milestones.",
+                style = MaterialTheme.typography.bodySmall)
+        }
         OutlinedButton(onClick = onBack) { Text("Back to Home") }
     }
 }
