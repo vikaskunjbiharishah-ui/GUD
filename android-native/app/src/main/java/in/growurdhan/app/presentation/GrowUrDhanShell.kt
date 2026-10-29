@@ -62,6 +62,8 @@ import `in`.growurdhan.app.presentation.screens.CustodyHoldingScreen
 import `in`.growurdhan.app.presentation.screens.FamilyMemberScreen
 import `in`.growurdhan.app.presentation.screens.FamilyAdministrationScreen
 import `in`.growurdhan.app.presentation.screens.HomeScreen
+import `in`.growurdhan.app.presentation.screens.InterestReviewScreen
+import `in`.growurdhan.app.presentation.screens.EmiReviewScreen
 import `in`.growurdhan.app.presentation.screens.PortfolioScreen
 import `in`.growurdhan.app.presentation.screens.ManualTradeScreen
 import `in`.growurdhan.app.presentation.screens.InsightsScreen
@@ -98,6 +100,8 @@ private const val FAMILY_ROUTE = "family"
 private const val FAMILY_ADMIN_ROUTE = "family-admin"
 private const val ACCOUNTS_ROUTE = "accounts"
 private const val TAX_SCOPE_ROUTE = "tax-owner-scope"
+private const val INTEREST_ROUTE = "interest-review"
+private const val EMI_ROUTE = "emi-review"
 private const val DOCUMENTS_ROUTE = "documents"
 /** Secondary secure registrar/holding setup route, not an extra bottom tab. */
 private const val CUSTODY_ROUTE = "custody"
@@ -277,6 +281,8 @@ fun GrowUrDhanShell(
                             onOpenAccounts = { navigate(ACCOUNTS_ROUTE) },
                             onOpenTaxScope = { navigate(TAX_SCOPE_ROUTE) },
                             onOpenDocuments = { navigate(DOCUMENTS_ROUTE) },
+                            onOpenInterest = { navigate(INTEREST_ROUTE) },
+                            onOpenEmi = { navigate(EMI_ROUTE) },
                             selectedFamilyOwner = selectedOwner,
                             onSelectFamilyOwner = { selectedOwner = it },
                         )
@@ -299,6 +305,18 @@ fun GrowUrDhanShell(
                         TaxOwnerScopeScreen(
                             state = dashboardState,
                             ownerId = selectedOwner,
+                            onBack = { navigate(MainDestination.HOME.route) },
+                        )
+                    }
+                    composable(INTEREST_ROUTE) {
+                        InterestReviewScreen(
+                            plan = null,
+                            onBack = { navigate(MainDestination.HOME.route) },
+                        )
+                    }
+                    composable(EMI_ROUTE) {
+                        EmiReviewScreen(
+                            plan = null,
                             onBack = { navigate(MainDestination.HOME.route) },
                         )
                     }

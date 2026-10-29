@@ -1,0 +1,2 @@
+OK (8 tests) after scroll-to-end. TaxOwnerScope 1 + ScreenshotMatrix 7. 19.287s. 1080x1920.
+Thu Oct 29 22:47:34 UTC 2026

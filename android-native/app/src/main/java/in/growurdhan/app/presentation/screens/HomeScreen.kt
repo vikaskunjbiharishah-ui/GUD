@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -46,6 +47,8 @@ fun HomeScreen(
     onOpenAccounts: () -> Unit = {},
     onOpenTaxScope: () -> Unit = {},
     onOpenDocuments: () -> Unit = {},
+    onOpenInterest: () -> Unit = {},
+    onOpenEmi: () -> Unit = {},
     selectedFamilyOwner: OwnerId? = null,
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
@@ -293,6 +296,14 @@ fun HomeScreen(
             }
             OutlinedButton(onClick = onOpenDocuments, modifier = Modifier.weight(1f)) {
                 Text("Documents / CAS")
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(onClick = onOpenInterest, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                Text("Interest review")
+            }
+            OutlinedButton(onClick = onOpenEmi, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                Text("EMI review")
             }
         }
 

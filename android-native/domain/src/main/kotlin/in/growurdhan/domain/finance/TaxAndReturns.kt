@@ -20,19 +20,42 @@ data class TaxRuleSet(
     val sgbRedemptionExempt: Boolean = true,
     val notes: String = "",
     val provisional: Boolean = false,
+    /**
+     * False when one basis-point pair must not be applied to every sale in the year.
+     * FY 2024-25 is the case: see [FyTaxEstimate].
+     */
+    val singleEquityRate: Boolean = true,
 )
 
 enum class GainClass { LTCG_EQUITY, STCG_EQUITY, DEBT_SLAB, SGB_EXEMPT, REAL_ESTATE_LTCG }
 
 object IndianTaxRules {
+    /**
+     * Equity rates checked against the Income-tax Department consolidated text
+     * of the Income-tax Act, 1961 (not a private calculator):
+     * - s.111A(1)(i), substituted by the Finance (No. 2) Act, 2024 (Act 15 of 2024),
+     *   w.r.e.f. 23 July 2024: 15% on a transfer before that date, 20% on or after.
+     *   https://incometaxindia.gov.in/w/section-111a-21
+     * - s.112A(2)(i), same Act: 10% before 23 July 2024, 12.5% on or after, on
+     *   long-term gains exceeding ₹1,25,000. The proviso applies that ₹1,25,000
+     *   to the aggregate of both date buckets. The consolidated PDF is
+     *   incometaxindia.gov.in Section-112A (file dated 2026-07-21). The prior
+     *   clause was 10% above ₹1,00,000.
+     * The Act does not say which bucket absorbs the exemption when both have
+     * gains. [FyTaxEstimate] therefore does not estimate FY 2024-25.
+     * Cess and surcharge are not in these basis points. They depend on total
+     * income, which this book does not compute.
+     * AY27-28 stays provisional: a later Finance Act was not read line by line.
+     */
     private val published = mapOf(
         "AY25-26" to TaxRuleSet(
             "AY25-26",
-            notes = "FY 2024-25. Rates changed mid-year by Finance (No.2) Act 2024; verify against the Act.",
+            notes = "FY 2024-25. Sections 111A and 112A change on 23 July 2024. Not estimated.",
+            singleEquityRate = false,
         ),
         "AY26-27" to TaxRuleSet(
             "AY26-27",
-            notes = "FY 2025-26. Verify against Finance Act before release.",
+            notes = "FY 2025-26. Every day is after 23 July 2024, so only the later 111A and 112A rates apply. Cess is not included.",
         ),
         "AY27-28" to TaxRuleSet(
             "AY27-28",

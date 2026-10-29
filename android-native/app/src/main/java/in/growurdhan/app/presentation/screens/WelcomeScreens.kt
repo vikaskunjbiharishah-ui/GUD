@@ -1,7 +1,9 @@
 package `in`.growurdhan.app.presentation.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.FlowRow
@@ -18,7 +20,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.domain.finance.Onboarding
@@ -72,13 +74,13 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                 2 -> MaterialTheme.colorScheme.onSecondaryContainer
                 else -> MaterialTheme.colorScheme.onPrimaryContainer
             }
-            Surface(
-                color = background,
-                shape = MaterialTheme.shapes.extraLarge,
-                modifier = Modifier.fillMaxSize().padding(end = 8.dp),
-            ) {
+            Box(Modifier.fillMaxSize().background(background)) {
                 Column(
-                    Modifier.padding(22.dp).verticalScroll(pageScroll[page]),
+                    Modifier
+                        .fillMaxSize()
+                        .testTag("onboarding-page")
+                        .verticalScroll(pageScroll[page])
+                        .padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(

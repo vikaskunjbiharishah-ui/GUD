@@ -12,6 +12,8 @@ import java.time.LocalDate
  */
 object FyTaxEstimate {
     const val LABEL = "estimate, not advice"
+    /** Exact sentence for FY 2024-25. Do not replace it with a computed rupee tax. */
+    const val RATE_CHANGED_NOTE = "Rates changed during this year; not estimated"
 
     data class Summary(
         val financialYear: String,
@@ -22,15 +24,17 @@ object FyTaxEstimate {
         val ltcgEquityGain: MoneyScaled,
         val ltcgExemption: MoneyScaled,
         val ltcgTaxable: MoneyScaled,
-        val ltcgTax: MoneyScaled,
+        val ltcgTax: MoneyScaled?,
         val stcgEquityGain: MoneyScaled,
-        val stcgTax: MoneyScaled,
+        val stcgTax: MoneyScaled?,
         val debtSlabGain: MoneyScaled,
         val realEstateGain: MoneyScaled,
         val sgbExemptGain: MoneyScaled,
         val dividend: MoneyScaled,
         val interest: MoneyScaled,
-        val estimatedTax: MoneyScaled,
+        /** Null means unknown. It must not be shown as ₹0. */
+        val estimatedTax: MoneyScaled?,
+        val rateNote: String?,
         val errors: List<String>,
     ) {
         fun lines(): List<String> {
@@ -40,12 +44,18 @@ object FyTaxEstimate {
             )
             if (ruleNotes.isNotBlank()) rows += ruleNotes
             if (provisional) rows += "These rules are marked provisional."
+            if (rateNote != null) rows += rateNote
             rows += "Equity long-term gain ${MoneyEngine.formatRupees(ltcgEquityGain.raw)}"
-            rows += "Equity long-term exemption ${MoneyEngine.formatRupees(ltcgExemption.raw)}"
-            rows += "Estimated equity long-term tax ${MoneyEngine.formatRupees(ltcgTax.raw)}"
             rows += "Equity short-term gain ${MoneyEngine.formatRupees(stcgEquityGain.raw)}"
-            rows += "Estimated equity short-term tax ${MoneyEngine.formatRupees(stcgTax.raw)}"
-            rows += "Estimated tax ${MoneyEngine.formatRupees(estimatedTax.raw)}. Equity rates only."
+            val tax = estimatedTax
+            val longTax = ltcgTax
+            val shortTax = stcgTax
+            if (rateNote == null && tax != null && longTax != null && shortTax != null) {
+                rows += "Equity long-term exemption ${MoneyEngine.formatRupees(ltcgExemption.raw)}"
+                rows += "Estimated equity long-term tax ${MoneyEngine.formatRupees(longTax.raw)}"
+                rows += "Estimated equity short-term tax ${MoneyEngine.formatRupees(shortTax.raw)}"
+                rows += "Estimated tax ${MoneyEngine.formatRupees(tax.raw)}. Equity rates only."
+            }
             rows += "Debt and slab gains ${MoneyEngine.formatRupees(debtSlabGain.raw)} are not estimated."
             rows += "Property gains ${MoneyEngine.formatRupees(realEstateGain.raw)} are not given one rate here."
             rows += "SGB certificate redemption gain ${MoneyEngine.formatRupees(sgbExemptGain.raw)}"
@@ -111,11 +121,6 @@ object FyTaxEstimate {
             it.kind in setOf(FinancialEventKind.DIVIDEND, FinancialEventKind.INTEREST, FinancialEventKind.SELL)
         }
         if (orphan.isNotEmpty()) errors += "A sale or income row has no holding."
-        val exemption = Math.multiplyExact(rules.ltcgExemptionRupees, 10_000L)
-        val ltcgTaxable = if (ltcg > exemption) Math.subtractExact(ltcg, exemption) else 0L
-        val ltcgTax = IndianTaxRules.applyRate(MoneyScaled(ltcgTaxable), rules.ltcgEquityBps)
-        val stcgBase = if (stcg > 0L) stcg else 0L
-        val stcgTax = IndianTaxRules.applyRate(MoneyScaled(stcgBase), rules.stcgEquityBps)
         var dividend = 0L
         var interest = 0L
         for (event in events) {
@@ -129,27 +134,68 @@ object FyTaxEstimate {
                 else -> Unit
             }
         }
-        return Summary(
-            financialYear = financialYear,
-            assessmentYear = assessmentYear,
-            ruleNotes = rules.notes,
-            provisional = rules.provisional,
-            label = LABEL,
-            ltcgEquityGain = MoneyScaled(ltcg),
-            ltcgExemption = MoneyScaled(exemption),
-            ltcgTaxable = MoneyScaled(ltcgTaxable),
-            ltcgTax = ltcgTax,
-            stcgEquityGain = MoneyScaled(stcg),
-            stcgTax = stcgTax,
-            debtSlabGain = MoneyScaled(debt),
-            realEstateGain = MoneyScaled(property),
-            sgbExemptGain = MoneyScaled(sgb),
-            dividend = MoneyScaled(dividend),
-            interest = MoneyScaled(interest),
-            estimatedTax = ltcgTax + stcgTax,
-            errors = errors,
+        if (!rules.singleEquityRate) {
+            // s.112A(2) proviso: ₹1,25,000 covers both date buckets together.
+            // The Act does not say which bucket is reduced first. One rate on
+            // every sale in FY 2024-25 would be wrong, so tax stays unknown.
+            return filled(
+                financialYear, assessmentYear, rules, ltcg, stcg, debt, property, sgb,
+                dividend, interest, errors,
+                exemption = 0L, ltcgTaxable = 0L, ltcgTax = null, stcgTax = null,
+                rateNote = RATE_CHANGED_NOTE,
+            )
+        }
+        val exemption = Math.multiplyExact(rules.ltcgExemptionRupees, 10_000L)
+        val ltcgTaxable = if (ltcg > exemption) Math.subtractExact(ltcg, exemption) else 0L
+        val ltcgTax = IndianTaxRules.applyRate(MoneyScaled(ltcgTaxable), rules.ltcgEquityBps)
+        val stcgBase = if (stcg > 0L) stcg else 0L
+        val stcgTax = IndianTaxRules.applyRate(MoneyScaled(stcgBase), rules.stcgEquityBps)
+        return filled(
+            financialYear, assessmentYear, rules, ltcg, stcg, debt, property, sgb,
+            dividend, interest, errors,
+            exemption = exemption, ltcgTaxable = ltcgTaxable, ltcgTax = ltcgTax, stcgTax = stcgTax,
+            rateNote = null,
         )
     }
+
+    private fun filled(
+        financialYear: String,
+        assessmentYear: String,
+        rules: TaxRuleSet,
+        ltcg: Long,
+        stcg: Long,
+        debt: Long,
+        property: Long,
+        sgb: Long,
+        dividend: Long,
+        interest: Long,
+        errors: List<String>,
+        exemption: Long,
+        ltcgTaxable: Long,
+        ltcgTax: MoneyScaled?,
+        stcgTax: MoneyScaled?,
+        rateNote: String?,
+    ) = Summary(
+        financialYear = financialYear,
+        assessmentYear = assessmentYear,
+        ruleNotes = rules.notes,
+        provisional = rules.provisional,
+        label = LABEL,
+        ltcgEquityGain = MoneyScaled(ltcg),
+        ltcgExemption = MoneyScaled(exemption),
+        ltcgTaxable = MoneyScaled(ltcgTaxable),
+        ltcgTax = ltcgTax,
+        stcgEquityGain = MoneyScaled(stcg),
+        stcgTax = stcgTax,
+        debtSlabGain = MoneyScaled(debt),
+        realEstateGain = MoneyScaled(property),
+        sgbExemptGain = MoneyScaled(sgb),
+        dividend = MoneyScaled(dividend),
+        interest = MoneyScaled(interest),
+        estimatedTax = if (ltcgTax == null || stcgTax == null) null else ltcgTax + stcgTax,
+        rateNote = rateNote,
+        errors = errors,
+    )
 
     private fun cashOf(event: FinancialEvent): Long {
         if (event.totalAmount.raw != 0L) return event.totalAmount.raw
@@ -177,15 +223,16 @@ object FyTaxEstimate {
         ltcgEquityGain = MoneyScaled(0),
         ltcgExemption = MoneyScaled(0),
         ltcgTaxable = MoneyScaled(0),
-        ltcgTax = MoneyScaled(0),
+        ltcgTax = null,
         stcgEquityGain = MoneyScaled(0),
-        stcgTax = MoneyScaled(0),
+        stcgTax = null,
         debtSlabGain = MoneyScaled(0),
         realEstateGain = MoneyScaled(0),
         sgbExemptGain = MoneyScaled(0),
         dividend = MoneyScaled(0),
         interest = MoneyScaled(0),
-        estimatedTax = MoneyScaled(0),
+        estimatedTax = null,
+        rateNote = null,
         errors = errors,
     )
 }

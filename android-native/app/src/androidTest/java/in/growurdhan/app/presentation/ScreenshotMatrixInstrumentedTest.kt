@@ -16,6 +16,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -69,6 +73,8 @@ class ScreenshotMatrixInstrumentedTest {
             "GrowUrDhan is built so Indian families can see every member’s holdings in one private place.",
             "Scroll for the rest of this slide.",
         )
+        scrollOnboardingToEnd()
+        assertTextBottomInsidePage("The books live on this phone.")
         save("onboarding-en-light-font2")
     }
 
@@ -84,6 +90,8 @@ class ScreenshotMatrixInstrumentedTest {
             "GrowUrDhan इसलिए बना है कि भारतीय परिवार सभी सदस्यों के निवेश एक ही निजी जगह पर देख सकें।",
             "और पढ़ने के लिए ऊपर खिसकाएँ।",
         )
+        scrollOnboardingToEnd()
+        assertTextBottomInsidePage("आपका हिसाब-किताब इसी फ़ोन में रहता है।")
         save("onboarding-hi-light-font2")
     }
 
@@ -167,6 +175,38 @@ class ScreenshotMatrixInstrumentedTest {
         assertEquals(0, compose.onAllNodesWithText("gud_lifetime").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("gud_gmail").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("gud_support_annual").fetchSemanticsNodes().size)
+    }
+
+    private fun scrollOnboardingToEnd() {
+        repeat(24) {
+            val axis = compose.onNodeWithTag("onboarding-page").fetchSemanticsNode()
+                .config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
+            if (axis == null || axis.value() >= axis.maxValue() - 0.5f) return
+            compose.onNodeWithTag("onboarding-page").performTouchInput {
+                swipeUp(startY = height * 0.85f, endY = height * 0.2f, durationMillis = 80)
+            }
+            compose.waitForIdle()
+        }
+        val axis = compose.onNodeWithTag("onboarding-page").fetchSemanticsNode()
+            .config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
+        assertTrue(
+            "onboarding page did not reach the end",
+            axis == null || axis.value() >= axis.maxValue() - 1f,
+        )
+    }
+
+    /** The body is one text node. Its bottom is the last line, so this fails while that line is clipped. */
+    private fun assertTextBottomInsidePage(text: String) {
+        val page = compose.onNodeWithTag("onboarding-page").fetchSemanticsNode().boundsInRoot
+        val line = compose.onNodeWithText(text, substring = true).fetchSemanticsNode().boundsInRoot
+        assertTrue(
+            "last line clipped bottom ${line.bottom} > page ${page.bottom}",
+            line.bottom <= page.bottom + 1f,
+        )
+        assertTrue(
+            "last line clipped side ${line.left},${line.right} vs page ${page.left},${page.right}",
+            line.left >= page.left - 1f && line.right <= page.right + 1f,
+        )
     }
 
     private fun assertFitsOrShowsCue(text: String, cue: String) {

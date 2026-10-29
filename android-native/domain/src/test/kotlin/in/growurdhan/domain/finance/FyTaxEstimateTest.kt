@@ -5,6 +5,8 @@ import `in`.growurdhan.core.model.MoneyScaled
 import `in`.growurdhan.core.model.OwnerId
 import java.time.LocalDate
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -56,9 +58,9 @@ class FyTaxEstimateTest {
         assertEquals(rupees(125_000), summary.ltcgTaxable)
         assertEquals(rupees(15_625), summary.ltcgTax)
         assertEquals(rupees(15_625), summary.estimatedTax)
-        assertEquals(0L, summary.stcgTax.raw)
+        assertEquals(0L, summary.stcgTax?.raw)
         assertTrue(summary.lines().first() == "estimate, not advice")
-        assertTrue(summary.lines().any { it.contains(MoneyEngine.formatRupees(summary.estimatedTax.raw)) })
+        assertTrue(summary.lines().any { it.contains(MoneyEngine.formatRupees(summary.estimatedTax!!.raw)) })
     }
 
     @Test fun shortTermEquityUsesThePublishedStcgRateAndIgnoresSlabGains() {
@@ -97,7 +99,7 @@ class FyTaxEstimateTest {
             fmvByHolding = mapOf(id to rupees(400)),
         )
         assertEquals(rupees(500), summary.ltcgEquityGain)
-        assertEquals(0L, summary.estimatedTax.raw)
+        assertEquals(rupees(0), summary.estimatedTax)
     }
 
     @Test fun unpublishedYearAndCrossOwnerRowsDoNotInventTax() {
@@ -107,9 +109,10 @@ class FyTaxEstimateTest {
             financialYear = "2038-39",
             asOf = LocalDate.parse("2039-03-31"),
         )
-        assertEquals(0L, missing.estimatedTax.raw)
+        assertNull(missing.estimatedTax)
         assertTrue(missing.errors.single().contains("not available"))
         assertEquals(FyTaxEstimate.LABEL, missing.lines().first())
+        assertFalse(missing.lines().any { it.startsWith("Estimated tax") })
 
         val crossed = FyTaxEstimate.summarize(
             holdings = listOf(holding("h")),
@@ -121,8 +124,55 @@ class FyTaxEstimateTest {
             asOf = asOf,
         )
         assertEquals(0L, crossed.ltcgEquityGain.raw)
-        assertEquals(0L, crossed.estimatedTax.raw)
+        assertEquals(rupees(0), crossed.estimatedTax)
         assertTrue(crossed.errors.isNotEmpty())
         assertTrue(crossed.lines().any { it == "This estimate is incomplete." })
+    }
+
+    /**
+     * s.112A(2) and s.111A(1) use different rates before and on 23 July 2024.
+     * One rate on both sales is a failure, including the post-change pair
+     * (12.5% and 20% above ₹1,25,000) and the pre-change pair (10% and 15%).
+     */
+    @Test fun fy2024_25DoesNotApplyOneRateSetAcross23July2024() {
+        val summary = FyTaxEstimate.summarize(
+            holdings = listOf(holding("long"), holding("short")),
+            events = listOf(
+                trade("lb", "long", FinancialEventKind.BUY, "2020-04-01", 2000, 100),
+                trade("ls1", "long", FinancialEventKind.SELL, "2024-07-22", 1000, 200),
+                trade("ls2", "long", FinancialEventKind.SELL, "2024-07-23", 1000, 200),
+                trade("sb", "short", FinancialEventKind.BUY, "2024-06-01", 100, 100),
+                trade("ss1", "short", FinancialEventKind.SELL, "2024-07-22", 50, 200),
+                trade("ss2", "short", FinancialEventKind.SELL, "2024-07-24", 50, 200),
+            ),
+            financialYear = "2024-25",
+            asOf = LocalDate.parse("2025-03-31"),
+        )
+        assertEquals("AY25-26", summary.assessmentYear)
+        assertEquals(rupees(200_000), summary.ltcgEquityGain)
+        assertEquals(rupees(10_000), summary.stcgEquityGain)
+        assertNull(summary.estimatedTax)
+        assertNull(summary.ltcgTax)
+        assertNull(summary.stcgTax)
+        assertEquals(FyTaxEstimate.RATE_CHANGED_NOTE, summary.rateNote)
+        assertTrue(summary.lines().contains(FyTaxEstimate.RATE_CHANGED_NOTE))
+        assertFalse(summary.lines().any { it.startsWith("Estimated tax") })
+        val postChange = rupees(9_375) + rupees(2_000)
+        val preChange = rupees(10_000) + rupees(1_500)
+        assertFalse(summary.estimatedTax == postChange)
+        assertFalse(summary.estimatedTax == preChange)
+
+        val onlyAfter = FyTaxEstimate.summarize(
+            holdings = listOf(holding("long")),
+            events = listOf(
+                trade("b", "long", FinancialEventKind.BUY, "2020-04-01", 1000, 100),
+                trade("s", "long", FinancialEventKind.SELL, "2024-08-01", 1000, 300),
+            ),
+            financialYear = "2024-25",
+            asOf = LocalDate.parse("2025-03-31"),
+        )
+        assertTrue(onlyAfter.ltcgEquityGain.raw > 0L)
+        assertNull(onlyAfter.estimatedTax)
+        assertEquals(FyTaxEstimate.RATE_CHANGED_NOTE, onlyAfter.rateNote)
     }
 }
