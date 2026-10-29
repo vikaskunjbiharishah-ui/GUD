@@ -284,7 +284,8 @@ object LegacyVaultMigration {
         val bytes = convertAuthenticated(data, identity)
         return try {
             val doc = JSONObject(bytes.toString(Charsets.UTF_8))
-            require(doc.getInt("format") == 4 && doc.getInt("databaseVersion") == 4)
+            require(doc.getInt("format") == 4 &&
+                doc.getInt("databaseVersion") == VaultSchema.VERSION)
             val names = doc.keys().asSequence().filter {
                 it != "format" && it != "databaseVersion"
             }.toList().sorted()
