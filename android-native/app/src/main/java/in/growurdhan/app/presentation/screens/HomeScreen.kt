@@ -67,24 +67,33 @@ fun HomeScreen(
         when (dashboardState) {
             is HouseholdDashboardUiState.Ready -> {
                 val dashboard = dashboardState.dashboard
-                Text("What the family owns today", style = MaterialTheme.typography.titleLarge)
+                val focused = selectedFamilyOwner?.let { id ->
+                    dashboard.byMember.firstOrNull { it.ownerId == id }
+                }
+                Text(
+                    if (focused == null) "What the family owns today"
+                    else "Showing one person only",
+                    style = MaterialTheme.typography.titleLarge,
+                )
                 MetricTile(
                     label = "Net worth",
-                    value = dashboard.netWorth.asBook(),
-                    note = "${dashboard.memberCount} people · ${dashboard.holdingCount} holdings",
+                    value = (focused?.netWorth ?: dashboard.netWorth).asBook(),
+                    note = if (focused == null)
+                        "${dashboard.memberCount} people · ${dashboard.holdingCount} holdings"
+                    else "This person only · ${focused.holdings} holdings",
                     container = MaterialTheme.colorScheme.primaryContainer,
                     ink = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 MetricTile(
                     label = "What you own",
-                    value = dashboard.assets.asBook(),
+                    value = (focused?.assets ?: dashboard.assets).asBook(),
                     note = "Saved value",
                     container = MaterialTheme.colorScheme.tertiaryContainer,
                     ink = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
                 MetricTile(
                     label = "What you owe",
-                    value = dashboard.liabilities.asBook(),
+                    value = (focused?.liabilities ?: dashboard.liabilities).asBook(),
                     note = "Loans",
                     container = MaterialTheme.colorScheme.secondaryContainer,
                     ink = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -162,6 +171,7 @@ fun HomeScreen(
         }
 
         if (dashboardState is HouseholdDashboardUiState.Ready &&
+            selectedFamilyOwner == null &&
             dashboardState.dashboard.byCategory.isNotEmpty()
         ) {
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -233,7 +243,10 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    dashboardState.dashboard.byMember.forEachIndexed { index, member ->
+                    val people = dashboardState.dashboard.byMember.filter {
+                        selectedFamilyOwner == null || it.ownerId == selectedFamilyOwner
+                    }
+                    people.forEachIndexed { index, member ->
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(
                                 member.displayName ?: "Family member " + (index + 1),
@@ -252,10 +265,14 @@ fun HomeScreen(
             }
         }
 
-        if (dashboardState is HouseholdDashboardUiState.Ready &&
-            dashboardState.dashboard.recordedHoldings.isNotEmpty()
-        ) {
-            RecordedHoldingsSection(dashboardState.dashboard.recordedHoldings)
+        if (dashboardState is HouseholdDashboardUiState.Ready) {
+            val focusedName = selectedFamilyOwner?.let { id ->
+                dashboardState.dashboard.byMember.firstOrNull { it.ownerId == id }?.displayName
+            }
+            val listed = dashboardState.dashboard.recordedHoldings.filter {
+                selectedFamilyOwner == null || (focusedName != null && it.ownerName == focusedName)
+            }
+            if (listed.isNotEmpty()) RecordedHoldingsSection(listed)
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

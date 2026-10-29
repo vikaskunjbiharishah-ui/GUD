@@ -214,23 +214,14 @@ class MainActivity : ComponentActivity() {
                                                     it is VaultUiState.Ready || it is VaultUiState.Error
                                                 }
                                             }
-                                            if (opened is VaultUiState.Ready) {
-                                                withContext(Dispatchers.IO) {
-                                                    val snap = repository.familyAdministration()
-                                                    if (snap.ownerIdentity == null) {
-                                                        if (snap.family.none { it.primary }) {
-                                                            val display = (identity.firstName.trim() + " " +
-                                                                identity.lastName.trim()).trim().take(100)
-                                                            repository.registerFamilyMember(display, "Self")
-                                                        }
-                                                        repository.applyFamilyAdministration(identity.toChange())
-                                                    }
-                                                }
-                                            } else {
-                                                identityNote = "The password is saved, but the name and security questions were not stored. Finish them under Family after you open the vault."
+                                            identityNote = withContext(Dispatchers.IO) {
+                                                FirstRunIdentityCommit.saveIfAbsent(
+                                                    sessionGate, repository, identity,
+                                                    opened is VaultUiState.Ready,
+                                                )
                                             }
                                         } catch (_: Exception) {
-                                            identityNote = "The password is saved, but the name and security questions were not stored. Finish them under Family after you open the vault."
+                                            identityNote = FirstRunIdentityCommit.NOT_STORED
                                         } finally {
                                             identity.wipe()
                                         }
@@ -1651,26 +1642,4 @@ class MainActivity : ComponentActivity() {
         playBilling.shutdown()
         super.onDestroy()
     }
-}
-
-private class PendingFirstRunIdentity(
-    val firstName: String,
-    val lastName: String,
-    val email: String,
-    val pan: String,
-    val dateOfBirth: String,
-    val firstQuestionId: String,
-    val firstAnswer: CharArray,
-    val secondQuestionId: String,
-    val secondAnswer: CharArray,
-) {
-    fun wipe() {
-        firstAnswer.fill('\u0000')
-        secondAnswer.fill('\u0000')
-    }
-    fun toChange() = FamilyAdminChange.RegisterOwnerIdentity(
-        firstName, lastName, email, pan, dateOfBirth,
-        firstQuestionId, firstAnswer, secondQuestionId, secondAnswer,
-        registrationConsent = true,
-    )
 }

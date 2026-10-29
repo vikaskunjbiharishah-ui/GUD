@@ -151,7 +151,10 @@ fun StatementReviewScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text("The PDF password is used only by the on-device parser. It is not saved.")
-                state.members.forEach { member ->
+                val shownMembers = state.members.filter {
+                    selectedFamilyOwner == null || it.id == selectedFamilyOwner
+                }
+                shownMembers.forEach { member ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
