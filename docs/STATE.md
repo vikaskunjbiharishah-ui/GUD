@@ -1,11 +1,13 @@
 # STATE
 
 ## HEADER
-- Date: 2026-10-30. Run 8. Event restart remains `9b3227d`. This slice is sale, price, XIRR, NSDL match, records, and settings. SHA is the commit that contains this file once it is pushed.
-- Domain slice XML at 13:45:39Z: SaleReviewTest 3/3, InsightsReturnsTest 1/1, Run8LibraryTest 3/3, ManualPriceTest 2/2, CasIdentityMatchingTest 12/12. Failures 0. Not a full `:domain:test`.
-- LicenceViewModelTest 4/4 at 13:47:54Z. `Run8SurfaceInstrumentedTest` 8/8 in 22.663s, OK at 13:56:00Z, emulator `gud_x86` 1080×1920 / 480. First pass at 13:51:29Z was 6/8 and is not the result.
-- Prior full suites stay the Run 7 numbers until this run repeats them: domain 273/273 at 05:08:23Z, data 94/94, app 97/97. ARM64 digests from `5f062e5` are stale once this code lands.
-- `validate_schema.py` and `security_preflight.py` were not re-run this slice. Phone not used. TalkBack not run.
+- Date: 2026-10-30. Run 8. Code `53c86a8`. The docs commit after this line is not the APK commit. Event restart parent is `9b3227d`.
+- Domain `:domain:test` 283/283 (60 classes, 0 fail) at 14:00:34Z. A cold worker refused at 14:00:09Z before any assertion. The retry is the result.
+- Data 95/95 (526.486s) at 14:12:26Z. App 105/105 (134.055s) at 14:14:49Z. Emulator `gud_x86` 1080×1920 / 480. Gradle was stopped first.
+- Slice XML at 13:45:39Z is inside that suite: SaleReviewTest 3/3, InsightsReturnsTest 1/1, Run8LibraryTest 3/3, ManualPriceTest 2/2, CasIdentityMatchingTest 12/12. LicenceViewModelTest 4/4 at 13:47:54Z.
+- `Run8SurfaceInstrumentedTest` 8/8 in 22.663s at 13:56:00Z, and again in the app suite. The 13:51:29Z run was 6/8 and is not the result.
+- `validate_schema.py` PASS, `security_preflight.py` PASS, script unittest 35 OK, rechecked 14:00Z. Not a pen test.
+- ARM64 debug sha256 `d4a03dd3…aa429` size 50806960 at 14:15:38Z. Minified release sha256 `c33ed4bd…218aa` size 30739397 at 14:20:01Z. Both from `53c86a8`, native-code arm64-v8a. Phone not used. TalkBack not run.
 
 ## MATRIX
 - P01 EMULATOR FirstRunIdentityInstrumentedTest, FirstRunIdentityShellTest, FirstRunIdentityHandoffInstrumentedTest — gap: phone install.
@@ -46,7 +48,7 @@
 - P36 EMULATOR `feedbackPromptFollowsTheSnoozeAndDoesNotClaimTheStore` and `feedbackDismissHidesThePrompt`. Does not open the store. Gap: firstSeen is not stored across launches.
 - P37 LOCAL LicenceViewModelTest `restoreWithNoLivePurchaseStaysUnsubscribed` (4/4 at 13:47:54Z). Screen says a button cannot turn the plan on. Gap: restore was not tapped on the emulator. Real purchase BLOCKED-OWNER.
 - P38 LOCAL PlayEntitlementPolicyTest, LicenceViewModelTest — gap: real Play purchase BLOCKED-OWNER.
-- P39 PARTIAL — full suites and ARM64 from this commit are not re-run yet. DEVICE parser, pen test, and owner sign-off stay BLOCKED-OWNER.
+- P39 EMULATOR domain 283/283, data 95/95, app 105/105. ARM64 debug and minified release were built from `53c86a8` and not installed. DEVICE parser, pen test, and owner sign-off stay BLOCKED-OWNER.
 - E01 EMULATOR theme screenshots — gap: not every screen.
 - E02 EMULATOR 48dp and contentDescription on Home, sale, records, price, feedback, and the first-run continue; 200% font on the unknown-cost sale. TalkBack not run. Settings, tax, interest, EMI, and manual trade were edited and not in this class.
 - E03 EMULATOR OwnerLensShellTest — gap: vault, settings, and licence.
@@ -73,10 +75,10 @@
 4. Licence restore sentence on the emulator. Stay fail-closed.
 5. Read import history and documents from the vault. The shell lists are still empty.
 6. Persist the feedback clock. Do not open the store.
-7. Full `:domain:test`, data and app suites, then both ARM64 builds from the final code commit.
-8. TalkBack stays a gap. Do not claim it ran.
-9. Real NSDL PDF stays BLOCKED-OWNER.
-10. Phone install stays BLOCKED-OWNER.
+7. TalkBack stays a gap. Do not claim it ran.
+8. Real NSDL PDF stays BLOCKED-OWNER.
+9. Phone install stays BLOCKED-OWNER.
+10. Production signing stays BLOCKED-OWNER.
 
 ## DECISIONS
 - Hindi vault word is वॉल्ट. Statement is स्टेटमेंट. Cloud is क्लाउड. Banned: तिजोरी, बयान, बादल.
@@ -99,5 +101,5 @@
 ## KNOWN GAPS
 - The 13:51:29Z surface run failed 2 of 8 because the same rupee text and the same missing-close sentence matched twice. The 13:56:00Z run is the one that passed. Do not cite the first pass as green.
 - Records, sale, and price screens are proven with synthetic rows. Home's records route still passes empty lists.
-- Interest and EMI screens do not post. ARM64 digests in SHA256.txt are still from `5f062e5` until the end rebuild.
+- Interest and EMI screens do not post. ARM64 digests are from `53c86a8`. The release key is the test key, not a Play upload key. R8 mapping.txt was produced and not committed.
 - TalkBack was not run. The OS credential Activity was not launched.

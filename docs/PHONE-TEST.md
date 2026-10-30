@@ -26,3 +26,6 @@ Then about 15 minutes:
 - Note anything wrong, with a photo of the screen.
 
 The computer test did not open a real PDF and did not run this APK on a phone. Those checks are yours.
+
+Computer check on 2026-10-30, code 53c86a8: the emulator sale screen showed a FIFO gain of ₹196 and did not write a ledger event. An unknown cost was not shown as ₹0. A missing close was not turned into zero. This APK was not installed on a phone. TalkBack was not run.
+
