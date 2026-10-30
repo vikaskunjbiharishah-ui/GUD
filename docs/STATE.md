@@ -1,7 +1,7 @@
 # STATE
 
 ## HEADER
-- Date: 2026-10-30 04:32–05:27 UTC. Run 7. Code `5f062e5`. Docs commit follows.
+- Date: 2026-10-30 13:24Z onward. Run 8. Previous code `5f062e5`. This slice is the event restart.
 - JDK 17.0.20.1. `HouseholdDashboardViewModelTest` 11/11 at 04:56:39Z after the Ready interest/EMI fields.
 - Domain `:domain:test` 273/273 (56 classes, 0 fail) at 05:08:23Z.
 - Data 94/94 (487.447s) at 05:19:43Z. App 97/97 (130.96s) at 05:22:06Z. Emulator `gud_x86` 1080×1920 / 480 dpi. Gradle was stopped first.
@@ -22,8 +22,8 @@
 - P10 EMULATOR CustodyHoldingShellTest — gap: review step is not screenshotted.
 - P11 LOCAL ManualAssetOnboardingTest, OriginalHoldingFormPolicyTest — gap: not every specialist field has an emulator restart.
 - P12 LOCAL HoldingViewTest — gap: dated valuation UI is not separately tested.
-- P13 EMULATOR NativeManualTradeInstrumentedTest (BUY/SELL append) and ManualTradeShellTest — gap: no DIVIDEND/INTEREST/BONUS/REPAYMENT save-restart.
-- P14 LOCAL ManualTradePlannerTest; EMULATOR ManualTradeShellTest loan OPENING_BALANCE picker and NativeManualTradeInstrumentedTest one VALUATION_UPDATE — gap: no SPLIT/CORRECTION/OPENING_BALANCE save-restart.
+- P13 EMULATOR NativeManualTradeInstrumentedTest (BUY/SELL) and ManualEventRestartInstrumentedTest (DIVIDEND, INTEREST, BONUS, REPAYMENT save, close, reopen). ManualTradeShellTest shows the picker. Gap: the trade screen is not screenshotted for every kind.
+- P14 EMULATOR ManualEventRestartInstrumentedTest (SPLIT, CORRECTION, OPENING_BALANCE). The original row stays. A second correction of the same id is rejected. A wrong-owner dividend and a cross-owner correction do not write. LOCAL ManualTradePlannerTest. Gap: none for this vector.
 - P15 EMULATOR OwnerLensShellTest; LOCAL RecordedHoldingsSearchTest — gap: Vault/Settings/Licence have no owner filter.
 - P16 LOCAL CostBasisTest, FinancialGoldenTest — gap: no sale P&L screen.
 - P17 EMULATOR NativeShellTest `taxAndDocumentsOwnerScopeEntryPointsAreUserNavigable` — gap: no documents list screen.
@@ -69,14 +69,14 @@
 - E18 LOCAL no cloud book — gap: egress inventory is not written.
 
 ## QUEUE
-1. P13/P14 save-restart for DIVIDEND, INTEREST, BONUS, REPAYMENT, SPLIT, CORRECTION, OPENING_BALANCE.
-2. NSDL staged import (CDSL and NPS synthetic path is in).
-3. Manual price override next to the close cache. A missing close stays missing.
-4. TalkBack on the screenshot screens. Compose semantics are not a TalkBack run.
-5. Credential-screen Activity UI test.
+1. P16 sale P&L screen (FIFO, fees order, unknown-cost warning).
+2. P27 manual price override. A missing close stays missing.
+3. P24 XIRR on Insights, labelled known or unknown.
+4. NSDL staged import, then import history and a documents list.
+5. P32 opt-in diagnostics, P31 SGB toggle, P36 feedback prompt, P37 restore purchases.
 6. Home and Settings in the screenshot matrix.
 7. P16 sale P&L screen is still domain-only.
-8. P13/P14 save-restart is still the next feature. Full suites and both ARM64 builds from `5f062e5` are done.
+8. P13/P14 restart is in ManualEventRestartInstrumentedTest (1/1 at 13:30:25Z). Full suites are not re-run yet.
 9. Accessibility semantics (contentDescription, role, 48dp) on Home, Holdings, Manual trade, Settings, tax, interest, EMI.
 10. Q10 phone install stays BLOCKED-OWNER.
 
