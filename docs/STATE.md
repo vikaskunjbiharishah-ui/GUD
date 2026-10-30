@@ -1,7 +1,8 @@
 # STATE
 
 ## HEADER
-- Date: 2026-10-30. Run 8. Code `53c86a8`. The docs commit after this line is not the APK commit. Event restart parent is `9b3227d`.
+- Date: 2026-10-30. Run 9 from 18:34:29Z. Previous code `53c86a8`, docs `86c24a7`. This slice is Insights XIRR, a stale typed price, and the settings switches.
+- Run9SurfaceInstrumentedTest 4/4 in 12.758s at 18:40:01Z. Emulator `gud_x86`, override 1080×1920 / 480. Full domain, data, and app suites were not re-run. ARM64 files are still from `53c86a8`.
 - Domain `:domain:test` 283/283 (60 classes, 0 fail) at 14:00:34Z. A cold worker refused at 14:00:09Z before any assertion. The retry is the result.
 - Data 95/95 (526.486s) at 14:12:26Z. App 105/105 (134.055s) at 14:14:49Z. Emulator `gud_x86` 1080×1920 / 480. Gradle was stopped first.
 - Slice XML at 13:45:39Z is inside that suite: SaleReviewTest 3/3, InsightsReturnsTest 1/1, Run8LibraryTest 3/3, ManualPriceTest 2/2, CasIdentityMatchingTest 12/12. LicenceViewModelTest 4/4 at 13:47:54Z.
@@ -33,15 +34,15 @@
 - P21 EMULATOR TaxOwnerScopeInstrumentedTest. FY 2024-25 note is exactly "Rates changed during this year; not estimated". Estimated tax is null, not ₹0. AY26-27 uses 12.5% / 20% above ₹1.25 lakh. Cess omitted. AY27-28 provisional.
 - P22 EMULATOR VaultFinanceReviewInstrumentedTest and FinanceReviewInstrumentedTest; LOCAL VaultFinanceReviewTest. Missing rate is not the published default. Screen does not post.
 - P23 EMULATOR same finance tests. Paused loan is omitted, not ₹0. nextEmiDate is instrument metadata. Screen does not post.
-- P24 LOCAL InsightsReturnsTest `knownFlowPrintsTheRateAndAnUnknownFlowIsNotZero`. InsightsScreen shows `xirrNote` on the household card. The emulator compared `InsightsReturns.note` on an empty book and did not open InsightsScreen.
+- P24 EMULATOR Run9SurfaceInstrumentedTest `insightsScreenShowsTheKnownXirrAndNotAZeroRate` and `insightsScreenShowsUnknownXirrWithoutCallingItZero` (4/4, 12.758s, 18:40:01Z). Known text is `XIRR 10.01%. Estimate, not advice.` Unknown is `XIRR is unknown from this book.` Neither shows `0%`. LOCAL InsightsReturnsTest. The test opens InsightsScreen with the engine note. It does not load a vault. Gap: no screenshot.
 - P25 LOCAL HomeBooksTest; EMULATOR NativeShellTest and OwnerLensShellTest home — gap: books-health UI is not fully asserted.
 - P26 LOCAL OfficialAmfiNavParserTest, OfficialBhavcopyParserTest; EMULATOR OfficialAmfiCatalogGatewayInstrumentedTest, OfficialExchangeCloseGatewayInstrumentedTest — gap: no live fetch.
-- P27 EMULATOR `missingCloseIsNotZeroAndManualPriceNamesItself` (missing label, zero `₹ 0.00` nodes). LOCAL ManualPriceTest. Gap: typed and stale labels were not rendered on the emulator.
+- P27 EMULATOR `missingCloseIsNotZeroAndManualPriceNamesItself` and Run9 `typedManualPriceNamesItselfAndShowsStale`. A typed ₹125 dated 2026-10-01 wins over an official ₹90 and is labelled stale. No `₹ 0.00` and no `₹ 90.00`. LOCAL ManualPriceTest. Gap: no screenshot.
 - P28 EMULATOR NativeVaultInstrumentedTest, PortableRecoveryShellTest — gap: none new.
 - P29 LOCAL BackupFolderViewModelTest — gap: no emulator test of the folder screen.
 - P30 EMULATOR EmergencyExportShellTest; LOCAL EmergencyDossierCsvTest — gap: plaintext consent path.
-- P31 LOCAL Run8LibraryTest `sgbToggleDoesNotInventTheMissingSide`. Settings default is RBI (`sgbUseMarket` false). A missing side stays missing. Gap: switch not in an emulator test.
-- P32 LOCAL `diagnosticsStayOffAndDropSecrets`. Default off. Notes are not uploaded. Gap: not on the emulator; notes do not survive process death.
+- P31 EMULATOR `settingsSwitchesStartOffAndNameSgbAndDiagnostics`. Default is the RBI sentence. The switch then shows the market sentence and says a missing close stays missing. The switch is at least 48dp. LOCAL `sgbToggleDoesNotInventTheMissingSide`. Gap: no screenshot.
+- P32 EMULATOR the same settings test. The switch starts off and the record button is hidden. After opt-in, a local note appears and delete removes it. The screen says nothing is sent. LOCAL `diagnosticsStayOffAndDropSecrets` still covers PAN redaction. Gap: notes do not survive process death. The button does not type a PAN.
 - P33 EMULATOR ScreenshotMatrixInstrumentedTest 7/7. Hindi vault/statement/cloud stay वॉल्ट/स्टेटमेंट/क्लाउड. TalkBack not run.
 - P34 LOCAL GmailProfileTest, GmailAccountListTest — gap: real OAuth BLOCKED-OWNER.
 - P35 LOCAL MailAttachmentIntakePolicyTest, MailboxSyncTest; EMULATOR MailboxSyncSchedulerInstrumentedTest. Worker does not call Gmail. Real OAuth BLOCKED-OWNER.
@@ -50,16 +51,16 @@
 - P38 LOCAL PlayEntitlementPolicyTest, LicenceViewModelTest — gap: real Play purchase BLOCKED-OWNER.
 - P39 EMULATOR domain 283/283, data 95/95, app 105/105. ARM64 debug and minified release were built from `53c86a8` and not installed. DEVICE parser, pen test, and owner sign-off stay BLOCKED-OWNER.
 - E01 EMULATOR theme screenshots — gap: not every screen.
-- E02 EMULATOR 48dp and contentDescription on Home, sale, records, price, feedback, and the first-run continue; 200% font on the unknown-cost sale. TalkBack not run. Settings, tax, interest, EMI, and manual trade were edited and not in this class.
+- E02 EMULATOR 48dp and contentDescription on Home, sale, records, price, feedback, first-run continue, and the SGB and diagnostics switches. TalkBack not run.
 - E03 EMULATOR OwnerLensShellTest — gap: vault, settings, and licence.
 - E04 LOCAL FamilyMemberOnboardingTest — gap: ownership-evidence UI.
 - E05 EMULATOR `firstRunIdentityStepStaysDisabledUntilConsentAndNamesTheDeviceLock`. Continue stays disabled and at least 48dp. The OS credential Activity was not launched.
 - E06 LOCAL MailAttachmentIntakePolicyTest quarantine — gap: issuer confidence UI.
 - E07 EMULATOR MailboxSyncSchedulerInstrumentedTest; LOCAL MailboxSyncTest — gap: real OAuth BLOCKED-OWNER.
-- E08 EMULATOR unknown sale and missing close are not ₹0. LOCAL stale and manual labels. Gap: stale label not on the emulator.
-- E09 EMULATOR PortfolioInsightsShellTest drill-down — gap: goals series. XIRR screen not instrumented.
-- E10 EMULATOR AMFI and NSE/BSE gateways — gap: manual override UI not on the emulator beyond the missing close.
-- E11 LOCAL `diagnosticsStayOffAndDropSecrets`. Nothing is uploaded. Gap: emulator switch.
+- E08 EMULATOR unknown sale, missing close, and a stale typed price are not ₹0. The typed price wins over the older official close.
+- E09 EMULATOR PortfolioInsightsShellTest drill-down and Run9 Insights XIRR sentences. Gap: goals series. The XIRR test does not read the vault.
+- E10 EMULATOR AMFI and NSE/BSE gateways, plus the typed stale manual price. Gap: no live fetch.
+- E11 EMULATOR the diagnostics switch starts off, records one local note, and deletes it. Nothing is uploaded. LOCAL redaction still drops PAN. Gap: the note is not stored across launches.
 - E12 EMULATOR LegacyBackupShellTest, LegacyVaultMigrationInstrumentedTest — gap: none new.
 - E13 EMULATOR ScreenshotMatrixInstrumentedTest onboarding — gap: data-quality coaching beyond books health.
 - E14 LOCAL domain tests — gap: dependency graph is not written.
@@ -69,16 +70,16 @@
 - E18 LOCAL docs/EGRESS.md. Finances, PAN, DOB, keys, and PDFs are not sent. Not a pen test.
 
 ## QUEUE
-1. Open InsightsScreen on the emulator for a known XIRR and the unknown sentence.
-2. Render a typed manual price and the stale label on the emulator.
-3. Settings: diagnostics off, SGB RBI-vs-market, on the emulator.
-4. Licence restore sentence on the emulator. Stay fail-closed.
-5. Read import history and documents from the vault. The shell lists are still empty.
-6. Persist the feedback clock. Do not open the store.
-7. TalkBack stays a gap. Do not claim it ran.
-8. Real NSDL PDF stays BLOCKED-OWNER.
-9. Phone install stays BLOCKED-OWNER.
-10. Production signing stays BLOCKED-OWNER.
+1. Licence restore sentence on the emulator. Stay fail-closed.
+2. Read import history and documents from the vault. The shell lists are still empty.
+3. Persist the feedback clock. Do not open the store.
+4. TalkBack stays a gap. Do not claim it ran.
+5. Real NSDL PDF stays BLOCKED-OWNER.
+6. Phone install stays BLOCKED-OWNER.
+7. Production signing stays BLOCKED-OWNER.
+8. Rebuild ARM64 from this slice. Current phone files are still `53c86a8`.
+9. Full suites were not re-run after Run9.
+10. Screenshot the Insights XIRR card.
 
 ## DECISIONS
 - Hindi vault word is वॉल्ट. Statement is स्टेटमेंट. Cloud is क्लाउड. Banned: तिजोरी, बयान, बादल.

@@ -255,7 +255,9 @@ fun SettingsScreen(
                 Switch(
                     checked = appearance.sgbUseMarket,
                     onCheckedChange = { onIntent(AppIntent.SetSgbUseMarket(it)) },
-                    modifier = Modifier.semantics { contentDescription = "Use the market close for SGB" },
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Use the market close for SGB"
+                    },
                 )
             }
         }
@@ -271,7 +273,9 @@ fun SettingsScreen(
                 Switch(
                     checked = appearance.diagnosticsEnabled,
                     onCheckedChange = { onIntent(AppIntent.SetDiagnostics(it)) },
-                    modifier = Modifier.semantics { contentDescription = "Opt in to local diagnostics" },
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Opt in to local diagnostics"
+                    },
                 )
                 if (appearance.diagnosticsEnabled) {
                     notes.forEach { Text(it) }
