@@ -18,6 +18,7 @@ Then about 15 minutes:
 - The first open can switch to हिन्दी. Hindi says वॉल्ट, not तिजोरी. The buttons are आगे and छोड़ें. If a slide does not fit, a line asks you to scroll. The yearly plan on the licence screen is ₹99 a year, and it is the only plan. You can cancel it in Google Play.
 - Open Insights. Tap one group, such as mutual fund. You should see that group’s holdings and the same saved total, not a guessed price. Go back to the full mix.
 - Open Tax records from Home. The first line should say “estimate, not advice”. For FY 2024-25 you should see the gains and the sentence “Rates changed during this year; not estimated”, and you should not see an estimated tax of ₹0. On a large font the onboarding slide scrolls, and the last line, including “रहता है।”, should be readable.
+- Open Interest and EMI from Home. A plan appears only when that holding already stores a rate or an EMI. A paused loan must not show as ₹0. Those screens do not write a ledger event. Posting needs a separate confirmation. TalkBack on these screens was not run.
 - If you refresh prices, that is a button you press. A missing price stays missing. It must not become zero.
 - Import your own CAS PDF if you want. It is not uploaded by this checklist. Do not send the PDF to anyone.
 - Make an encrypted backup and restore it only on a spare copy or after you understand that restore replaces the books.

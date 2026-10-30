@@ -1,11 +1,13 @@
 # STATE
 
 ## HEADER
-- Date: 2026-10-30 04:32Z onward. Run 7. Code commit is this one; the docs commit records its sha.
-- JDK 17.0.20.1. `HouseholdDashboardViewModelTest` 11/11 at 04:56:39Z (after the Ready interest/EMI fields). XML fail 0.
+- Date: 2026-10-30 04:32–05:27 UTC. Run 7. Code `5f062e5`. Docs commit follows.
+- JDK 17.0.20.1. `HouseholdDashboardViewModelTest` 11/11 at 04:56:39Z after the Ready interest/EMI fields.
+- Domain `:domain:test` 273/273 (56 classes, 0 fail) at 05:08:23Z.
+- Data 94/94 (487.447s) at 05:19:43Z. App 97/97 (130.96s) at 05:22:06Z. Emulator `gud_x86` 1080×1920 / 480 dpi. Gradle was stopped first.
 - `VaultFinanceReviewTest` 2/2 at 05:02:50Z. `VaultFinanceReviewInstrumentedTest` 1/1 at 05:06:29Z. `FinanceReviewInstrumentedTest` 2/2 at 05:02:15Z.
-- `validate_schema.py` PASS and `security_preflight.py` PASS at 04:38Z (not a pen test). Script unittest 35 OK.
-- Full domain/data/app suites and the ARM64 rebuild are not re-run yet. Phone not used.
+- `validate_schema.py` PASS, `security_preflight.py` PASS, script unittest 35 OK, rechecked 05:27Z. Not a pen test.
+- ARM64 debug sha256 `0f6cbb09…a38a8` (05:22:46Z) and minified release sha256 `17ea5386…2999e` (05:27:04Z), both from `5f062e5`, native-code arm64-v8a. Phone not used.
 
 ## MATRIX
 - P01 EMULATOR FirstRunIdentityInstrumentedTest, FirstRunIdentityShellTest, FirstRunIdentityHandoffInstrumentedTest — gap: phone install.
@@ -74,7 +76,7 @@
 5. Credential-screen Activity UI test.
 6. Home and Settings in the screenshot matrix.
 7. P16 sale P&L screen is still domain-only.
-8. Full domain, data and app suites, then both ARM64 builds from the final code commit.
+8. P13/P14 save-restart is still the next feature. Full suites and both ARM64 builds from `5f062e5` are done.
 9. Accessibility semantics (contentDescription, role, 48dp) on Home, Holdings, Manual trade, Settings, tax, interest, EMI.
 10. Q10 phone install stays BLOCKED-OWNER.
 
@@ -96,7 +98,7 @@
 
 ## KNOWN GAPS
 - The 200% onboarding shot is scrolled to the end. The last sentence is fully visible. The first lines are off the top. Do not call the unscrolled position unclipped.
-- Interest and EMI from Home read stored rates and EMI fields. They do not post. Run 6 ARM64 digests are from `407bcf5` and are stale once this code is committed.
+- Interest and EMI from Home read stored rates and EMI fields. They do not post. ARM64 digests above are from `5f062e5`. The release key is the test key, not a Play upload key. R8 keep rules were not loosened.
 - Q10 minify compiled from `407bcf5` and was not installed. The keystore is the test key, not a Play upload key. R8 keep rules were not loosened.
 - NSDL enrolled import is still rejected. CAMS and KFINTECH are in the matcher but were not the synthetic emulator import.
 - ARM64 parser behaviour is DEVICE: pending owner.
