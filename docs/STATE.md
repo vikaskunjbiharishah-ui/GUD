@@ -1,12 +1,11 @@
 # STATE
 
 ## HEADER
-- Date: 2026-10-29 22:25–23:16 UTC. Run 6. Code head `407bcf5`. Docs commit follows.
-- Emulator `gud_x86` API 35 at 1080×1920 / 480 dpi. Gradle was stopped before `adb instrument`.
-- Domain JVM `:domain:test` 271/271 (55 classes, 0 fail) at 23:09Z.
-- Data 93/93 (475.981s) and app 97/97 (126.883s) finished 23:08:29Z. Those counts include the tax screen, the scrolled onboarding shots, and the interest/EMI review tests.
-- `HouseholdDashboardViewModelTest` was not observed. The Gradle test worker died before any assertion (type tag 71).
-- ARM64 debug sha256 `b2ce9de7…b2ab` and minified release sha256 `3b2cdd29…7a38`, both from `407bcf5`, native-code arm64-v8a. Phone not used. `validate_schema.py` and `security_preflight.py` were not re-run.
+- Date: 2026-10-30 04:32Z onward. Run 7. Code commit is this one; the docs commit records its sha.
+- JDK 17.0.20.1. `HouseholdDashboardViewModelTest` 11/11 at 04:56:39Z (after the Ready interest/EMI fields). XML fail 0.
+- `VaultFinanceReviewTest` 2/2 at 05:02:50Z. `VaultFinanceReviewInstrumentedTest` 1/1 at 05:06:29Z. `FinanceReviewInstrumentedTest` 2/2 at 05:02:15Z.
+- `validate_schema.py` PASS and `security_preflight.py` PASS at 04:38Z (not a pen test). Script unittest 35 OK.
+- Full domain/data/app suites and the ARM64 rebuild are not re-run yet. Phone not used.
 
 ## MATRIX
 - P01 EMULATOR FirstRunIdentityInstrumentedTest, FirstRunIdentityShellTest, FirstRunIdentityHandoffInstrumentedTest — gap: phone install.
@@ -29,9 +28,9 @@
 - P18 EMULATOR NativeStatementApprovalInstrumentedTest, SyntheticIssuerImportInstrumentedTest — gap: real PDF BLOCKED-OWNER.
 - P19 EMULATOR SyntheticIssuerImportInstrumentedTest (CDSL+NPS) and NativeCasIdentityBridgeInstrumentedTest; LOCAL CasIdentityMatchingTest — gap: NSDL hits `An enrolled CAS registrar is required.`; real PDF BLOCKED-OWNER.
 - P20 EMULATOR NativeStatementApprovalInstrumentedTest — gap: history screen is thin.
-- P21 EMULATOR TaxOwnerScopeInstrumentedTest. FY 2024-25 shows the gains and the note "Rates changed during this year; not estimated". Estimated tax is null, not ₹0. One rate set is not applied across 23 July 2024. AY26-27 still uses 12.5% / 20% above ₹1.25 lakh. Cess is not included. AY27-28 stays provisional. The ViewModel unit test was not observed. Slab and property tax are not computed.
-- P22 EMULATOR FinanceReviewInstrumentedTest (PPF note and amount from SavingsInterestEngine, same vector as InterestCatchUpTest). The screen does not write a ledger event. The Home route passes a null plan. Gap: not loaded from the open vault.
-- P23 EMULATOR FinanceReviewInstrumentedTest (three due EMIs from EmiPlan, same vector as EmiPlanTest). A paused loan stays null in the engine. The Home route passes a null plan. Gap: not loaded from the open vault.
+- P21 EMULATOR TaxOwnerScopeInstrumentedTest. FY 2024-25 shows the gains and the note "Rates changed during this year; not estimated". Estimated tax is null, not ₹0. One rate set is not applied across 23 July 2024. AY26-27 still uses 12.5% / 20% above ₹1.25 lakh. Cess is not included. AY27-28 stays provisional. ViewModel unit test 11/11 at 04:56:39Z. Slab and property tax are not computed.
+- P22 EMULATOR VaultFinanceReviewInstrumentedTest and FinanceReviewInstrumentedTest; LOCAL VaultFinanceReviewTest. A stored rate is planned; a missing rate is not the published default. Restart keeps the plan. The other owner is excluded. The screen does not post. Posting needs a separate confirmation. Gap: not every scheme has an emulator vector.
+- P23 EMULATOR VaultFinanceReviewInstrumentedTest and FinanceReviewInstrumentedTest; LOCAL VaultFinanceReviewTest. Paying loan uses the stored EMI, count and nextEmiDate (instrument metadata). A paused loan is omitted, not shown as ₹0. The screen does not post. Gap: none for this vector.
 - P24 LOCAL ReturnMetricsTest, InsightsDrilldownTest; EMULATOR PortfolioInsightsShellTest — gap: InsightsScreen does not show XIRR.
 - P25 LOCAL HomeBooksTest; EMULATOR NativeShellTest and OwnerLensShellTest home — gap: books-health UI is not fully asserted.
 - P26 LOCAL OfficialAmfiNavParserTest, OfficialBhavcopyParserTest; EMULATOR OfficialAmfiCatalogGatewayInstrumentedTest, OfficialExchangeCloseGatewayInstrumentedTest — gap: no live fetch.
@@ -62,30 +61,30 @@
 - E12 EMULATOR LegacyBackupShellTest, LegacyVaultMigrationInstrumentedTest — gap: none new.
 - E13 EMULATOR ScreenshotMatrixInstrumentedTest onboarding — gap: data-quality coaching beyond books health.
 - E14 LOCAL domain tests — gap: dependency graph is not written.
-- E15 LOCAL not re-run this run — gap: SBOM not generated. Do not claim security_preflight.
+- E15 LOCAL security_preflight.py PASS at 04:38Z. Static checks are not a pen test. SBOM was not generated.
 - E16 LOCAL LicenceGateTest — gap: real billing BLOCKED-OWNER.
 - E17 NONE — CI is not used. Do not touch the trigger.
 - E18 LOCAL no cloud book — gap: egress inventory is not written.
 
 ## QUEUE
-1. Load interest and EMI from the open vault. Home currently opens an empty review.
-2. P13/P14 save-restart for DIVIDEND, INTEREST, BONUS, REPAYMENT, SPLIT, CORRECTION, OPENING_BALANCE.
-3. NSDL staged import (CDSL and NPS synthetic path is in).
-4. Manual price override next to the close cache. A missing close stays missing.
-5. TalkBack on the screenshot screens.
-6. Credential-screen Activity UI test.
-7. Home and Settings in the screenshot matrix.
-8. ViewModel unit test. On this host the worker dies with type tag 71.
-9. P16 sale P&L screen is still domain-only.
-10. `security_preflight.py` was not re-run.
+1. P13/P14 save-restart for DIVIDEND, INTEREST, BONUS, REPAYMENT, SPLIT, CORRECTION, OPENING_BALANCE.
+2. NSDL staged import (CDSL and NPS synthetic path is in).
+3. Manual price override next to the close cache. A missing close stays missing.
+4. TalkBack on the screenshot screens. Compose semantics are not a TalkBack run.
+5. Credential-screen Activity UI test.
+6. Home and Settings in the screenshot matrix.
+7. P16 sale P&L screen is still domain-only.
+8. Full domain, data and app suites, then both ARM64 builds from the final code commit.
+9. Accessibility semantics (contentDescription, role, 48dp) on Home, Holdings, Manual trade, Settings, tax, interest, EMI.
+10. Q10 phone install stays BLOCKED-OWNER.
 
 ## DECISIONS
 - Hindi vault word is वॉल्ट. Statement is स्टेटमेंट. Cloud is क्लाउड. Banned: तिजोरी, बयान, बादल.
 - 200% Hindi keeps the type size. The slide column scrolls. Next/Back/Skip are आगे/पीछे/छोड़ें. Last page stays “Continue”. A scroll cue shows only while `canScrollForward` is true.
 - FY 2024-25 (AY25-26) equity tax is unknown. s.111A and s.112A, Finance (No. 2) Act 2024, change on 23 July 2024. The ₹1,25,000 exemption is on the aggregate and the Act does not say which date-bucket is reduced first, so this app does not invent a split. Gains are still shown.
 - AY26-27 uses only the later rates (LTCG 12.5% above ₹1,25,000, STCG 20%). Cess and surcharge are not included. AY27-28 stays provisional.
-- Interest and EMI screens display the existing engines and do not post events. Home passes a null plan until a holding is loaded.
-- Gradle recipe: `android-native/scripts/gud-gradle.sh`. It stops daemons, refuses to run if `adb devices` shows an emulator, then `gradle --offline --no-daemon --max-workers=2` with `-Xmx1280m` and client `GRADLE_OPTS=-Xmx384m`. `:app:testDebugUnitTest` still dies on type tag 71.
+- Interest and EMI screens show stored vault plans and do not post. A missing rate is not defaulted. A paused loan is not ₹0. nextEmiDate is instrument metadata.
+- Gradle: JDK 17. `LANG=C.UTF-8` leaves country and variant unset, so the worker was launched with a valueless `-Duser.variant`. Type tag 71 is ASCII 'G' on a discarded daemon socket and still prints when the suite passes. The fatal part was the test worker connection refused before any assertion. `gud-gradle.sh` sets country=US, language=en, variant=POSIX, preferIPv4Stack, `-Xmx1280m`, and reuses the daemon. Do not pass `--no-daemon`. Do not assemble beside the emulator.
 - MailboxSync walks at most 5 pages, stores the next token, quarantines a wrong owner as UNLINKED_OWNER, and writes no ledger event. WorkManager names `gud.mailbox.monthly` and `gud.mailbox.manual` are covered by MailboxSyncTest and MailboxSyncSchedulerInstrumentedTest. The worker does not call Gmail.
 - Release `assembleRelease` uses the existing test keystore so R8 can run. That key is not a Play upload key.
 - Parser libraries stay inside `assets/chaquopy/*.imy` (pydantic_core 4839112, libpdfium.so 6393344), not under `lib/arm64-v8a`.
@@ -97,7 +96,7 @@
 
 ## KNOWN GAPS
 - The 200% onboarding shot is scrolled to the end. The last sentence is fully visible. The first lines are off the top. Do not call the unscrolled position unclipped.
-- Interest and EMI from Home do not read the vault. The instrumented tests pass a synthetic engine plan.
+- Interest and EMI from Home read stored rates and EMI fields. They do not post. Run 6 ARM64 digests are from `407bcf5` and are stale once this code is committed.
 - Q10 minify compiled from `407bcf5` and was not installed. The keystore is the test key, not a Play upload key. R8 keep rules were not loosened.
 - NSDL enrolled import is still rejected. CAMS and KFINTECH are in the matcher but were not the synthetic emulator import.
 - ARM64 parser behaviour is DEVICE: pending owner.

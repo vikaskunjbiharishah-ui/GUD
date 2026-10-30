@@ -9,6 +9,7 @@ import `in`.growurdhan.domain.finance.HouseholdDashboardProjector
 import `in`.growurdhan.domain.finance.LotEngine
 import `in`.growurdhan.domain.finance.OwnerFyTax
 import `in`.growurdhan.domain.finance.PortfolioEngine
+import `in`.growurdhan.domain.finance.VaultFinanceReview
 import `in`.growurdhan.domain.finance.toFinancialEvent
 import `in`.growurdhan.domain.finance.toFinancialHolding
 import `in`.growurdhan.core.model.MoneyScaled
@@ -25,7 +26,11 @@ import kotlinx.coroutines.launch
 sealed interface HouseholdDashboardUiState {
     data object Locked : HouseholdDashboardUiState
     data object Loading : HouseholdDashboardUiState
-    data class Ready(val dashboard: HouseholdDashboard) : HouseholdDashboardUiState
+    data class Ready(
+        val dashboard: HouseholdDashboard,
+        val interestReviews: List<VaultFinanceReview.InterestLine> = emptyList(),
+        val emiReviews: List<VaultFinanceReview.EmiLine> = emptyList(),
+    ) : HouseholdDashboardUiState
     data object Unavailable : HouseholdDashboardUiState
 }
 
@@ -74,7 +79,8 @@ class HouseholdDashboardViewModel @Inject constructor(
                     holding.toFinancialHolding(
                         subCategory = profile?.subCategory.orEmpty(),
                         goldHoldMode = profile?.detailsJson?.let(::goldHoldModeOrNull),
-                    )
+                        acquiredOn = profile?.acquiredOn?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+                    ).copy(openingCostPerUnit = profile?.verifiedCostPerUnit)
                 }
                 val financialEvents = book.events.map { it.toFinancialEvent() }
                 val report = PortfolioEngine.derive(
@@ -96,9 +102,13 @@ class HouseholdDashboardViewModel @Inject constructor(
                     book.members.map { it.id }, financialHoldings, financialEvents,
                     holdingProfiles, asOf,
                 ))
+                val interestReviews = VaultFinanceReview.interest(financialHoldings, holdingProfiles, asOf)
+                val emiReviews = VaultFinanceReview.emi(financialHoldings, holdingProfiles, asOf)
                 if (request != generation) return@launch
                 if (session.isCurrentSession(originalRevision)) {
-                    mutableState.value = HouseholdDashboardUiState.Ready(dashboard)
+                    mutableState.value = HouseholdDashboardUiState.Ready(
+                        dashboard, interestReviews, emiReviews,
+                    )
                 } else {
                     lock()
                 }

@@ -309,14 +309,20 @@ fun GrowUrDhanShell(
                         )
                     }
                     composable(INTEREST_ROUTE) {
+                        val ready = dashboardState as? HouseholdDashboardUiState.Ready
                         InterestReviewScreen(
-                            plan = null,
+                            lines = ready?.interestReviews.orEmpty().filter {
+                                selectedOwner == null || it.ownerId == selectedOwner
+                            },
                             onBack = { navigate(MainDestination.HOME.route) },
                         )
                     }
                     composable(EMI_ROUTE) {
+                        val ready = dashboardState as? HouseholdDashboardUiState.Ready
                         EmiReviewScreen(
-                            plan = null,
+                            lines = ready?.emiReviews.orEmpty().filter {
+                                selectedOwner == null || it.ownerId == selectedOwner
+                            },
                             onBack = { navigate(MainDestination.HOME.route) },
                         )
                     }

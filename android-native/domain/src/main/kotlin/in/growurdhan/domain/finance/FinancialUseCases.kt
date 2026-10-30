@@ -31,10 +31,11 @@ fun LedgerEvent.toFinancialEvent(): FinancialEvent {
 fun Holding.toFinancialHolding(
     subCategory: String = "",
     goldHoldMode: String? = null,
+    acquiredOn: LocalDate? = null,
 ): FinancialHolding = FinancialHolding(
     holdingId = id, ownerId = ownerId, name = name, category = assetCategory,
     unitPrice = currentUnitPrice, storedQuantityScaled = quantity.raw,
-    subCategory = subCategory, goldHoldMode = goldHoldMode,
+    subCategory = subCategory, goldHoldMode = goldHoldMode, acquiredOn = acquiredOn,
 )
 
 /** Only a read. Financial mutations always remain repository transactions. */
