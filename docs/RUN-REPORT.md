@@ -1,9 +1,9 @@
-RUN: 8 · TIME USED: 57 min (13:24:34Z–14:21Z) · COMMITS: code 53c86a8; docs follow
-DONE (stage): P13/P14 EMULATOR ManualEventRestartInstrumentedTest 1/1 at 13:30:25Z · P16 EMULATOR sale FIFO gain ₹196, unknown cost not ₹0, screen does not write · P17/P20 EMULATOR records hide the other owner (shell lists still empty) · P19 LOCAL NSDL enrolled match, not a PDF · P27 EMULATOR missing close is not zero · P24 LOCAL XIRR label (Insights screen not opened by a test) · P31/P32 LOCAL SGB and diagnostics · P36 EMULATOR feedback does not open the store · P37 LOCAL restore stays unsubscribed · E05 EMULATOR first-run continue stays disabled; OS Activity not launched · E15 SBOM.md · E18 EGRESS.md
-TESTS: domain 283/283 (60 classes, 14:00:34Z) · data 95/95 (526.486s, 14:12:26Z) · app 105/105 (134.055s, 14:14:49Z) · Run8SurfaceInstrumentedTest 8/8 at 13:56:00Z · LicenceViewModelTest 4/4 at 13:47:54Z · schema PASS, security_preflight PASS, unittest 35 OK. Not a pen test.
-PARTIAL / NOT DONE: InsightsScreen XIRR not instrumented · typed and stale manual price not rendered on the emulator · settings switches not on the emulator · vault-backed document list · feedback clock not persisted · TalkBack
+RUN: 9 · TIME USED: 11 min (18:34:29Z–18:45Z) · COMMITS: code ae68695; docs follow
+DONE (stage): P24 EMULATOR Insights known `XIRR 10.01%. Estimate, not advice.` and unknown `XIRR is unknown from this book.` · P27 EMULATOR typed ₹125 stale, older official ₹90 not shown, not ₹0 · P31 EMULATOR SGB switch starts on RBI then market · P32 EMULATOR diagnostics off, local note, delete. PAN redaction stays LOCAL.
+TESTS: Run9SurfaceInstrumentedTest 4/4 in 12.758s at 18:40:01Z, gud_x86 1080×1920 / 480. Full domain 283, data 95, and app 105 were not re-run after ae68695.
+PARTIAL / NOT DONE: vault-backed document list · feedback clock · licence restore tap · TalkBack · screenshots
 BLOCKED-OWNER: Gmail consent, Play purchase, production signing, phone install, real CAS PDF, pen test, owner sign-off
-FAILED & FIXED: Surface run at 13:51:29Z was 6/8 because the rupee text and the missing-close sentence each matched twice. The 13:56:00Z run is 8/8. The domain worker refused once before any assertion; 14:00:34Z is the suite. No test was weakened.
-OPEN RISKS: Do not assemble beside the emulator. Do not pass --no-daemon. Type tag 71 can print on a green run. x86 cannot load PDFium. Release APK uses the test keystore, not an upload key. The records route still passes empty lists.
-NEXT RUN STARTS AT: InsightsScreen XIRR on the emulator, then a typed stale manual price, then the settings switches
-ARTIFACTS: debug sha256 d4a03dd362f60e4c7d684dfaded8a5328bc47e64657cd48a1d2b32595feaa429 · release sha256 c33ed4bd075aa31529d2a12c180a58528dd89de85a4bf1745487481d76f218aa · commit 53c86a8 · parser .so sizes unchanged (pydantic_core 4839112, libpdfium.so 6393344)
+FAILED & FIXED: none this slice. No test was weakened.
+OPEN RISKS: Do not assemble beside the emulator. Release APK is the test keystore, not an upload key. XIRR test does not read a vault. Diagnostic notes die with the screen.
+NEXT RUN STARTS AT: Licence restore on the emulator, still fail-closed, then vault-backed import history
+ARTIFACTS: debug sha256 b873358b7406c53f2e3038216f7a405e91bdde7b1222177132e19ba5beb1bfa9 · release sha256 302b4da73b04933802dd1bf76beda96595c3c44dba9b7eb842910189b1764f77 · commit ae68695 · parser .so sizes unchanged

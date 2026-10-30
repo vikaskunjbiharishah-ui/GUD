@@ -29,3 +29,5 @@ The computer test did not open a real PDF and did not run this APK on a phone. T
 
 Computer check on 2026-10-30, code 53c86a8: the emulator sale screen showed a FIFO gain of ₹196 and did not write a ledger event. An unknown cost was not shown as ₹0. A missing close was not turned into zero. This APK was not installed on a phone. TalkBack was not run.
 
+Computer check on 2026-10-30, code ae68695: the emulator Insights screen showed XIRR 10.01% as an estimate, and a separate screen said XIRR is unknown. Neither showed 0%. A typed price of ₹125 was labelled stale and did not become the older ₹90 close or ₹0. Settings started on the RBI price and with diagnostics off. This APK was not installed on a phone. TalkBack was not run.
+

@@ -1,8 +1,9 @@
 # STATE
 
 ## HEADER
-- Date: 2026-10-30. Run 9 from 18:34:29Z. Previous code `53c86a8`, docs `86c24a7`. This slice is Insights XIRR, a stale typed price, and the settings switches.
-- Run9SurfaceInstrumentedTest 4/4 in 12.758s at 18:40:01Z. Emulator `gud_x86`, override 1080×1920 / 480. Full domain, data, and app suites were not re-run. ARM64 files are still from `53c86a8`.
+- Date: 2026-10-30. Run 9 from 18:34:29Z. Code `ae68695`. Docs after this line are not the APK commit. Previous code `53c86a8`.
+- Run9SurfaceInstrumentedTest 4/4 in 12.758s at 18:40:01Z. Emulator `gud_x86`, override 1080×1920 / 480. Full domain, data, and app suites were not re-run after this commit.
+- ARM64 debug sha256 `b873358b…b1bfa9` size 50806832 at 18:41:47Z. Minified release sha256 `302b4da7…764f77` size 30739397 at 18:45:15Z. Both from `ae68695`, native-code arm64-v8a. Phone not used. TalkBack not run.
 - Domain `:domain:test` 283/283 (60 classes, 0 fail) at 14:00:34Z. A cold worker refused at 14:00:09Z before any assertion. The retry is the result.
 - Data 95/95 (526.486s) at 14:12:26Z. App 105/105 (134.055s) at 14:14:49Z. Emulator `gud_x86` 1080×1920 / 480. Gradle was stopped first.
 - Slice XML at 13:45:39Z is inside that suite: SaleReviewTest 3/3, InsightsReturnsTest 1/1, Run8LibraryTest 3/3, ManualPriceTest 2/2, CasIdentityMatchingTest 12/12. LicenceViewModelTest 4/4 at 13:47:54Z.
@@ -49,7 +50,7 @@
 - P36 EMULATOR `feedbackPromptFollowsTheSnoozeAndDoesNotClaimTheStore` and `feedbackDismissHidesThePrompt`. Does not open the store. Gap: firstSeen is not stored across launches.
 - P37 LOCAL LicenceViewModelTest `restoreWithNoLivePurchaseStaysUnsubscribed` (4/4 at 13:47:54Z). Screen says a button cannot turn the plan on. Gap: restore was not tapped on the emulator. Real purchase BLOCKED-OWNER.
 - P38 LOCAL PlayEntitlementPolicyTest, LicenceViewModelTest — gap: real Play purchase BLOCKED-OWNER.
-- P39 EMULATOR domain 283/283, data 95/95, app 105/105. ARM64 debug and minified release were built from `53c86a8` and not installed. DEVICE parser, pen test, and owner sign-off stay BLOCKED-OWNER.
+- P39 EMULATOR domain 283/283, data 95/95, and app 105/105 are from `53c86a8` at 14:00–14:14Z. Run9's 4 tests passed at 18:40:01Z and those full suites were not repeated. ARM64 debug and minified release were rebuilt from `ae68695` and not installed. DEVICE parser, pen test, and owner sign-off stay BLOCKED-OWNER.
 - E01 EMULATOR theme screenshots — gap: not every screen.
 - E02 EMULATOR 48dp and contentDescription on Home, sale, records, price, feedback, first-run continue, and the SGB and diagnostics switches. TalkBack not run.
 - E03 EMULATOR OwnerLensShellTest — gap: vault, settings, and licence.
@@ -77,7 +78,7 @@
 5. Real NSDL PDF stays BLOCKED-OWNER.
 6. Phone install stays BLOCKED-OWNER.
 7. Production signing stays BLOCKED-OWNER.
-8. Rebuild ARM64 from this slice. Current phone files are still `53c86a8`.
+8. Screenshot the Insights XIRR card.
 9. Full suites were not re-run after Run9.
 10. Screenshot the Insights XIRR card.
 
@@ -102,5 +103,5 @@
 ## KNOWN GAPS
 - The 13:51:29Z surface run failed 2 of 8 because the same rupee text and the same missing-close sentence matched twice. The 13:56:00Z run is the one that passed. Do not cite the first pass as green.
 - Records, sale, and price screens are proven with synthetic rows. Home's records route still passes empty lists.
-- Interest and EMI screens do not post. ARM64 digests are from `53c86a8`. The release key is the test key, not a Play upload key. R8 mapping.txt was produced and not committed.
+- Interest and EMI screens do not post. ARM64 digests are from `ae68695`. The release key is the test key, not a Play upload key. R8 mapping.txt was produced and not committed.
 - TalkBack was not run. The OS credential Activity was not launched.
