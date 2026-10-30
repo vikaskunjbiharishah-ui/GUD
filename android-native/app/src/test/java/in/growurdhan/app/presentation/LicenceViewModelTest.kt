@@ -54,6 +54,21 @@ class LicenceViewModelTest {
         assertFalse(trial.state.value.busy)
     }
 
+    @Test fun restoreWithNoLivePurchaseStaysUnsubscribed() {
+        val play = HoldPlay(hold = false)
+        val now = Instant.now()
+        play.evidence = listOf(
+            PlayReceipts.evidence("gud_annual", PlayReceipts.STATE_PURCHASED, true, "{}", false, now),
+        )
+        val vm = LicenceViewModel(MemoryClock(), Facts(fromPlay = true, debug = false), play)
+        assertFalse(vm.state.value.licence.subscribed)
+        vm.refresh()
+        assertFalse(vm.state.value.licence.subscribed)
+        play.evidence = emptyList()
+        vm.refresh()
+        assertFalse(vm.state.value.licence.subscribed)
+    }
+
     private class MemoryClock : TrialMemory {
         var saved: String? = null
         override fun read(): String? = saved

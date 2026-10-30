@@ -29,8 +29,8 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 /**
- * Allocation and debt insights are strictly read-only. No fabricated
- * XIRR, tax liability, acquisition cost, market price or performance chart.
+ * Allocation and debt insights are read-only. XIRR is shown only when the
+ * cash-flow engine returns a rate. Otherwise the label says it is unknown.
  */
 @Composable
 fun InsightsScreen(
@@ -111,6 +111,10 @@ fun InsightsScreen(
                         Text("Assets: ${dashboard.assets.asBook()}")
                         Text("Liabilities: ${dashboard.liabilities.asBook()}")
                         Text("Net worth: ${dashboard.netWorth.asBook()}")
+                        Text(
+                            if (state is HouseholdDashboardUiState.Ready) state.xirrNote
+                            else `in`.growurdhan.domain.finance.InsightsReturns.UNKNOWN,
+                        )
                         val debtRatio = result.debtToAssetsPercent
                         if (result.reconciled && debtRatio != null) {
                             Text(

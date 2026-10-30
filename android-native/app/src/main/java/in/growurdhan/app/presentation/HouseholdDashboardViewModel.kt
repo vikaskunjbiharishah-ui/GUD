@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import `in`.growurdhan.domain.finance.FyTaxEstimate
+import `in`.growurdhan.domain.finance.InsightsReturns
+import `in`.growurdhan.domain.finance.SaleReview
 import `in`.growurdhan.domain.finance.HouseholdDashboard
 import `in`.growurdhan.domain.finance.HouseholdDashboardProjector
 import `in`.growurdhan.domain.finance.LotEngine
@@ -30,6 +32,8 @@ sealed interface HouseholdDashboardUiState {
         val dashboard: HouseholdDashboard,
         val interestReviews: List<VaultFinanceReview.InterestLine> = emptyList(),
         val emiReviews: List<VaultFinanceReview.EmiLine> = emptyList(),
+        val saleReviews: List<SaleReview.Result> = emptyList(),
+        val xirrNote: String = InsightsReturns.UNKNOWN,
     ) : HouseholdDashboardUiState
     data object Unavailable : HouseholdDashboardUiState
 }
@@ -104,10 +108,23 @@ class HouseholdDashboardViewModel @Inject constructor(
                 ))
                 val interestReviews = VaultFinanceReview.interest(financialHoldings, holdingProfiles, asOf)
                 val emiReviews = VaultFinanceReview.emi(financialHoldings, holdingProfiles, asOf)
+                val assetIds = financialHoldings.filter { it.category != "LIABILITY" }.map { it.holdingId }.toSet()
+                val xirrNote = InsightsReturns.note(
+                    financialEvents.filter { it.holdingId in assetIds },
+                    report.familyAssets,
+                    asOf,
+                )
+                val saleReviews = financialHoldings.mapNotNull { holding ->
+                    val mine = financialEvents.filter {
+                        it.holdingId == holding.holdingId && it.ownerId == holding.ownerId
+                    }
+                    if (mine.none { it.kind == `in`.growurdhan.domain.finance.FinancialEventKind.SELL }) null
+                    else SaleReview.of(holding, mine)
+                }
                 if (request != generation) return@launch
                 if (session.isCurrentSession(originalRevision)) {
                     mutableState.value = HouseholdDashboardUiState.Ready(
-                        dashboard, interestReviews, emiReviews,
+                        dashboard, interestReviews, emiReviews, saleReviews, xirrNote,
                     )
                 } else {
                     lock()

@@ -16,4 +16,6 @@ class UpdateAppearanceSettings @Inject constructor(
 ) {
     suspend fun theme(mode: ThemeMode) = repository.setTheme(mode)
     suspend fun dynamicColor(enabled: Boolean) = repository.setDynamicColor(enabled)
+    suspend fun sgbUseMarket(enabled: Boolean) = repository.setSgbUseMarket(enabled)
+    suspend fun diagnostics(enabled: Boolean) = repository.setDiagnostics(enabled)
 }

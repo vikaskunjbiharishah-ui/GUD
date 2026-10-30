@@ -64,6 +64,8 @@ import `in`.growurdhan.app.presentation.screens.FamilyAdministrationScreen
 import `in`.growurdhan.app.presentation.screens.HomeScreen
 import `in`.growurdhan.app.presentation.screens.InterestReviewScreen
 import `in`.growurdhan.app.presentation.screens.EmiReviewScreen
+import `in`.growurdhan.app.presentation.screens.SaleReviewScreen
+import `in`.growurdhan.app.presentation.screens.RecordsScreen
 import `in`.growurdhan.app.presentation.screens.PortfolioScreen
 import `in`.growurdhan.app.presentation.screens.ManualTradeScreen
 import `in`.growurdhan.app.presentation.screens.InsightsScreen
@@ -102,6 +104,8 @@ private const val ACCOUNTS_ROUTE = "accounts"
 private const val TAX_SCOPE_ROUTE = "tax-owner-scope"
 private const val INTEREST_ROUTE = "interest-review"
 private const val EMI_ROUTE = "emi-review"
+private const val SALE_ROUTE = "sale-review"
+private const val RECORDS_ROUTE = "records"
 private const val DOCUMENTS_ROUTE = "documents"
 /** Secondary secure registrar/holding setup route, not an extra bottom tab. */
 private const val CUSTODY_ROUTE = "custody"
@@ -283,6 +287,7 @@ fun GrowUrDhanShell(
                             onOpenDocuments = { navigate(DOCUMENTS_ROUTE) },
                             onOpenInterest = { navigate(INTEREST_ROUTE) },
                             onOpenEmi = { navigate(EMI_ROUTE) },
+                            onOpenRecords = { navigate(RECORDS_ROUTE) },
                             selectedFamilyOwner = selectedOwner,
                             onSelectFamilyOwner = { selectedOwner = it },
                         )
@@ -297,6 +302,7 @@ fun GrowUrDhanShell(
                                 pendingOpeningHoldingId = null
                                 navigate(MANUAL_TRADE_ROUTE)
                             },
+                            onOpenSale = { navigate(SALE_ROUTE) },
                             selectedFamilyOwner = selectedOwner,
                             onSelectFamilyOwner = { selectedOwner = it },
                         )
@@ -323,6 +329,23 @@ fun GrowUrDhanShell(
                             lines = ready?.emiReviews.orEmpty().filter {
                                 selectedOwner == null || it.ownerId == selectedOwner
                             },
+                            onBack = { navigate(MainDestination.HOME.route) },
+                        )
+                    }
+                    composable(SALE_ROUTE) {
+                        val ready = dashboardState as? HouseholdDashboardUiState.Ready
+                        SaleReviewScreen(
+                            reviews = ready?.saleReviews.orEmpty().filter {
+                                selectedOwner == null || it.ownerId == selectedOwner
+                            },
+                            onBack = { navigate(MainDestination.PORTFOLIO.route) },
+                        )
+                    }
+                    composable(RECORDS_ROUTE) {
+                        RecordsScreen(
+                            records = emptyList(),
+                            batches = emptyList(),
+                            owner = selectedOwner,
                             onBack = { navigate(MainDestination.HOME.route) },
                         )
                     }

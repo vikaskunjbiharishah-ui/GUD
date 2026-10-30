@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -24,6 +25,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.domain.vault.FirstRunRegistration
@@ -109,7 +112,9 @@ fun FirstRunIdentityScreen(
                 answer1 = ""; answer2 = ""; consent = false
                 onContinue(submitted)
             },
-            modifier = Modifier.fillMaxWidth().testTag("FirstRunContinue"),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("FirstRunContinue").semantics {
+                contentDescription = "Save the account after the device lock"
+            },
         ) { Text("Save account with device lock") }
         OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
             Text("Back")

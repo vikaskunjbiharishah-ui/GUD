@@ -16,7 +16,16 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import `in`.growurdhan.domain.finance.DiagnosticsLog
+import `in`.growurdhan.domain.finance.FeedbackPrompt
+import `in`.growurdhan.domain.finance.FeedbackState
+import java.time.Instant
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -228,5 +237,69 @@ fun SettingsScreen(
                 )
             }
         }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(18.dp).heightIn(min = 48.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("SGB price", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        if (appearance.sgbUseMarket) "Using the market close when one is saved. A missing close stays missing."
+                        else "Using the RBI price when one is saved. A missing price stays missing.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Switch(
+                    checked = appearance.sgbUseMarket,
+                    onCheckedChange = { onIntent(AppIntent.SetSgbUseMarket(it)) },
+                    modifier = Modifier.semantics { contentDescription = "Use the market close for SGB" },
+                )
+            }
+        }
+
+        var notes by remember { mutableStateOf(emptyList<String>()) }
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Diagnostics", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Off by default. Notes stay on this screen until you delete them. Nothing is sent.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Switch(
+                    checked = appearance.diagnosticsEnabled,
+                    onCheckedChange = { onIntent(AppIntent.SetDiagnostics(it)) },
+                    modifier = Modifier.semantics { contentDescription = "Opt in to local diagnostics" },
+                )
+                if (appearance.diagnosticsEnabled) {
+                    notes.forEach { Text(it) }
+                    OutlinedButton(
+                        onClick = {
+                            notes = DiagnosticsLog.record(true, notes, "Opened settings.")
+                        },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Record a local note") }
+                }
+                OutlinedButton(
+                    onClick = { notes = DiagnosticsLog.clear() },
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Delete local diagnostic notes"
+                    },
+                ) { Text("Delete local notes") }
+            }
+        }
+
+        val opened = remember { Instant.now() }
+        var feedback by remember {
+            mutableStateOf(FeedbackPrompt.seedFirstSeen(FeedbackState(), null, opened))
+        }
+        FeedbackPromptCard(
+            state = feedback,
+            now = Instant.now(),
+            onSnooze = { feedback = FeedbackPrompt.snooze(feedback, Instant.now()) },
+            onComplete = { feedback = FeedbackPrompt.complete(feedback, Instant.now()) },
+        )
     }
 }

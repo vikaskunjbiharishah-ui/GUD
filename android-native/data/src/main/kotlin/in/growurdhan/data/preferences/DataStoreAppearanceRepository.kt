@@ -37,6 +37,8 @@ class DataStoreAppearanceRepository @Inject constructor(
             AppearanceSettings(
                 theme = ThemeMode.fromStorage(values[THEME]),
                 dynamicColor = values[DYNAMIC] ?: false,
+                sgbUseMarket = values[SGB_MARKET] ?: false,
+                diagnosticsEnabled = values[DIAGNOSTICS] ?: false,
             )
         }
 
@@ -48,9 +50,19 @@ class DataStoreAppearanceRepository @Inject constructor(
         store.edit { it[DYNAMIC] = enabled }
     }
 
+    override suspend fun setSgbUseMarket(enabled: Boolean) {
+        store.edit { it[SGB_MARKET] = enabled }
+    }
+
+    override suspend fun setDiagnostics(enabled: Boolean) {
+        store.edit { it[DIAGNOSTICS] = enabled }
+    }
+
     private companion object {
         val THEME = stringPreferencesKey("theme")
         val DYNAMIC = booleanPreferencesKey("dynamic_color")
+        val SGB_MARKET = booleanPreferencesKey("sgb_use_market")
+        val DIAGNOSTICS = booleanPreferencesKey("diagnostics_enabled")
     }
 }
 

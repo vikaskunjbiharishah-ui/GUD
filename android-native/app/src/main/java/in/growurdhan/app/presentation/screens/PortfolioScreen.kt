@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -36,6 +37,7 @@ fun PortfolioScreen(
     onRefresh: () -> Unit,
     onManageHoldings: () -> Unit,
     onRecordTrade: () -> Unit = {},
+    onOpenSale: () -> Unit = {},
     selectedFamilyOwner: OwnerId? = null,
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
@@ -154,8 +156,21 @@ fun PortfolioScreen(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
-                Button(onClick = onRecordTrade) {
+                Button(
+                    onClick = onRecordTrade,
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Record an explicit buy or sell"
+                    },
+                ) {
                     Text("Record an explicit buy or sell")
+                }
+                OutlinedButton(
+                    onClick = onOpenSale,
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Open the sale result"
+                    },
+                ) {
+                    Text("Sale result")
                 }
                 OutlinedButton(onClick = onManageHoldings) {
                     Text("Manage family accounts and CAS holdings")

@@ -115,4 +115,24 @@ class CasIdentityMatchingTest {
         assertEquals(1_424_691_356L,
             SnapshotReconciler.coalesce(result.lines).single().quantityScaled)
     }
+
+    @Test fun enrolledNsdlIsinAndClientIdMapsWithoutUsingThePrintedName() {
+        val equity = holding.copy(
+            holdingId = HoldingId("eq-nsdl"), name = "Synthetic Equity", category = "EQUITY",
+        )
+        val enrolled = CasHoldingIdentity(
+            equity.holdingId, owner, "demat-nsdl", "INE000000001", "IN30000000000001", "NSDL",
+        )
+        val parsed = CasParsedHolding(
+            "Different printed name", "EQUITY", "10", "100.0000",
+            null, "INE000000001", "IN30000000000001",
+        )
+        val result = resolve(
+            report(rows = listOf(parsed), fileType = "NSDL"),
+            identities = listOf(enrolled),
+            holdings = listOf(equity),
+        )
+        assertEquals(equity.holdingId, result.lines.single().holdingId)
+        assertEquals(1_000_000_000L, result.lines.single().quantityScaled)
+    }
 }

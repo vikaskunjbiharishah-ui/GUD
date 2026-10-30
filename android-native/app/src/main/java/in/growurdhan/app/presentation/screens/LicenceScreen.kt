@@ -82,6 +82,10 @@ fun LicenceScreen(
         ) {
             Text("Restore purchases on this Play account")
         }
+        Text(
+            "If Play has no yearly purchase, the plan stays off. A button cannot turn it on.",
+            style = MaterialTheme.typography.bodySmall,
+        )
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Text(
             "Payments are processed by Google Play. GrowUrDhan never sees your card.",

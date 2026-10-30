@@ -24,6 +24,8 @@ data class AppUiState(
 sealed interface AppIntent {
     data class SelectTheme(val mode: ThemeMode) : AppIntent
     data class SetDynamicColor(val enabled: Boolean) : AppIntent
+    data class SetSgbUseMarket(val enabled: Boolean) : AppIntent
+    data class SetDiagnostics(val enabled: Boolean) : AppIntent
     data object DismissError : AppIntent
 }
 
@@ -48,6 +50,8 @@ class AppViewModel @Inject constructor(
         when (intent) {
             is AppIntent.SelectTheme -> persist { updateAppearanceSettings.theme(intent.mode) }
             is AppIntent.SetDynamicColor -> persist { updateAppearanceSettings.dynamicColor(intent.enabled) }
+            is AppIntent.SetSgbUseMarket -> persist { updateAppearanceSettings.sgbUseMarket(intent.enabled) }
+            is AppIntent.SetDiagnostics -> persist { updateAppearanceSettings.diagnostics(intent.enabled) }
             AppIntent.DismissError -> error.value = null
         }
     }

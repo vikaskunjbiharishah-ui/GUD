@@ -98,7 +98,8 @@ object CasImportContract {
                     "CAS holding is not uniquely enrolled for this owner, registrar, ISIN and folio."
                 )
             }
-            val nameIsIdentity = enrolledIdentities != null && report.fileType != "CDSL"
+            val nameIsIdentity = enrolledIdentities != null &&
+                report.fileType != "CDSL" && report.fileType != "NSDL"
             if (nameIsIdentity &&
                 canonicalName(matched.single().name) != canonicalName(entry.name)
             ) {
@@ -156,7 +157,7 @@ object CasImportContract {
             "CAMS", "KFINTECH" -> setOf("MUTUAL_FUND")
             // A depository row is the ISIN plus the BO/client id. The printed
             // security name is not an identifier and is not compared.
-            "CDSL" -> setOf("EQUITY", "GOLD_SGB", "MUTUAL_FUND")
+            "CDSL", "NSDL" -> setOf("EQUITY", "GOLD_SGB", "MUTUAL_FUND")
             // One PRAN holds many schemes. The scheme code (isin) and the
             // scheme name both have to match; a PRAN alone is not enough.
             "NPS" -> setOf("FIXED_INCOME")

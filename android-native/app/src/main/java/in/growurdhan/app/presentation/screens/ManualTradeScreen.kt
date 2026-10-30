@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +23,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.app.presentation.ManualTradeIntent
 import `in`.growurdhan.app.presentation.ManualTradeUiState
@@ -284,13 +287,18 @@ fun ManualTradeScreen(
                             }
                         }
                     }
-                    Button(onClick = {
+                    Button(
+                        onClick = {
                         onIntent(ManualTradeIntent.Stage(
                             ManualTradeDraft(selected.id, kind, day.trim(),
                                 quantity.trim(), price.trim(), fees.trim(),
                                 if (kind == ManualTradeKind.CORRECTION) targetId else null),
                         ))
-                    }) { Text("Review recorded transaction") }
+                    },
+                        modifier = Modifier.heightIn(min = 48.dp).semantics {
+                            contentDescription = "Review recorded transaction"
+                        },
+                    ) { Text("Review recorded transaction") }
                 }
             }
         }

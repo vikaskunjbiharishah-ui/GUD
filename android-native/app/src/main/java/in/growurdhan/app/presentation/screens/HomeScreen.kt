@@ -26,6 +26,8 @@ import `in`.growurdhan.app.presentation.HouseholdDashboardUiState
 import `in`.growurdhan.core.model.OwnerId
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -49,6 +51,7 @@ fun HomeScreen(
     onOpenDocuments: () -> Unit = {},
     onOpenInterest: () -> Unit = {},
     onOpenEmi: () -> Unit = {},
+    onOpenRecords: () -> Unit = {},
     selectedFamilyOwner: OwnerId? = null,
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
@@ -279,10 +282,20 @@ fun HomeScreen(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onOpenPortfolio, modifier = Modifier.weight(1f)) {
+            OutlinedButton(
+                onClick = onOpenPortfolio,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
+                    contentDescription = "Open portfolio"
+                },
+            ) {
                 Text("Portfolio")
             }
-            OutlinedButton(onClick = onOpenInsights, modifier = Modifier.weight(1f)) {
+            OutlinedButton(
+                onClick = onOpenInsights,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
+                    contentDescription = "Open insights"
+                },
+            ) {
                 Text("Insights")
             }
         }
@@ -291,10 +304,20 @@ fun HomeScreen(
             Text("Accounts, custodians and nominees")
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onOpenTaxScope, modifier = Modifier.weight(1f)) {
+            OutlinedButton(
+                onClick = onOpenTaxScope,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
+                    contentDescription = "Open tax owner scope"
+                },
+            ) {
                 Text("Tax owner scope")
             }
-            OutlinedButton(onClick = onOpenDocuments, modifier = Modifier.weight(1f)) {
+            OutlinedButton(
+                onClick = onOpenDocuments,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
+                    contentDescription = "Open documents"
+                },
+            ) {
                 Text("Documents / CAS")
             }
         }
@@ -306,6 +329,12 @@ fun HomeScreen(
                 Text("EMI review")
             }
         }
+        OutlinedButton(
+            onClick = onOpenRecords,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
+                contentDescription = "Open records"
+            },
+        ) { Text("Records") }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(onClick = onOpenStatements, modifier = Modifier.weight(1f)) {
