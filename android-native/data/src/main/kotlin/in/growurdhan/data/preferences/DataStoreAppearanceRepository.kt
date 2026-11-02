@@ -82,6 +82,25 @@ class DataStoreAppearanceRepository @Inject constructor(
         }
     }
 
+    override val diagnosticNotes: Flow<List<String>> = store.data
+        .catch { failure ->
+            if (failure is IOException) emit(emptyPreferences()) else throw failure
+        }
+        .map { values ->
+            values[DIAGNOSTIC_NOTES].orEmpty().split('\u001e').filter { it.isNotEmpty() }
+        }
+
+    override suspend fun saveDiagnosticNotes(notes: List<String>) {
+        val cleaned = notes
+            .map { it.replace("\u001e", " ").take(200).trim() }
+            .filter { it.isNotEmpty() }
+            .takeLast(20)
+        store.edit { values ->
+            if (cleaned.isEmpty()) values.remove(DIAGNOSTIC_NOTES)
+            else values[DIAGNOSTIC_NOTES] = cleaned.joinToString("\u001e")
+        }
+    }
+
     private companion object {
         val THEME = stringPreferencesKey("theme")
         val DYNAMIC = booleanPreferencesKey("dynamic_color")
@@ -91,6 +110,7 @@ class DataStoreAppearanceRepository @Inject constructor(
         val FEEDBACK_SNOOZE = stringPreferencesKey("feedback_snooze_until")
         val FEEDBACK_DONE = stringPreferencesKey("feedback_completed")
         val FEEDBACK_COUNT = intPreferencesKey("feedback_prompt_count")
+        val DIAGNOSTIC_NOTES = stringPreferencesKey("diagnostic_notes")
     }
 }
 

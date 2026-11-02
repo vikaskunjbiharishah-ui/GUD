@@ -126,14 +126,17 @@ class Run9SurfaceInstrumentedTest {
         compose.setContent {
             GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, false)) {
                 var appearance by remember { mutableStateOf(AppearanceSettings()) }
+                var notes by remember { mutableStateOf(emptyList<String>()) }
                 SettingsScreen(
                     appearance = appearance,
+                    diagnosticNotes = notes,
                     onIntent = { intent ->
                         when (intent) {
                             is AppIntent.SetSgbUseMarket ->
                                 appearance = appearance.copy(sgbUseMarket = intent.enabled)
                             is AppIntent.SetDiagnostics ->
                                 appearance = appearance.copy(diagnosticsEnabled = intent.enabled)
+                            is AppIntent.SaveDiagnosticNotes -> notes = intent.notes
                             else -> Unit
                         }
                     },
@@ -142,7 +145,7 @@ class Run9SurfaceInstrumentedTest {
         }
         compose.onNodeWithText("Using the RBI price when one is saved. A missing price stays missing.")
             .performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Off by default. Notes stay on this screen until you delete them. Nothing is sent.")
+        compose.onNodeWithText("Off by default. Notes stay on this phone until you delete them. Nothing is sent.")
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Use the market close for SGB")
             .performScrollTo().assertHeightIsAtLeast(48.dp).assertIsOff()

@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import `in`.growurdhan.core.model.AppearanceSettings
+import `in`.growurdhan.domain.finance.FeedbackState
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
 
@@ -26,6 +28,8 @@ class AppViewModelTest {
     fun userThemeSelectionPersistsThroughDomainUseCase() = runTest {
         val repository = mockk<AppearanceRepository>()
         every { repository.settings } returns flowOf(AppearanceSettings())
+        every { repository.feedback } returns flowOf(FeedbackState())
+        every { repository.diagnosticNotes } returns flowOf(emptyList())
         coEvery { repository.setTheme(any()) } just Runs
         val viewModel = AppViewModel(
             ObserveAppearanceSettings(repository),

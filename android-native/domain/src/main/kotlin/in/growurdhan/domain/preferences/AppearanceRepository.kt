@@ -13,4 +13,6 @@ interface AppearanceRepository {
     suspend fun setDiagnostics(enabled: Boolean)
     val feedback: Flow<`in`.growurdhan.domain.finance.FeedbackState>
     suspend fun saveFeedback(state: `in`.growurdhan.domain.finance.FeedbackState)
+    val diagnosticNotes: Flow<List<String>>
+    suspend fun saveDiagnosticNotes(notes: List<String>)
 }

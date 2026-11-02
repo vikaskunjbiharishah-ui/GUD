@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import `in`.growurdhan.core.model.*
+import `in`.growurdhan.domain.finance.InsightsReturns
+import `in`.growurdhan.domain.finance.toFinancialEvent
 import java.io.File
 import java.security.KeyStore
 import java.security.MessageDigest
@@ -143,6 +145,28 @@ class NativeVaultInstrumentedTest {
         )
         assertEquals(listOf("snap-self"), visible.map { it.id })
         assertEquals("Saved statement", visible.single().registrar)
+    }
+
+    @Test fun savedBuyRestartsAsTheKnownXirrAndNotZero(): Unit = runBlocking {
+        vault.openOrCreate()
+        vault.createMember(FamilyMember(owner, "Synthetic Self", "Self", true))
+        vault.createHolding(holding)
+        vault.appendEvent(LedgerEvent(
+            "buy-xirr", holding.id, owner, LedgerKind.BUY,
+            "2025-01-01", 100_000_000, MoneyScaled(10_000_000), "synthetic-xirr",
+        ))
+        vault.close()
+        vault.openOrCreate()
+        val events = vault.readBook().events.map { it.toFinancialEvent() }
+        val note = InsightsReturns.note(
+            events, MoneyScaled(11_000_000), java.time.LocalDate.parse("2026-01-01"),
+        )
+        assertEquals("XIRR 10.01%. Estimate, not advice.", note)
+        val unknown = InsightsReturns.note(
+            emptyList(), MoneyScaled(11_000_000), java.time.LocalDate.parse("2026-01-01"),
+        )
+        assertEquals("XIRR is unknown from this book.", unknown)
+        assertFalse(unknown.contains("0%"))
     }
 
     @Test fun crossOwnerSnapshotFailureRollsBackAndHashIsIdempotent(): Unit = runBlocking {

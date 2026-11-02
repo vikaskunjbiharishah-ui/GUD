@@ -19,10 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import `in`.growurdhan.domain.finance.DiagnosticsLog
 import `in`.growurdhan.domain.finance.FeedbackPrompt
 import `in`.growurdhan.domain.finance.FeedbackState
@@ -59,6 +56,7 @@ fun SettingsScreen(
     onGmailConnect: () -> Unit = {},
     onGmailDisconnect: (String) -> Unit = {},
     feedback: FeedbackState = FeedbackState(),
+    diagnosticNotes: List<String> = emptyList(),
 ) {
     val haptics = LocalHapticFeedback.current
     Column(
@@ -264,12 +262,11 @@ fun SettingsScreen(
             }
         }
 
-        var notes by remember { mutableStateOf(emptyList<String>()) }
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Diagnostics", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Off by default. Notes stay on this screen until you delete them. Nothing is sent.",
+                    "Off by default. Notes stay on this phone until you delete them. Nothing is sent.",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Switch(
@@ -280,16 +277,18 @@ fun SettingsScreen(
                     },
                 )
                 if (appearance.diagnosticsEnabled) {
-                    notes.forEach { Text(it) }
+                    diagnosticNotes.forEach { Text(it) }
                     OutlinedButton(
                         onClick = {
-                            notes = DiagnosticsLog.record(true, notes, "Opened settings.")
+                            onIntent(AppIntent.SaveDiagnosticNotes(
+                                DiagnosticsLog.record(true, diagnosticNotes, "Opened settings."),
+                            ))
                         },
                         modifier = Modifier.heightIn(min = 48.dp),
                     ) { Text("Record a local note") }
                 }
                 OutlinedButton(
-                    onClick = { notes = DiagnosticsLog.clear() },
+                    onClick = { onIntent(AppIntent.SaveDiagnosticNotes(DiagnosticsLog.clear())) },
                     modifier = Modifier.heightIn(min = 48.dp).semantics {
                         contentDescription = "Delete local diagnostic notes"
                     },

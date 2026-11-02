@@ -588,6 +588,7 @@ fun GrowUrDhanShell(
                             onGmailConnect = onGmailConnect,
                             onGmailDisconnect = onGmailDisconnect,
                             feedback = state.feedback,
+                            diagnosticNotes = state.diagnosticNotes,
                         )
                     }
                 }

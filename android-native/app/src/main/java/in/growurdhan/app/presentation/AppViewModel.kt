@@ -21,6 +21,7 @@ data class AppUiState(
     val appearance: AppearanceSettings = AppearanceSettings(),
     val errorMessage: String? = null,
     val feedback: FeedbackState = FeedbackState(),
+    val diagnosticNotes: List<String> = emptyList(),
 )
 
 sealed interface AppIntent {
@@ -29,6 +30,7 @@ sealed interface AppIntent {
     data class SetSgbUseMarket(val enabled: Boolean) : AppIntent
     data class SetDiagnostics(val enabled: Boolean) : AppIntent
     data class SaveFeedback(val state: FeedbackState) : AppIntent
+    data class SaveDiagnosticNotes(val notes: List<String>) : AppIntent
     data object DismissError : AppIntent
 }
 
@@ -41,8 +43,13 @@ class AppViewModel @Inject constructor(
     private val error = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<AppUiState> =
-        combine(observeAppearanceSettings(), observeAppearanceSettings.feedback(), error) { appearance, feedback, message ->
-            AppUiState(appearance, message, feedback)
+        combine(
+            observeAppearanceSettings(),
+            observeAppearanceSettings.feedback(),
+            observeAppearanceSettings.diagnosticNotes(),
+            error,
+        ) { appearance, feedback, notes, message ->
+            AppUiState(appearance, message, feedback, notes)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
@@ -56,6 +63,7 @@ class AppViewModel @Inject constructor(
             is AppIntent.SetSgbUseMarket -> persist { updateAppearanceSettings.sgbUseMarket(intent.enabled) }
             is AppIntent.SetDiagnostics -> persist { updateAppearanceSettings.diagnostics(intent.enabled) }
             is AppIntent.SaveFeedback -> persist { updateAppearanceSettings.feedback(intent.state) }
+            is AppIntent.SaveDiagnosticNotes -> persist { updateAppearanceSettings.diagnosticNotes(intent.notes) }
             AppIntent.DismissError -> error.value = null
         }
     }
