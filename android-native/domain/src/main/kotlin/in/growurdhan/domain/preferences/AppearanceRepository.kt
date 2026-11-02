@@ -11,4 +11,6 @@ interface AppearanceRepository {
     suspend fun setDynamicColor(enabled: Boolean)
     suspend fun setSgbUseMarket(enabled: Boolean)
     suspend fun setDiagnostics(enabled: Boolean)
+    val feedback: Flow<`in`.growurdhan.domain.finance.FeedbackState>
+    suspend fun saveFeedback(state: `in`.growurdhan.domain.finance.FeedbackState)
 }

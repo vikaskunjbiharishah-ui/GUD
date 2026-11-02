@@ -34,6 +34,8 @@ sealed interface HouseholdDashboardUiState {
         val emiReviews: List<VaultFinanceReview.EmiLine> = emptyList(),
         val saleReviews: List<SaleReview.Result> = emptyList(),
         val xirrNote: String = InsightsReturns.UNKNOWN,
+        val importBatches: List<`in`.growurdhan.domain.finance.ImportBatchView> = emptyList(),
+        val importRecords: List<`in`.growurdhan.domain.finance.HouseholdRecord> = emptyList(),
     ) : HouseholdDashboardUiState
     data object Unavailable : HouseholdDashboardUiState
 }
@@ -125,6 +127,8 @@ class HouseholdDashboardViewModel @Inject constructor(
                 if (session.isCurrentSession(originalRevision)) {
                     mutableState.value = HouseholdDashboardUiState.Ready(
                         dashboard, interestReviews, emiReviews, saleReviews, xirrNote,
+                        `in`.growurdhan.domain.finance.VaultImportHistory.batches(book.statementImports),
+                        `in`.growurdhan.domain.finance.VaultImportHistory.records(book.statementImports),
                     )
                 } else {
                     lock()

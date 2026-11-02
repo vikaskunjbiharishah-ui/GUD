@@ -692,10 +692,32 @@ class SqlCipherVaultRepository(
         }
     }
 
+    private fun readStatementImports(db: SQLiteDatabase): List<StoredStatementImport> =
+        db.rawQuery(
+            """SELECT s.id, s.owner_id, s.source_sha256, s.as_of,
+                      (SELECT COUNT(*) FROM statement_position p
+                        WHERE p.snapshot_id = s.id AND p.owner_id = s.owner_id)
+               FROM snapshot_import s
+               ORDER BY s.as_of, s.id""",
+            null,
+        ).use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) add(
+                    StoredStatementImport(
+                        id = cursor.getString(0),
+                        ownerId = OwnerId(cursor.getString(1)),
+                        sourceSha256 = cursor.getString(2),
+                        asOf = cursor.getString(3),
+                        lineCount = cursor.getInt(4),
+                    ),
+                )
+            }
+        }
+
     private fun readBookInsideTransaction(db: SQLiteDatabase): VaultBook =
         VaultBook(
             readMembers(db), readHoldings(db), readEvents(db),
-            readAccounts(db), readCasIdentities(db),
+            readAccounts(db), readCasIdentities(db), readStatementImports(db),
         )
 
     /**

@@ -124,6 +124,15 @@ data class CasHoldingIdentity(
     val accountType: String,
 )
 
+/** One committed statement snapshot. The registrar name is not stored on this row. */
+data class StoredStatementImport(
+    val id: String,
+    val ownerId: OwnerId,
+    val sourceSha256: String,
+    val asOf: String,
+    val lineCount: Int,
+)
+
 /** Captured under one SQL read transaction; optional defaults preserve older consumers. */
 data class VaultBook(
     val members: List<FamilyMember>,
@@ -131,6 +140,7 @@ data class VaultBook(
     val events: List<LedgerEvent>,
     val accounts: List<CustodyAccount> = emptyList(),
     val casIdentities: List<CasHoldingIdentity> = emptyList(),
+    val statementImports: List<StoredStatementImport> = emptyList(),
 )
 
 /** An observation, not a BUY or other transaction. */

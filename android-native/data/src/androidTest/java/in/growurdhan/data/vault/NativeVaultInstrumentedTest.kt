@@ -112,6 +112,39 @@ class NativeVaultInstrumentedTest {
         assertEquals(0, vault.health().foreignKeyViolations)
     }
 
+    @Test fun statementImportSurvivesRestartAndStaysWithItsOwner(): Unit = runBlocking {
+        vault.openOrCreate()
+        vault.createMember(FamilyMember(owner, "Synthetic Self", "Self", true))
+        val spouse = OwnerId("spouse")
+        vault.createMember(FamilyMember(spouse, "Synthetic Spouse", "Spouse", false))
+        vault.createHolding(holding)
+        vault.createHolding(holding.copy(id = HoldingId("h2"), ownerId = spouse))
+        assertEquals(SnapshotResult.IMPORTED, vault.importSnapshot(StatementSnapshot(
+            "snap-self", owner, "a".repeat(64), "2026-10-01", true,
+            listOf(StatementPosition(holding.id, QuantityScaled(100_000_000), MoneyScaled(125_000))),
+        )))
+        assertEquals(SnapshotResult.IMPORTED, vault.importSnapshot(StatementSnapshot(
+            "snap-spouse", spouse, "b".repeat(64), "2026-10-02", true,
+            listOf(StatementPosition(HoldingId("h2"), QuantityScaled(100_000_000), MoneyScaled(50_000))),
+        )))
+        assertEquals(SnapshotResult.ALREADY_IMPORTED, vault.importSnapshot(StatementSnapshot(
+            "snap-self", owner, "a".repeat(64), "2026-10-01", true,
+            listOf(StatementPosition(holding.id, QuantityScaled(100_000_000), MoneyScaled(125_000))),
+        )))
+        vault.close()
+        vault.openOrCreate()
+        val rows = vault.readBook().statementImports
+        assertEquals(listOf("snap-self", "snap-spouse"), rows.map { it.id })
+        assertEquals(1, rows.single { it.id == "snap-self" }.lineCount)
+        assertEquals("a".repeat(64), rows.single { it.id == "snap-self" }.sourceSha256)
+        val visible = `in`.growurdhan.domain.finance.HouseholdRecords.history(
+            `in`.growurdhan.domain.finance.VaultImportHistory.batches(rows),
+            owner,
+        )
+        assertEquals(listOf("snap-self"), visible.map { it.id })
+        assertEquals("Saved statement", visible.single().registrar)
+    }
+
     @Test fun crossOwnerSnapshotFailureRollsBackAndHashIsIdempotent(): Unit = runBlocking {
         vault.openOrCreate()
         vault.createMember(FamilyMember(owner, "Synthetic Self", "Self", true))

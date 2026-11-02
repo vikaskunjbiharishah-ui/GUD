@@ -18,6 +18,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +58,7 @@ fun SettingsScreen(
     gmail: GmailUiState = GmailUiState(),
     onGmailConnect: () -> Unit = {},
     onGmailDisconnect: (String) -> Unit = {},
+    feedback: FeedbackState = FeedbackState(),
 ) {
     val haptics = LocalHapticFeedback.current
     Column(
@@ -296,14 +298,17 @@ fun SettingsScreen(
         }
 
         val opened = remember { Instant.now() }
-        var feedback by remember {
-            mutableStateOf(FeedbackPrompt.seedFirstSeen(FeedbackState(), null, opened))
+        val seeded = FeedbackPrompt.seedFirstSeen(feedback, null, opened)
+        LaunchedEffect(seeded.firstSeenAt) {
+            if (feedback.firstSeenAt == null && seeded.firstSeenAt != null) {
+                onIntent(AppIntent.SaveFeedback(seeded))
+            }
         }
         FeedbackPromptCard(
-            state = feedback,
-            now = Instant.now(),
-            onSnooze = { feedback = FeedbackPrompt.snooze(feedback, Instant.now()) },
-            onComplete = { feedback = FeedbackPrompt.complete(feedback, Instant.now()) },
+            state = seeded,
+            now = opened,
+            onSnooze = { onIntent(AppIntent.SaveFeedback(FeedbackPrompt.snooze(seeded, Instant.now()))) },
+            onComplete = { onIntent(AppIntent.SaveFeedback(FeedbackPrompt.complete(seeded, Instant.now()))) },
         )
     }
 }

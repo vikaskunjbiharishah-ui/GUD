@@ -9,6 +9,7 @@ class ObserveAppearanceSettings @Inject constructor(
     private val repository: AppearanceRepository,
 ) {
     operator fun invoke(): Flow<AppearanceSettings> = repository.settings
+    fun feedback(): Flow<`in`.growurdhan.domain.finance.FeedbackState> = repository.feedback
 }
 
 class UpdateAppearanceSettings @Inject constructor(
@@ -18,4 +19,5 @@ class UpdateAppearanceSettings @Inject constructor(
     suspend fun dynamicColor(enabled: Boolean) = repository.setDynamicColor(enabled)
     suspend fun sgbUseMarket(enabled: Boolean) = repository.setSgbUseMarket(enabled)
     suspend fun diagnostics(enabled: Boolean) = repository.setDiagnostics(enabled)
+    suspend fun feedback(state: `in`.growurdhan.domain.finance.FeedbackState) = repository.saveFeedback(state)
 }

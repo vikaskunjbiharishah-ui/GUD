@@ -342,9 +342,10 @@ fun GrowUrDhanShell(
                         )
                     }
                     composable(RECORDS_ROUTE) {
+                        val ready = dashboardState as? HouseholdDashboardUiState.Ready
                         RecordsScreen(
-                            records = emptyList(),
-                            batches = emptyList(),
+                            records = ready?.importRecords.orEmpty(),
+                            batches = ready?.importBatches.orEmpty(),
                             owner = selectedOwner,
                             onBack = { navigate(MainDestination.HOME.route) },
                         )
@@ -586,6 +587,7 @@ fun GrowUrDhanShell(
                             gmail = gmail,
                             onGmailConnect = onGmailConnect,
                             onGmailDisconnect = onGmailDisconnect,
+                            feedback = state.feedback,
                         )
                     }
                 }
