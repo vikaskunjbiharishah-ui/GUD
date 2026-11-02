@@ -31,3 +31,6 @@ Computer check on 2026-10-30, code 53c86a8: the emulator sale screen showed a FI
 
 Computer check on 2026-10-30, code ae68695: the emulator Insights screen showed XIRR 10.01% as an estimate, and a separate screen said XIRR is unknown. Neither showed 0%. A typed price of ₹125 was labelled stale and did not become the older ₹90 close or ₹0. Settings started on the RBI price and with diagnostics off. This APK was not installed on a phone. TalkBack was not run.
 
+Computer check on 2026-11-02, code 91f5fe4: the emulator reopened a saved statement for its owner and labelled it Saved statement. A saved buy reopened as XIRR 10.01%, not 0%. Feedback and diagnostic notes were read back in the same process. Restore left the yearly plan off. Full data 99/99 and app 112/112. This APK was not installed on a phone. TalkBack was not run.
+
+

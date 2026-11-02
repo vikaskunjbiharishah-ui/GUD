@@ -1,20 +1,17 @@
 # STATE
 
 ## HEADER
-- Date: 2026-10-30. Run 9 from 18:34:29Z. Code `ae68695`. Docs after this line are not the APK commit. Previous code `53c86a8`.
-- Run9SurfaceInstrumentedTest 4/4 in 12.758s at 18:40:01Z. Emulator `gud_x86`, override 1080×1920 / 480. Full domain, data, and app suites were not re-run after this commit.
-- ARM64 debug sha256 `b873358b…b1bfa9` size 50806832 at 18:41:47Z. Minified release sha256 `302b4da7…764f77` size 30739397 at 18:45:15Z. Both from `ae68695`, native-code arm64-v8a. Phone not used. TalkBack not run.
-- Domain `:domain:test` 283/283 (60 classes, 0 fail) at 14:00:34Z. A cold worker refused at 14:00:09Z before any assertion. The retry is the result.
-- Data 95/95 (526.486s) at 14:12:26Z. App 105/105 (134.055s) at 14:14:49Z. Emulator `gud_x86` 1080×1920 / 480. Gradle was stopped first.
-- Slice XML at 13:45:39Z is inside that suite: SaleReviewTest 3/3, InsightsReturnsTest 1/1, Run8LibraryTest 3/3, ManualPriceTest 2/2, CasIdentityMatchingTest 12/12. LicenceViewModelTest 4/4 at 13:47:54Z.
-- `Run8SurfaceInstrumentedTest` 8/8 in 22.663s at 13:56:00Z, and again in the app suite. The 13:51:29Z run was 6/8 and is not the result.
-- `validate_schema.py` PASS, `security_preflight.py` PASS, script unittest 35 OK, rechecked 14:00Z. Not a pen test.
-- ARM64 debug sha256 `d4a03dd3…aa429` size 50806960 at 14:15:38Z. Minified release sha256 `c33ed4bd…218aa` size 30739397 at 14:20:01Z. Both from `53c86a8`, native-code arm64-v8a. Phone not used. TalkBack not run.
+- Date: 2026-11-02. Run 10. Code `91f5fe4` (also `aa75081`). Docs after this line are not the APK commit. Previous code `ae68695`.
+- Domain `:domain:test` 284/284 (61 classes, 0 fail). Latest XML 2026-11-02T23:21:34.790Z. Two cold workers refused before assertions. The reset retry is the result.
+- Data 99/99 in 487.564s, ended 2026-11-02T23:32:54Z. App 112/112 in 130.016s, ended 2026-11-02T23:35:09Z. Emulator `gud_x86` 1080×1920 / 480. Gradle was stopped first. Shutdown exit 139 after `adb emu kill`.
+- App JVM: only AppViewModelTest 1/1 at 23:16:24Z. The rest of `:app:testDebugUnitTest` was not re-run.
+- `validate_schema.py` PASS. `security_preflight.py` PASS. Script unittest 35 OK at 23:36:57Z. Not a pen test.
+- ARM64 debug sha256 `ccd47a51…94d77f2` size 50806772 at 23:37:19Z. Minified release sha256 `afa948e1…483c2de` size 30755781 at 23:42:27Z. Both from `91f5fe4`, native-code arm64-v8a. Phone not used. TalkBack not run. Test key, not a Play upload key.
 
 ## MATRIX
 - P01 EMULATOR FirstRunIdentityInstrumentedTest, FirstRunIdentityShellTest, FirstRunIdentityHandoffInstrumentedTest — gap: phone install.
 - P02 EMULATOR LocalAppPasswordInstrumentedTest, LocalLoginShellTest — gap: the OS credential Activity was not launched.
-- P03 EMULATOR LegacyBackupShellTest, PortableRecoveryShellTest, LegacyVaultMigrationInstrumentedTest — gap: none new; keep the restore warning.
+- P03 EMULATOR LegacyBackupShellTest, PortableRecoveryShellTest, LegacyVaultMigrationInstrumentedTest — gap: keep the restore warning.
 - P04 EMULATOR NativeParitySchemaInstrumentedTest (schema v5) — gap: none for the migration.
 - P05 LOCAL FinancialGoldenTest, M27CorrectionIntegrityTest; EMULATOR append-only via NativeParitySchemaInstrumentedTest — gap: not every event type has a UI restart.
 - P06 EMULATOR FamilyAdministrationInstrumentedTest, FamilyOnboardingShellTest — gap: none for CRUD.
@@ -24,76 +21,76 @@
 - P10 EMULATOR CustodyHoldingShellTest — gap: review step is not screenshotted.
 - P11 LOCAL ManualAssetOnboardingTest, OriginalHoldingFormPolicyTest — gap: not every specialist field has an emulator restart.
 - P12 LOCAL HoldingViewTest — gap: dated valuation UI is not separately tested.
-- P13 EMULATOR NativeManualTradeInstrumentedTest (BUY/SELL) and ManualEventRestartInstrumentedTest (DIVIDEND, INTEREST, BONUS, REPAYMENT). 1/1 at 13:30:25Z. Gap: not screenshotted for every kind.
-- P14 EMULATOR ManualEventRestartInstrumentedTest (SPLIT, CORRECTION, OPENING_BALANCE). Original row stays. A second correction of the same id is rejected. Wrong-owner dividend and cross-owner correction do not write. LOCAL ManualTradePlannerTest.
+- P13 EMULATOR NativeManualTradeInstrumentedTest and ManualEventRestartInstrumentedTest — gap: not screenshotted for every kind.
+- P14 EMULATOR ManualEventRestartInstrumentedTest. Original row stays. A second correction of the same id is rejected. LOCAL ManualTradePlannerTest.
 - P15 EMULATOR OwnerLensShellTest; LOCAL RecordedHoldingsSearchTest — gap: Vault/Settings/Licence have no owner filter.
-- P16 EMULATOR Run8SurfaceInstrumentedTest `saleScreenShowsFifoGainAndFeeOrder` and `unknownSaleCostIsNotPrintedAsZeroEvenAtDoubleFont` (8/8 at 13:56:00Z). LOCAL SaleReviewTest. Gain ₹196; unknown opening is not ₹0. Screen does not write. Gap: no screenshot.
-- P17 EMULATOR `recordsHideTheOtherOwner` hides the other owner. Shell route still passes empty lists. Gap: not read from SQL.
+- P16 EMULATOR Run8SurfaceInstrumentedTest sale sentences, inside app 112/112. Gain ₹196. Unknown opening is not ₹0. Screen does not write. Gap: no screenshot.
+- P17 EMULATOR `statementImportSurvivesRestartAndStaysWithItsOwner` inside data 99/99. Shell passes Ready lists into RecordsScreen. The Records route was not opened in a UI test. Label is `Saved statement`.
 - P18 EMULATOR NativeStatementApprovalInstrumentedTest, SyntheticIssuerImportInstrumentedTest — gap: real PDF BLOCKED-OWNER.
-- P19 LOCAL CasIdentityMatchingTest `enrolledNsdlIsinAndClientIdMapsWithoutUsingThePrintedName` (12/12 at 13:45:39Z). Printed name is not identity. Real PDF BLOCKED-OWNER. Not an emulator SQL import.
-- P20 EMULATOR `recordsHideTheOtherOwner` shows that owner's NSDL batch. LOCAL `recordsAndImportHistoryStayWithTheOwnerAndIgnoreADuplicate`. Gap: shell does not read SQL.
-- P21 EMULATOR TaxOwnerScopeInstrumentedTest. FY 2024-25 note is exactly "Rates changed during this year; not estimated". Estimated tax is null, not ₹0. AY26-27 uses 12.5% / 20% above ₹1.25 lakh. Cess omitted. AY27-28 provisional.
-- P22 EMULATOR VaultFinanceReviewInstrumentedTest and FinanceReviewInstrumentedTest; LOCAL VaultFinanceReviewTest. Missing rate is not the published default. Screen does not post.
-- P23 EMULATOR same finance tests. Paused loan is omitted, not ₹0. nextEmiDate is instrument metadata. Screen does not post.
-- P24 EMULATOR Run9SurfaceInstrumentedTest `insightsScreenShowsTheKnownXirrAndNotAZeroRate` and `insightsScreenShowsUnknownXirrWithoutCallingItZero` (4/4, 12.758s, 18:40:01Z). Known text is `XIRR 10.01%. Estimate, not advice.` Unknown is `XIRR is unknown from this book.` Neither shows `0%`. LOCAL InsightsReturnsTest. The test opens InsightsScreen with the engine note. It does not load a vault. Gap: no screenshot.
-- P25 LOCAL HomeBooksTest; EMULATOR NativeShellTest and OwnerLensShellTest home — gap: books-health UI is not fully asserted.
-- P26 LOCAL OfficialAmfiNavParserTest, OfficialBhavcopyParserTest; EMULATOR OfficialAmfiCatalogGatewayInstrumentedTest, OfficialExchangeCloseGatewayInstrumentedTest — gap: no live fetch.
-- P27 EMULATOR `missingCloseIsNotZeroAndManualPriceNamesItself` and Run9 `typedManualPriceNamesItselfAndShowsStale`. A typed ₹125 dated 2026-10-01 wins over an official ₹90 and is labelled stale. No `₹ 0.00` and no `₹ 90.00`. LOCAL ManualPriceTest. Gap: no screenshot.
+- P19 LOCAL CasIdentityMatchingTest. Printed name is not identity. Real PDF BLOCKED-OWNER. Not an emulator SQL import.
+- P20 EMULATOR the same import restart. A second sha is ALREADY_IMPORTED. LOCAL VaultImportHistoryTest. Registrar is not guessed.
+- P21 EMULATOR TaxOwnerScopeInstrumentedTest. FY 2024-25 note is exactly "Rates changed during this year; not estimated". Estimated tax is null, not ₹0.
+- P22 EMULATOR VaultFinanceReviewInstrumentedTest and FinanceReviewInstrumentedTest. Missing rate is not the published default. Screen does not post.
+- P23 EMULATOR the same finance tests. A paused loan is omitted, not ₹0. Screen does not post.
+- P24 EMULATOR `savedBuyRestartsAsTheKnownXirrAndNotZero` and Run9 Insights sentences, both inside the full suites. Known text is `XIRR 10.01%. Estimate, not advice.` Unknown is `XIRR is unknown from this book.` The screen test injects the note. The vault test does not open Insights. Gap: no screenshot.
+- P25 LOCAL HomeBooksTest; EMULATOR NativeShellTest and OwnerLensShellTest home — gap: books-health UI is not on Home.
+- P26 LOCAL OfficialAmfiNavParserTest, OfficialBhavcopyParserTest; EMULATOR AMFI and exchange gateways — gap: no live fetch.
+- P27 EMULATOR missing close and Run9 typed ₹125 stale, inside app 112/112. Not ₹0 and not the older ₹90. LOCAL ManualPriceTest. Gap: no screenshot.
 - P28 EMULATOR NativeVaultInstrumentedTest, PortableRecoveryShellTest — gap: none new.
 - P29 LOCAL BackupFolderViewModelTest — gap: no emulator test of the folder screen.
 - P30 EMULATOR EmergencyExportShellTest; LOCAL EmergencyDossierCsvTest — gap: plaintext consent path.
-- P31 EMULATOR `settingsSwitchesStartOffAndNameSgbAndDiagnostics`. Default is the RBI sentence. The switch then shows the market sentence and says a missing close stays missing. The switch is at least 48dp. LOCAL `sgbToggleDoesNotInventTheMissingSide`. Gap: no screenshot.
-- P32 EMULATOR the same settings test. The switch starts off and the record button is hidden. After opt-in, a local note appears and delete removes it. The screen says nothing is sent. LOCAL `diagnosticsStayOffAndDropSecrets` still covers PAN redaction. Gap: notes do not survive process death. The button does not type a PAN.
-- P33 EMULATOR ScreenshotMatrixInstrumentedTest 7/7. Hindi vault/statement/cloud stay वॉल्ट/स्टेटमेंट/क्लाउड. TalkBack not run.
+- P31 EMULATOR `settingsSwitchesStartOffAndNameSgbAndDiagnostics` inside app 112/112. LOCAL `sgbToggleDoesNotInventTheMissingSide`. Gap: no screenshot.
+- P32 EMULATOR DiagnosticNotesInstrumentedTest and the settings switch. PAN becomes `[redacted]`. A second repository read it. Process was not killed. Nothing is sent.
+- P33 EMULATOR ScreenshotMatrixInstrumentedTest. Hindi stays वॉल्ट/स्टेटमेंट/क्लाउड. TalkBack not run.
 - P34 LOCAL GmailProfileTest, GmailAccountListTest — gap: real OAuth BLOCKED-OWNER.
 - P35 LOCAL MailAttachmentIntakePolicyTest, MailboxSyncTest; EMULATOR MailboxSyncSchedulerInstrumentedTest. Worker does not call Gmail. Real OAuth BLOCKED-OWNER.
-- P36 EMULATOR `feedbackPromptFollowsTheSnoozeAndDoesNotClaimTheStore` and `feedbackDismissHidesThePrompt`. Does not open the store. Gap: firstSeen is not stored across launches.
-- P37 LOCAL LicenceViewModelTest `restoreWithNoLivePurchaseStaysUnsubscribed` (4/4 at 13:47:54Z). Screen says a button cannot turn the plan on. Gap: restore was not tapped on the emulator. Real purchase BLOCKED-OWNER.
+- P36 EMULATOR FeedbackClockInstrumentedTest and Run10 feedback tests inside the full suites. Does not open the store. Same-process DataStore. Process was not killed.
+- P37 EMULATOR `restoreTapLeavesThePlanOff`. Empty Play evidence stays off. A button cannot turn the plan on. Real purchase BLOCKED-OWNER.
 - P38 LOCAL PlayEntitlementPolicyTest, LicenceViewModelTest — gap: real Play purchase BLOCKED-OWNER.
-- P39 EMULATOR domain 283/283, data 95/95, and app 105/105 are from `53c86a8` at 14:00–14:14Z. Run9's 4 tests passed at 18:40:01Z and those full suites were not repeated. ARM64 debug and minified release were rebuilt from `ae68695` and not installed. DEVICE parser, pen test, and owner sign-off stay BLOCKED-OWNER.
+- P39 EMULATOR domain 284/284, data 99/99, and app 112/112 on 2026-11-02. ARM64 debug and minified release were rebuilt from `91f5fe4` and not installed. DEVICE parser, pen test, and owner sign-off stay BLOCKED-OWNER.
 - E01 EMULATOR theme screenshots — gap: not every screen.
-- E02 EMULATOR 48dp and contentDescription on Home, sale, records, price, feedback, first-run continue, and the SGB and diagnostics switches. TalkBack not run.
+- E02 EMULATOR 48dp on Home, sale, records, price, feedback, first-run continue, and the SGB and diagnostics switches. TalkBack not run.
 - E03 EMULATOR OwnerLensShellTest — gap: vault, settings, and licence.
 - E04 LOCAL FamilyMemberOnboardingTest — gap: ownership-evidence UI.
-- E05 EMULATOR `firstRunIdentityStepStaysDisabledUntilConsentAndNamesTheDeviceLock`. Continue stays disabled and at least 48dp. The OS credential Activity was not launched.
+- E05 EMULATOR first-run continue stays disabled until consent. The OS credential Activity was not launched.
 - E06 LOCAL MailAttachmentIntakePolicyTest quarantine — gap: issuer confidence UI.
 - E07 EMULATOR MailboxSyncSchedulerInstrumentedTest; LOCAL MailboxSyncTest — gap: real OAuth BLOCKED-OWNER.
-- E08 EMULATOR unknown sale, missing close, and a stale typed price are not ₹0. The typed price wins over the older official close.
-- E09 EMULATOR PortfolioInsightsShellTest drill-down and Run9 Insights XIRR sentences. Gap: goals series. The XIRR test does not read the vault.
+- E08 EMULATOR unknown sale, missing close, and a stale typed price are not ₹0.
+- E09 EMULATOR PortfolioInsightsShellTest and Run9 XIRR sentences. Gap: the XIRR screen test does not read the vault.
 - E10 EMULATOR AMFI and NSE/BSE gateways, plus the typed stale manual price. Gap: no live fetch.
-- E11 EMULATOR the diagnostics switch starts off, records one local note, and deletes it. Nothing is uploaded. LOCAL redaction still drops PAN. Gap: the note is not stored across launches.
+- E11 EMULATOR diagnostics start off, record one local note, delete it, and read it back. Nothing is uploaded. Process was not killed.
 - E12 EMULATOR LegacyBackupShellTest, LegacyVaultMigrationInstrumentedTest — gap: none new.
 - E13 EMULATOR ScreenshotMatrixInstrumentedTest onboarding — gap: data-quality coaching beyond books health.
 - E14 LOCAL domain tests — gap: dependency graph is not written.
-- E15 LOCAL docs/SBOM.md from libs.versions.toml. `security_preflight.py` last PASS was 05:27Z. Not a pen test.
-- E16 LOCAL LicenceGateTest and the restore test above — gap: real billing BLOCKED-OWNER.
+- E15 LOCAL docs/SBOM.md. `security_preflight.py` PASS at 23:36:57Z. Not a pen test.
+- E16 EMULATOR restore tap stays unsubscribed. LOCAL LicenceGateTest. Real billing BLOCKED-OWNER.
 - E17 NONE — CI is not used. Do not touch the trigger.
 - E18 LOCAL docs/EGRESS.md. Finances, PAN, DOB, keys, and PDFs are not sent. Not a pen test.
 
 ## QUEUE
-1. Licence restore sentence on the emulator. Stay fail-closed.
-2. Read import history and documents from the vault. The shell lists are still empty.
-3. Persist the feedback clock. Do not open the store.
+1. Open Records from Home in a UI test. Keep the label Saved statement.
+2. Let the Insights screen test read a vault, not an injected note.
+3. Show Home books-health from HomeBooks. Do not invent a PAN warning.
 4. TalkBack stays a gap. Do not claim it ran.
-5. Real NSDL PDF stays BLOCKED-OWNER.
-6. Phone install stays BLOCKED-OWNER.
-7. Production signing stays BLOCKED-OWNER.
-8. Screenshot the Insights XIRR card.
-9. Full suites were not re-run after Run9.
-10. Screenshot the Insights XIRR card.
+5. Process death of feedback and diagnostics is not proven.
+6. Real NSDL PDF stays BLOCKED-OWNER.
+7. Phone install stays BLOCKED-OWNER.
+8. Production signing stays BLOCKED-OWNER.
+9. Interest and EMI screens still do not post a ledger event.
+10. Do not claim a Play-ready product.
 
 ## DECISIONS
 - Hindi vault word is वॉल्ट. Statement is स्टेटमेंट. Cloud is क्लाउड. Banned: तिजोरी, बयान, बादल.
 - FY 2024-25 equity tax is unknown. Note exactly `Rates changed during this year; not estimated`. Estimated tax is null, not ₹0. AY26-27 uses later rates only. Cess and surcharge are omitted. AY27-28 stays provisional.
-- Sale fees follow LotEngine. Buy charges sit on the lot. FIFO removes the recorded unit price, not the charge-inclusive average. Sale charges reduce proceeds. Golden: buy 10 at ₹100 with ₹10 charges, sell 4 at ₹150 with ₹4 charges, gain ₹196. Unknown opening cost stays null: `Need what you paid. The gain is not shown as zero.`
-- A missing close stays `No close is saved. It is not zero.` A manual price wins and is stale after 7 days. It is not zero.
-- Empty XIRR is exactly `XIRR is unknown from this book.` A known rate is labelled an estimate, not advice.
-- NSDL enrolled rows match EQUITY, GOLD_SGB, and MUTUAL_FUND. The printed name is not identity, same as CDSL.
-- SGB `choose` returns null when the selected side is missing or not positive. It does not fall through.
+- Sale golden: buy 10 at ₹100 with ₹10 charges, sell 4 at ₹150 with ₹4 charges, gain ₹196. Unknown cost stays `Need what you paid. The gain is not shown as zero.`
+- A missing close stays `No close is saved. It is not zero.` A manual price wins and is stale after 7 days.
+- Empty XIRR is exactly `XIRR is unknown from this book.` A known rate is an estimate, not advice.
+- Saved imports are read from snapshot_import. The label is `Saved statement`. Do not invent NSDL or CDSL.
+- Feedback clock and diagnostic notes are in the appearance DataStore. Proof is a second repository in the same process. Process death was not tested.
 - Diagnostics default off. PAN and email become `[redacted]`. Token, password, pdf, and BEGIN lines are dropped. Notes are not uploaded.
-- Feedback does not open Play and does not collect a rating. Restore with no live purchase stays unsubscribed.
-- Gradle: use `gud-gradle.sh`. Do not pass `--no-daemon`. Do not run Gradle beside the emulator. Type tag 71 can print on a green run.
-- Release uses the test keystore so R8 can run. That key is not a Play upload key. Parser libraries stay inside `assets/chaquopy`.
+- Restore with no live purchase stays unsubscribed. A button cannot turn the plan on.
+- Gradle: use `gud-gradle.sh`. Do not pass `--no-daemon` or a second `-p`. Do not run Gradle beside the emulator. Type tag 71 can print on a green run.
+- Release uses the test keystore so R8 can run. That key is not a Play upload key.
 
 ## BLOCKERS
 - BLOCKED-OWNER: real Gmail consent, Play purchases, production signing, phone install, real CAS PDFs, pen test, owner visual sign-off. DEVICE/OWNER none.
@@ -101,7 +98,7 @@
 - `pypdfium2` is arm64-only. x86 CAS tests stay synthetic.
 
 ## KNOWN GAPS
-- The 13:51:29Z surface run failed 2 of 8 because the same rupee text and the same missing-close sentence matched twice. The 13:56:00Z run is the one that passed. Do not cite the first pass as green.
-- Records, sale, and price screens are proven with synthetic rows. Home's records route still passes empty lists.
-- Interest and EMI screens do not post. ARM64 digests are from `ae68695`. The release key is the test key, not a Play upload key. R8 mapping.txt was produced and not committed.
-- TalkBack was not run. The OS credential Activity was not launched.
+- Records, sale, and price screens are proven with synthetic rows. The Records route was not opened in a UI test.
+- Interest and EMI screens do not post. ARM64 digests are from `91f5fe4`. The release key is the test key. R8 mapping.txt was produced and not committed.
+- TalkBack was not run. The OS credential Activity was not launched. Insights was not screenshotted.
+- Feedback and diagnostic notes were not proven across process death.
