@@ -48,4 +48,18 @@ Open Ended Schemes
             day)
         assertEquals(QuoteCondition.STALE, rows.single().condition(day))
     }
+
+    @Test fun acceptsPlanAndOptionColumnsWithoutInventingANav() {
+        val heading8 =
+            "Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;" +
+            "Scheme Name;Plan;Option;Net Asset Value;Date\n"
+        val rows = OfficialAmfiNavParser.parse(
+            heading8 + "100001;INF000000009;-;Synthetic Plan Fund;Direct Plan;Growth Option;29.5668;02-Nov-2026\n",
+            LocalDate.parse("2026-11-03"),
+        )
+        assertEquals("INF000000009", rows.single().isin)
+        assertEquals(295_668L, rows.single().closePrice.raw)
+        assertEquals(LocalDate.parse("2026-11-02"), rows.single().closeDate)
+        assertEquals(OfficialMarketSource.AMFI, rows.single().source)
+    }
 }

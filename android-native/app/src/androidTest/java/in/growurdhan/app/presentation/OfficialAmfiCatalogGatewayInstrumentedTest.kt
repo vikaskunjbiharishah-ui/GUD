@@ -37,4 +37,19 @@ class OfficialAmfiCatalogGatewayInstrumentedTest {
             if (previous != null) cache.writeBytes(previous) else cache.delete()
         }
     }
+
+    @Test fun explicitRefreshReadsThePublicAmfiFile() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val cache = File(context.noBackupFilesDir, "amfi-public-nav-cache.txt")
+        val previous = if (cache.exists()) cache.readBytes() else null
+        try {
+            if (cache.exists()) cache.delete()
+            val rows = OfficialAmfiCatalogGateway(context).refresh(LocalDate.now())
+            assertTrue(rows.isNotEmpty())
+            assertTrue(rows.all { it.source == OfficialMarketSource.AMFI && it.closePrice.raw > 0L })
+            assertTrue(cache.isFile && cache.length() > 0L)
+        } finally {
+            if (previous != null) cache.writeBytes(previous) else cache.delete()
+        }
+    }
 }

@@ -35,11 +35,13 @@ object OfficialAmfiNavParser {
                 continue
             }
             val parts = line.split(';')
-            if (parts.size != 6) continue // house/section headers
+            // AMFI added Plan and Option in November 2026. The older 6-column
+            // report is still accepted. Any other width fails closed below.
+            if (parts.size != 6 && parts.size != 8) continue
             val code = parts[0].trim()
             val fundName = parts[3].trim()
-            val nav = parts[4].trim()
-            val date = parts[5].trim()
+            val nav = parts[if (parts.size == 8) 6 else 4].trim()
+            val date = parts[if (parts.size == 8) 7 else 5].trim()
             if (!numericCode.matches(code) || fundName.isBlank() || fundName.length > 200 ||
                 !navPattern.matches(nav)) continue
             val day = runCatching { LocalDate.parse(date, navDate) }.getOrNull() ?: continue
