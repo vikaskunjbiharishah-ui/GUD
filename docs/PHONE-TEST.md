@@ -33,4 +33,7 @@ Computer check on 2026-10-30, code ae68695: the emulator Insights screen showed 
 
 Computer check on 2026-11-02, code 91f5fe4: the emulator reopened a saved statement for its owner and labelled it Saved statement. A saved buy reopened as XIRR 10.01%, not 0%. Feedback and diagnostic notes were read back in the same process. Restore left the yearly plan off. Full data 99/99 and app 112/112. This APK was not installed on a phone. TalkBack was not run.
 
+Computer check on 2026-11-03, code 3fe140c: Records opened from Home and showed Saved statement. Confirm posted one interest and one EMI, and a second confirm did not add another row. The feedback clock was still there after the app process was stopped. A public AMFI NAV file was read. This APK was not installed on a phone. TalkBack was not run.
+
+
 

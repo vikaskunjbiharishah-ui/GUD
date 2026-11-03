@@ -1,9 +1,9 @@
-RUN: 10 · TIME USED: 23:03Z–23:42Z · COMMITS: code aa75081, 91f5fe4; docs follow
-DONE (stage): P17/P20 EMULATOR saved statement stays with its owner · P24 EMULATOR vault buy reopens as XIRR 10.01% · P32 EMULATOR diagnostic note stays on the phone · P36 EMULATOR feedback clock · P37 EMULATOR restore stays off
-TESTS: domain 284/284 at 23:21:34Z. Data 99/99 in 487.564s ended 23:32:54Z. App 112/112 in 130.016s ended 23:35:09Z. gud_x86 1080×1920 / 480. App JVM only AppViewModelTest 1/1 at 23:16:24Z. Schema PASS. Preflight PASS. Not a pen test.
-PARTIAL / NOT DONE: Records route not opened in UI · Insights screen test does not load a vault · process death · TalkBack · books health on Home · interest/EMI do not post
-BLOCKED-OWNER: Gmail consent, Play purchase, production signing, phone install, real CAS PDF, pen test, owner sign-off
-FAILED & FIXED: a qualified toFinancialEvent call failed compile; a normal import fixed it. AppViewModelTest needed feedback and diagnosticNotes stubs. Cold workers refused before assertions; the reset retries are the results. No test was weakened.
-OPEN RISKS: Do not assemble beside the emulator. Release APK is the test keystore. Same-process DataStore is not process death. Do not publish.
-NEXT RUN STARTS AT: Open Records from the shell with a saved statement, still labelled Saved statement
-ARTIFACTS: debug sha256 ccd47a513fe6be7ed6c79fc16de0708aa048ef95a2beafc851e13026494d77f2 · release sha256 afa948e1be1bbd95c97bf4d8afb91b9efb73f28abfe357c1c7f85508d483c2de · commit 91f5fe4 · parser .so sizes unchanged
+RUN: 11 · TIME USED: 00:12Z–00:39Z · COMMITS: code 7fba9c5, 3fe140c; docs follow
+DONE (stage): P17 EMULATOR Records route shows Saved statement · P22/P23 EMULATOR confirm posts interest and EMI, not ₹0 · P36 EMULATOR feedback clock after force-stop · P26 EMULATOR live AMFI NAV file
+TESTS: ConfirmedFinancePostTest 2/2 at 00:18:44Z. OfficialAmfiNavParserTest 4/4 at 00:29:38Z. Vault restart 1/1 in 19.402s at 00:23:16Z. FinanceReview+Run11 OK (4) in 14.712s ended 00:23:43Z. AMFI refresh OK (1) in 9.781s ended 00:33:52Z. Full 284/99/112 suites were not re-run.
+PARTIAL / NOT DONE: NSE/BSE live fetch · diagnostic-note process death · Insights vault screen · books health on Home · TalkBack
+BLOCKED-OWNER: own CAS PDF, Gmail consent, ₹99 purchase, production signing, phone install, pen test, owner sign-off
+FAILED & FIXED: the first live AMFI fetch failed closed because the file added Plan and Option columns. The parser now accepts 6 or 8 columns. No test was weakened.
+OPEN RISKS: Do not assemble beside the emulator. Release APK is the test keystore. TalkBack is not on this image. Do not publish.
+NEXT RUN STARTS AT: Insights screen reading a vault, not an injected XIRR note
+ARTIFACTS: debug sha256 d5de1b9de581819223acdb3c828ada0725fbc674148524373d2716c179476a70 · release sha256 f0eb55e04131df9046e85dd5d40fba889a542ba5de52bda25e9d8e316229aa2d · commit 3fe140c
