@@ -51,8 +51,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import `in`.growurdhan.core.model.OwnerId
+import `in`.growurdhan.domain.finance.FinancialEvent
 import `in`.growurdhan.core.model.HoldingId
+import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.app.market.OfficialAmfiCatalogGateway
 import `in`.growurdhan.domain.market.CachedListedSecurity
 import `in`.growurdhan.app.presentation.screens.BackupFolderScreen
@@ -155,6 +156,7 @@ fun GrowUrDhanShell(
     gmail: GmailUiState = GmailUiState(),
     onGmailConnect: () -> Unit = {},
     onGmailDisconnect: (String) -> Unit = {},
+    onConfirmFinance: (List<FinancialEvent>) -> Unit = {},
 ) {
     val controller = rememberNavController()
     val currentBackStackEntry by controller.currentBackStackEntryAsState()
@@ -321,6 +323,7 @@ fun GrowUrDhanShell(
                                 selectedOwner == null || it.ownerId == selectedOwner
                             },
                             onBack = { navigate(MainDestination.HOME.route) },
+                            onConfirm = onConfirmFinance,
                         )
                     }
                     composable(EMI_ROUTE) {
@@ -330,6 +333,7 @@ fun GrowUrDhanShell(
                                 selectedOwner == null || it.ownerId == selectedOwner
                             },
                             onBack = { navigate(MainDestination.HOME.route) },
+                            onConfirm = onConfirmFinance,
                         )
                     }
                     composable(SALE_ROUTE) {

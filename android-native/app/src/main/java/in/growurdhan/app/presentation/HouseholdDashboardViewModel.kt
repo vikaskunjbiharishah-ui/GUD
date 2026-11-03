@@ -3,6 +3,9 @@ package `in`.growurdhan.app.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import `in`.growurdhan.domain.finance.ConfirmedFinancePost
+import `in`.growurdhan.domain.finance.FinancialEvent
+import `in`.growurdhan.domain.finance.FinancialEventKind
 import `in`.growurdhan.domain.finance.FyTaxEstimate
 import `in`.growurdhan.domain.finance.InsightsReturns
 import `in`.growurdhan.domain.finance.SaleReview
@@ -41,8 +44,8 @@ sealed interface HouseholdDashboardUiState {
 }
 
 /**
- * Read-only presentation boundary. The repository performs an atomic encrypted
- * book read; no sensitive book is cached in SavedStateHandle or preferences.
+ * Book reads stay on one authorized snapshot. Interest and EMI posts are a
+ * separate confirmed write, then a fresh read. Nothing is cached in preferences.
  */
 @HiltViewModel
 class HouseholdDashboardViewModel @Inject constructor(
@@ -60,6 +63,31 @@ class HouseholdDashboardViewModel @Inject constructor(
         operation?.cancel()
         operation = null
         mutableState.value = HouseholdDashboardUiState.Locked
+    }
+
+    /** Posts a confirmed interest or EMI line. A zero amount and a second tap do not write. */
+    fun confirmPosts(events: List<FinancialEvent>) {
+        if (!session.isUnlocked()) {
+            lock()
+            return
+        }
+        val accepted = events.filter {
+            (it.kind == FinancialEventKind.INTEREST || it.kind == FinancialEventKind.REPAYMENT) &&
+                it.totalAmount.raw > 0L && it.quantityScaled == 0L
+        }
+        if (accepted.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val existing = repository.readBook().events.map { it.id }.toSet()
+                val fresh = ConfirmedFinancePost.onlyNew(accepted, existing)
+                if (fresh.isNotEmpty()) repository.appendFinancialEvents(fresh)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                return@launch
+            }
+            refresh()
+        }
     }
 
     fun refresh() {

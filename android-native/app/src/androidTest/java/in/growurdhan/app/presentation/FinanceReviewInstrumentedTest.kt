@@ -1,6 +1,10 @@
 package `in`.growurdhan.app.presentation
 
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -14,6 +18,7 @@ import `in`.growurdhan.core.model.HoldingId
 import `in`.growurdhan.core.model.MoneyScaled
 import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.core.model.ThemeMode
+import `in`.growurdhan.domain.finance.ConfirmedFinancePost
 import `in`.growurdhan.domain.finance.EmiPlan
 import `in`.growurdhan.domain.finance.FinancialHolding
 import `in`.growurdhan.domain.finance.LoanEmi
@@ -83,5 +88,36 @@ class FinanceReviewInstrumentedTest {
         assertEquals(3, compose.onAllNodesWithText(shown, substring = true).fetchSemanticsNodes().size)
         compose.onNodeWithText("Outstanding", substring = true).assertIsDisplayed()
         compose.onNodeWithText("2026-09-05", substring = true).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun confirmTapPostsTheEngineInterestAndNotZero() {
+        val owner = OwnerId("synthetic-owner")
+        val holdingId = HoldingId("synthetic-ppf")
+        var posted = 0
+        var amount = 0L
+        val line = `in`.growurdhan.domain.finance.VaultFinanceReview.InterestLine(
+            owner, "Public Provident Fund",
+            `in`.growurdhan.domain.finance.InterestCatchUp(listOf(
+                `in`.growurdhan.domain.finance.PlannedInterest(
+                    LocalDate.parse("2027-03-31"), MoneyScaled(1_377_400_000L), "PPF interest for FY 2026-27 (7.1%)",
+                ),
+            ), null),
+            holdingId,
+        )
+        compose.setContent {
+            GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, false)) {
+                InterestReviewScreen(lines = listOf(line), onBack = {}, onConfirm = { events ->
+                    posted += 1
+                    amount = events.single().totalAmount.raw
+                    assertEquals(1, ConfirmedFinancePost.interestEvents(line).size)
+                })
+            }
+        }
+        compose.onNodeWithText("does not write a ledger event", substring = true).assertIsDisplayed()
+        assertEquals(0, posted)
+        compose.onNodeWithContentDescription("Confirm interest post").assertHeightIsAtLeast(48.dp)
+            .performScrollTo().performClick()
+        assertEquals(1, posted)
+        assertEquals(1_377_400_000L, amount)
     }
 }

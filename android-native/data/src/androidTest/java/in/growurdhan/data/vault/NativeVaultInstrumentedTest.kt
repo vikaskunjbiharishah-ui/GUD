@@ -4,7 +4,14 @@ import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import `in`.growurdhan.core.model.*
+import `in`.growurdhan.domain.finance.ConfirmedFinancePost
+import `in`.growurdhan.domain.finance.EmiCatchUp
+import `in`.growurdhan.domain.finance.EmiPosting
+import `in`.growurdhan.domain.finance.FinancialEventKind
 import `in`.growurdhan.domain.finance.InsightsReturns
+import `in`.growurdhan.domain.finance.InterestCatchUp
+import `in`.growurdhan.domain.finance.PlannedInterest
+import `in`.growurdhan.domain.finance.VaultFinanceReview
 import `in`.growurdhan.domain.finance.toFinancialEvent
 import java.io.File
 import java.security.KeyStore
@@ -167,6 +174,42 @@ class NativeVaultInstrumentedTest {
         )
         assertEquals("XIRR is unknown from this book.", unknown)
         assertFalse(unknown.contains("0%"))
+    }
+
+    @Test fun confirmedInterestAndEmiRestartOnceAndNotAsZero(): Unit = runBlocking {
+        vault.openOrCreate()
+        vault.createMember(FamilyMember(owner, "Synthetic Self", "Self", true))
+        vault.createHolding(holding)
+        val loan = holding.copy(
+            id = HoldingId("loan"), name = "Synthetic car loan", assetCategory = "LIABILITY",
+        )
+        vault.createHolding(loan)
+        val interest = ConfirmedFinancePost.interestEvents(VaultFinanceReview.InterestLine(
+            owner, "Synthetic Fund",
+            InterestCatchUp(listOf(PlannedInterest(
+                java.time.LocalDate.parse("2027-03-31"), MoneyScaled(1_377_400_000L), "PPF interest",
+            )), null),
+            holding.id,
+        ))
+        val emi = ConfirmedFinancePost.emiEvents(VaultFinanceReview.EmiLine(
+            owner, "Synthetic car loan",
+            EmiCatchUp(listOf(EmiPosting(
+                loan.id, owner, "Synthetic car loan", java.time.LocalDate.parse("2026-07-05"),
+                MoneyScaled(185_000_000L), "Monthly EMI",
+            )), null, 5, MoneyScaled(612_000L * 10_000), "PAYING"),
+        ))
+        vault.appendFinancialEvents(interest + emi)
+        vault.close()
+        vault.openOrCreate()
+        val stored = vault.readBook().events.map { it.toFinancialEvent() }
+        assertEquals(2, stored.size)
+        val postedInterest = stored.single { it.kind == FinancialEventKind.INTEREST }
+        assertEquals(1_377_400_000L, postedInterest.totalAmount.raw)
+        assertEquals("int:h1:2027-03-31", postedInterest.id)
+        val postedEmi = stored.single { it.kind == FinancialEventKind.REPAYMENT }
+        assertEquals(185_000_000L, postedEmi.totalAmount.raw)
+        assertTrue(ConfirmedFinancePost.onlyNew(interest + emi, stored.map { it.id }.toSet()).isEmpty())
+        assertEquals(2, vault.events().size)
     }
 
     @Test fun crossOwnerSnapshotFailureRollsBackAndHashIsIdempotent(): Unit = runBlocking {

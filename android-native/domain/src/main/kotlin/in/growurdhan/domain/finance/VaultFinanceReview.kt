@@ -1,5 +1,6 @@
 package `in`.growurdhan.domain.finance
 
+import `in`.growurdhan.core.model.HoldingId
 import `in`.growurdhan.core.model.HoldingProfileSnapshot
 import `in`.growurdhan.core.model.MoneyScaled
 import `in`.growurdhan.core.model.OwnerId
@@ -15,6 +16,7 @@ object VaultFinanceReview {
         val ownerId: OwnerId,
         val name: String,
         val plan: InterestCatchUp,
+        val holdingId: HoldingId? = null,
     )
 
     data class EmiLine(
@@ -55,7 +57,7 @@ object VaultFinanceReview {
                 compounding = jsonString(profile.detailsJson, "compounding"),
             )
             val plan = SavingsInterestEngine.planInterest(terms, asOf) ?: return@mapNotNull null
-            InterestLine(holding.ownerId, holding.name, plan)
+            InterestLine(holding.ownerId, holding.name, plan, holding.holdingId)
         }
     }
 

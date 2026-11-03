@@ -888,6 +888,7 @@ class MainActivity : ComponentActivity() {
                     gmail = gmailState,
                     onGmailConnect = gmailSignIn::connect,
                     onGmailDisconnect = gmailSignIn::disconnect,
+                    onConfirmFinance = dashboardViewModel::confirmPosts,
                 )
             }
         }

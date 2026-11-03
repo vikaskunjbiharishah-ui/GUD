@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -15,17 +16,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import `in`.growurdhan.domain.finance.ConfirmedFinancePost
 import `in`.growurdhan.domain.finance.EmiCatchUp
+import `in`.growurdhan.domain.finance.FinancialEvent
 import `in`.growurdhan.domain.finance.InterestCatchUp
 import `in`.growurdhan.domain.finance.MoneyEngine
 import `in`.growurdhan.domain.finance.VaultFinanceReview
 
-/** Shows an engine review. It never posts INTEREST events. */
+/** Shows an engine review. The list itself does not write. Post is a separate tap. */
 @Composable
 fun InterestReviewScreen(
     plan: InterestCatchUp? = null,
     lines: List<VaultFinanceReview.InterestLine> = emptyList(),
     onBack: () -> Unit,
+    onConfirm: (List<FinancialEvent>) -> Unit = {},
 ) {
     val shown = if (lines.isNotEmpty()) lines else listOfNotNull(plan?.let {
         VaultFinanceReview.InterestLine(ownerId = `in`.growurdhan.core.model.OwnerId("review"), "Interest", it)
@@ -50,6 +54,15 @@ fun InterestReviewScreen(
                     Text("Projected balance ${MoneyEngine.formatRupees(grown.raw)}. Not posted.")
                 }
             }
+            val toPost = shown.flatMap { ConfirmedFinancePost.interestEvents(it) }
+            if (toPost.isNotEmpty()) {
+                Button(
+                    onClick = { onConfirm(toPost) },
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Confirm interest post"
+                    },
+                ) { Text("Confirm and post interest") }
+            }
         }
         OutlinedButton(
             onClick = onBack,
@@ -60,12 +73,13 @@ fun InterestReviewScreen(
     }
 }
 
-/** Shows an EMI catch-up. It never posts REPAYMENT events. A paused loan is absent, not ₹0. */
+/** Shows an EMI catch-up. The list itself does not write. Post is a separate tap. A paused loan is absent, not ₹0. */
 @Composable
 fun EmiReviewScreen(
     plan: EmiCatchUp? = null,
     lines: List<VaultFinanceReview.EmiLine> = emptyList(),
     onBack: () -> Unit,
+    onConfirm: (List<FinancialEvent>) -> Unit = {},
 ) {
     val shown = if (lines.isNotEmpty()) lines else listOfNotNull(plan?.let {
         VaultFinanceReview.EmiLine(ownerId = `in`.growurdhan.core.model.OwnerId("review"), "EMI", it)
@@ -88,6 +102,15 @@ fun EmiReviewScreen(
                     Text("${event.date} · ${event.notes}")
                     Text(MoneyEngine.formatRupees(event.amount.raw))
                 }
+            }
+            val toPost = shown.flatMap { ConfirmedFinancePost.emiEvents(it) }
+            if (toPost.isNotEmpty()) {
+                Button(
+                    onClick = { onConfirm(toPost) },
+                    modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentDescription = "Confirm EMI post"
+                    },
+                ) { Text("Confirm and post EMI") }
             }
         }
         OutlinedButton(
