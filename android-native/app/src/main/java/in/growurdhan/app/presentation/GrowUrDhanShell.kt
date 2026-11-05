@@ -55,6 +55,8 @@ import `in`.growurdhan.domain.finance.FinancialEvent
 import `in`.growurdhan.core.model.HoldingId
 import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.app.market.OfficialAmfiCatalogGateway
+import `in`.growurdhan.app.welcome.WelcomeMemory
+import `in`.growurdhan.domain.market.OfficialMarketSource
 import `in`.growurdhan.domain.market.CachedListedSecurity
 import `in`.growurdhan.app.presentation.screens.BackupFolderScreen
 import `in`.growurdhan.app.presentation.screens.PortableRecoveryIntent
@@ -164,14 +166,37 @@ fun GrowUrDhanShell(
     val snackbars = remember { SnackbarHostState() }
     val appContext = LocalContext.current.applicationContext
     val catalogGateway = remember(appContext) { OfficialAmfiCatalogGateway(appContext) }
+    val welcomeMemory = remember(appContext) { WelcomeMemory(appContext) }
+    val hindi = welcomeMemory.hindi()
     val catalogScope = rememberCoroutineScope()
     var officialCatalog by remember { mutableStateOf<List<CachedListedSecurity>>(emptyList()) }
     var catalogLoading by remember { mutableStateOf(false) }
     var catalogMessage by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(currentRoute) {
-        if (currentRoute == CUSTODY_ROUTE) {
-            officialCatalog = withContext(Dispatchers.IO) { catalogGateway.cached() }
+    fun fundNote(rows: List<CachedListedSecurity>): String? {
+        val date = rows.filter { it.source == OfficialMarketSource.AMFI }.maxOfOrNull { it.closeDate }
+        return if (date != null) "Mutual fund prices: as of $date, from AMFI." else null
+    }
+    val refreshFunds: () -> Unit = {
+        if (!catalogLoading) {
+            catalogLoading = true
+            catalogScope.launch {
+                try {
+                    val rows = withContext(Dispatchers.IO) { catalogGateway.refresh() }
+                    officialCatalog = rows
+                    catalogMessage = fundNote(rows)
+                        ?: "Mutual fund prices: not updated on this phone yet."
+                } catch (_: Exception) {
+                    catalogMessage = "Mutual fund prices could not be updated. The book was not changed."
+                } finally {
+                    catalogLoading = false
+                }
+            }
         }
+    }
+    LaunchedEffect(Unit) {
+        val cached = withContext(Dispatchers.IO) { catalogGateway.cached() }
+        officialCatalog = cached
+        fundNote(cached)?.let { if (catalogMessage == null) catalogMessage = it }
     }
     // One presentation selection shared across Home, Holdings, Accounts, Goals
     // and CAS documents. Never persisted in preferences or SavedStateHandle.
@@ -231,7 +256,7 @@ fun GrowUrDhanShell(
                                 titleContentColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                         )
-                        if (visibleMembers.size > 1) {
+                        if (visibleMembers.isNotEmpty()) {
                             Row(
                                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
                                     .padding(horizontal = 12.dp),
@@ -290,6 +315,10 @@ fun GrowUrDhanShell(
                             onOpenInterest = { navigate(INTEREST_ROUTE) },
                             onOpenEmi = { navigate(EMI_ROUTE) },
                             onOpenRecords = { navigate(RECORDS_ROUTE) },
+                            onAddHoldings = { navigate(CUSTODY_ROUTE) },
+                            onUpdateFundPrices = refreshFunds,
+                            fundPriceNote = catalogMessage,
+                            hindi = hindi,
                             selectedFamilyOwner = selectedOwner,
                             onSelectFamilyOwner = { selectedOwner = it },
                         )
@@ -352,6 +381,7 @@ fun GrowUrDhanShell(
                             batches = ready?.importBatches.orEmpty(),
                             owner = selectedOwner,
                             onBack = { navigate(MainDestination.HOME.route) },
+                            onChooseStatement = { navigate(MainDestination.REVIEW.route) },
                         )
                     }
                     composable(DOCUMENTS_ROUTE) {
@@ -371,6 +401,7 @@ fun GrowUrDhanShell(
                             state = dashboardState,
                             onOpenVault = { navigate(VAULT_ROUTE) },
                             onRefresh = onDashboardRefresh,
+                            onAddHoldings = { navigate(CUSTODY_ROUTE) },
                             selectedOwnerId = selectedOwner,
                         )
                     }
@@ -464,28 +495,7 @@ fun GrowUrDhanShell(
                             verifiedOfficialCatalog = officialCatalog,
                             officialCatalogLoading = catalogLoading,
                             officialCatalogMessage = catalogMessage,
-                            onRefreshOfficialCatalog = {
-                                if (!catalogLoading) {
-                                    catalogLoading = true
-                                    catalogMessage = null
-                                    catalogScope.launch {
-                                        try {
-                                            val rows = withContext(Dispatchers.IO) {
-                                                catalogGateway.refresh()
-                                            }
-                                            officialCatalog = rows
-                                            catalogMessage = "AMFI public NAV cache updated: " +
-                                                rows.size + " dated fund identities."
-                                        } catch (_: Exception) {
-                                            // Fail closed and preserve the previously validated cache.
-                                            catalogMessage = "AMFI report unavailable or format changed. " +
-                                                "Previously validated offline data remains unchanged."
-                                        } finally {
-                                            catalogLoading = false
-                                        }
-                                    }
-                                }
-                            },
+                            onRefreshOfficialCatalog = refreshFunds,
                             onIntent = onCustodyIntent,
                             onBackToVault = {
                                 onCustodyIntent(CustodyHoldingIntent.Cancel)

@@ -21,7 +21,7 @@ object BackupSchedule {
         if (!settings.enabled) return null
         if (reason == "open" && !settings.onOpen) return null
         if (reason == "cas" && !settings.onCasImport) return null
-        if (!unlocked) return "Unlock the vault to run scheduled backup. The password is not stored."
+        if (!unlocked) return "Open the books before a scheduled backup. The password is not stored."
         if (!hasFolder) return "Choose a Google Drive or OneDrive folder first."
         return "run"
     }
@@ -50,7 +50,7 @@ object BackupSchedule {
     }
 
     fun refusal(unlocked: Boolean, hasFolder: Boolean): String? = when {
-        !unlocked -> "Unlock the vault to run scheduled backup. The password is not stored."
+        !unlocked -> "Open the books before a scheduled backup. The password is not stored."
         !hasFolder -> "Choose a Google Drive or OneDrive folder first."
         else -> null
     }

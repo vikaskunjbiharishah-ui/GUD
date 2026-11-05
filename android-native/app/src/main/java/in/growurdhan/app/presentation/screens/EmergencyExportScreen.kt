@@ -36,9 +36,10 @@ fun EmergencyExportScreen(
                 Text("Unencrypted export", style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.error)
                 Text(
-                    "This CSV can be read by anyone who has access to the destination " +
-                        "you choose, including a cloud document provider. It is NOT a backup. " +
-                        "Use the password-encrypted .gud backup for full financial recovery.",
+                    "Export a summary anyone can open. This file is not locked. " +
+                        "Anyone who gets the file can read the amounts. It is for an emergency, " +
+                        "not for sharing on chat. The file is unencrypted. It is not a backup. " +
+                        "Use the password-protected backup for a full copy of the books.",
                 )
                 Text(
                     "The summary contains family names, asset names, recorded balances " +

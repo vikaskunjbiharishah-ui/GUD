@@ -776,7 +776,10 @@ class MainActivity : ComponentActivity() {
             }
             GrowUrDhanTheme(state.appearance) {
                 if (showOnboarding) {
-                    OnboardingScreen(onFinished = {
+                    OnboardingScreen(
+                        hindi = welcome.hindi(),
+                        onHindiChange = { welcome.setHindi(it) },
+                        onFinished = {
                         welcome.markOnboardingSeen()
                         showOnboarding = false
                     })
@@ -809,6 +812,7 @@ class MainActivity : ComponentActivity() {
                         LocalLoginScreen(
                             state = loginStatus,
                             message = localLoginError,
+                            hindi = welcome.hindi(),
                             accountEmailRequired = appPassword.hasAccountEmailBinding(),
                             onSubmitWithEmail = ::handleLocalLogin,
                             onSubmit = { password, repeated -> handleLocalLogin("", password, repeated) },
@@ -1445,7 +1449,7 @@ class MainActivity : ComponentActivity() {
         }
         val explanation = when (action) {
             CredentialAction.OPEN_VAULT ->
-                "Confirm your device screen lock before opening the encrypted vault."
+                "Confirm your screen lock before opening the books."
             CredentialAction.IMPORT_PDF ->
                 "Confirm your device screen lock before accessing the selected PDF."
             CredentialAction.APPROVE_REVIEW ->
@@ -1455,11 +1459,11 @@ class MainActivity : ComponentActivity() {
             CredentialAction.MANAGE_FAMILY ->
                 "Review your private family, account or goal change and confirm this device lock."
             CredentialAction.REGISTER_CUSTODY ->
-                "Confirm your screen lock before enrolling this account or CAS holding."
+                "Confirm your screen lock before adding this account."
             CredentialAction.PORTABLE_BACKUP ->
                 "Confirm your device screen lock before exporting or restoring encrypted records."
             CredentialAction.APPROVE_MANUAL_TRADE ->
-                "Confirm the reviewed trade before adding an immutable ledger event."
+                "Confirm the reviewed transaction before it is saved in the book. It cannot be edited afterwards."
             CredentialAction.ENROLL_APP_PASSWORD ->
                 "Confirm your Android screen lock before registering this device's local app password."
             CredentialAction.RECOVER_APP_PASSWORD ->

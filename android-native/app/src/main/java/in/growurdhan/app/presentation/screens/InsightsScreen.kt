@@ -37,6 +37,7 @@ fun InsightsScreen(
     state: HouseholdDashboardUiState,
     onOpenVault: () -> Unit,
     onRefresh: () -> Unit,
+    onAddHoldings: () -> Unit = {},
     selectedOwnerId: OwnerId? = null,
 ) {
     Column(
@@ -46,8 +47,8 @@ fun InsightsScreen(
         Text("Insights", style = MaterialTheme.typography.headlineMedium)
         when (state) {
             HouseholdDashboardUiState.Locked -> {
-                Text("Unlock the vault to see how the family's money is split.")
-                Button(onClick = onOpenVault) { Text("Open vault") }
+                Text("Enter your password to see how the family's money is split.")
+                Button(onClick = onOpenVault, modifier = Modifier.heightIn(min = 48.dp)) { Text("Open the books") }
             }
             HouseholdDashboardUiState.Loading -> Text("Adding up the book.")
             HouseholdDashboardUiState.Unavailable -> {
@@ -64,7 +65,7 @@ fun InsightsScreen(
                     if (focused == null) {
                         Text("That person is not in this open book.")
                     } else {
-                        Text("Showing one person only: ${focused.displayName ?: "Member"}.")
+                        Text("${focused.displayName ?: "This person"} only.")
                         Text(
                             "Owns ${focused.assets.asBook()} · owes ${focused.liabilities.asBook()} · net ${focused.netWorth.asBook()}.",
                         )
@@ -79,7 +80,7 @@ fun InsightsScreen(
                                 onClick = { drilledCategory = category },
                                 modifier = Modifier.heightIn(min = 48.dp),
                             ) {
-                                Text(category.replace('_', ' '))
+                                Text(householdCategory(category))
                             }
                         }
                         if (drilledCategory != null) {
@@ -141,7 +142,10 @@ fun InsightsScreen(
                         }
                     }
                 } else if (!result.hasMeasuredAllocation) {
-                    Text("No positive asset values are recorded for allocation analysis.")
+                    Text("Add investments before this page can show a mix.", style = MaterialTheme.typography.bodyLarge)
+                    Button(onClick = onAddHoldings, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text("Add what you own")
+                    }
                 } else {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(
@@ -153,14 +157,14 @@ fun InsightsScreen(
                                 "Saved values, not today's market price. Each bar is rounded on its own.",
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                            result.allocations.forEach { item ->
+                            result.allocations.sortedByDescending { it.shareBasisPoints }.forEach { item ->
                                 val pct = BigDecimal.valueOf(item.shareBasisPoints.toLong(), 2)
                                     .setScale(1, RoundingMode.HALF_UP).toPlainString()
                                 TextButton(
                                     onClick = { drilledCategory = item.category },
                                     modifier = Modifier.heightIn(min = 48.dp),
                                 ) {
-                                    Text("${item.category.replace('_', ' ')} · $pct%")
+                                    Text("${householdCategory(item.category)} · $pct%")
                                 }
                                 LinearProgressIndicator(
                                     progress = { item.shareBasisPoints / 10_000f },
@@ -186,7 +190,7 @@ fun InsightsScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                "Inside ${drilledCategory!!.replace('_', ' ')}",
+                                "Inside ${householdCategory(drilledCategory!!)}",
                                 style = MaterialTheme.typography.titleMedium,
                             )
                             if (total != null) {
@@ -207,7 +211,7 @@ fun InsightsScreen(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             "Purchase price is missing for " +
-                                "${result.unknownHistoricalCostHoldings} holding(s), so gain is not shown.",
+                                "${result.unknownHistoricalCostHoldings} investments, so the gain is not shown. It is not zero.",
                             modifier = Modifier.padding(18.dp),
                         )
                     }

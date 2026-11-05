@@ -40,7 +40,7 @@ class FamilyOnboardingShellTest {
             }
         }
         compose.onNodeWithContentDescription("Statements").performClick()
-        compose.onNodeWithText("Add a family member to continue").assertIsDisplayed()
+        compose.onNodeWithText("Add the person this statement belongs to").assertIsDisplayed()
         compose.onNodeWithText("Add family member").performScrollTo().performClick()
         compose.onNodeWithText("Add yourself as the primary owner").assertIsDisplayed()
         compose.runOnIdle { assertEquals(FamilyMemberIntent.Refresh, familyIntent) }
@@ -102,7 +102,7 @@ class FamilyOnboardingShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Open vault").performScrollTo().performClick()
+        compose.onNodeWithText("Open the books").performScrollTo().performClick()
         compose.onNodeWithText("Add first family member").performScrollTo().performClick()
         compose.onNodeWithText("Add yourself as the primary owner").assertIsDisplayed()
     }

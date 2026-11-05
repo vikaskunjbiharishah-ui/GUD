@@ -1,6 +1,8 @@
 package `in`.growurdhan.app.presentation.screens
 
+import android.content.pm.ApplicationInfo
 import android.os.Build
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -64,14 +66,16 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            "Appearance",
+            "Settings",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "Choose how GrowUrDhan looks. Changes are kept on this device.",
+            "Password, backup, the yearly plan, and how this phone looks.",
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Text("Look", style = MaterialTheme.typography.titleLarge)
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(vertical = 8.dp)) {
@@ -106,19 +110,18 @@ fun SettingsScreen(
                 modifier = Modifier.padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Security and privacy", style = MaterialTheme.typography.titleMedium)
+                Text("Books and privacy", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Your books stay on this device. Manage your encrypted vault " +
-                        "and read the privacy details without connecting to a server.",
-                    style = MaterialTheme.typography.bodySmall,
+                    "Your books stay on this phone.",
+                    style = MaterialTheme.typography.bodyLarge,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
                         onClick = onOpenVault,
-                        modifier = Modifier.semantics {
+                        modifier = Modifier.heightIn(min = 48.dp).semantics {
                             contentDescription = "Vault settings"
                         },
-                    ) { Text("Vault") }
+                    ) { Text("Books") }
                     OutlinedButton(
                         onClick = onOpenPrivacy,
                         modifier = Modifier.semantics {
@@ -135,13 +138,13 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    "Yearly plan",
+                    "Plan",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
                     when {
                         licence == null -> "₹99 a year on Google Play, after a 30-day trial."
-                        licence.subscribed -> "₹99 a year is on. The vault and Gmail stay open while it is paid."
+                        licence.subscribed -> "₹99 a year is on. The books and Gmail stay open while it is paid."
                         licence.sideloadBlocked -> "This copy was not installed from Google Play."
                         licence.plan == "trial" -> "Trial: ${licence.daysLeft} days left. Then ₹99 a year."
                         else -> "The trial has ended. ₹99 a year on Google Play."
@@ -162,7 +165,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Gmail", style = MaterialTheme.typography.titleMedium)
+                Text("Get statements from Gmail", style = MaterialTheme.typography.titleMedium)
                 val gmailAllowed = licence != null && Licence.gmailSyncAllowed(licence)
                 Text(
                     if (gmailAllowed) {
@@ -196,10 +199,15 @@ fun SettingsScreen(
             }
         }
 
+        Text("Copy and backup", style = MaterialTheme.typography.titleLarge)
+        Text(
+            "This file is not locked. Anyone who gets the file can read the amounts. It is for an emergency, not for sharing on chat. The file is an unencrypted CSV.",
+            style = MaterialTheme.typography.bodyLarge,
+        )
         OutlinedButton(
             onClick = onOpenEmergencyExport,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Export emergency summary (unencrypted CSV)") }
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) { Text("Export a summary anyone can open (unencrypted CSV)") }
 
         OutlinedButton(
             onClick = onOpenBackupFolder,
@@ -247,9 +255,9 @@ fun SettingsScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("SGB price", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        if (appearance.sgbUseMarket) "Using the market close when one is saved. A missing close stays missing."
-                        else "Using the RBI price when one is saved. A missing price stays missing.",
-                        style = MaterialTheme.typography.bodySmall,
+                        if (appearance.sgbUseMarket) "Sovereign gold bonds: using the market price when one is saved. If none is saved, nothing is shown. It is not shown as zero."
+                        else "Sovereign gold bonds: using the RBI price when one is saved. If none is saved, nothing is shown. It is not shown as zero.",
+                        style = MaterialTheme.typography.bodyLarge,
                     )
                 }
                 Switch(
@@ -264,7 +272,7 @@ fun SettingsScreen(
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Diagnostics", style = MaterialTheme.typography.titleMedium)
+                Text("Notes on this phone", style = MaterialTheme.typography.titleMedium)
                 Text(
                     "Off by default. Notes stay on this phone until you delete them. Nothing is sent.",
                     style = MaterialTheme.typography.bodySmall,
@@ -293,6 +301,25 @@ fun SettingsScreen(
                         contentDescription = "Delete local diagnostic notes"
                     },
                 ) { Text("Delete local notes") }
+            }
+        }
+
+        val context = LocalContext.current
+        val debuggable = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val versionName = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        }.getOrNull()
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("About this copy", style = MaterialTheme.typography.titleMedium)
+                Text("Version ${versionName ?: "0.3.0-dev"}", style = MaterialTheme.typography.bodyLarge)
+                if (debuggable) {
+                    Text(
+                        "This is a development copy. Do not use it for live financial records yet. A release from Google Play does not show this warning.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
 

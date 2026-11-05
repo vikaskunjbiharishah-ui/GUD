@@ -34,7 +34,7 @@ fun FeedbackPromptCard(
         if (!FeedbackPrompt.shouldShow(state, now)) {
             Text("A rating prompt waits 7 days, then snoozes for 2 days. GrowUrDhan does not collect a rating.")
         } else {
-            Text("If this book has been useful, you can rate it on Google Play later. GrowUrDhan does not collect the rating and this screen does not open the store.")
+            Text("Has this book been useful? You can rate it on Google Play yourself. This app does not open the store and does not take the rating.")
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
                     onClick = onSnooze,
@@ -47,7 +47,7 @@ fun FeedbackPromptCard(
                     modifier = Modifier.heightIn(min = 48.dp).semantics {
                         contentDescription = "Stop the rating prompt"
                     },
-                ) { Text("I already rated it") }
+                ) { Text("Don't ask again") }
             }
         }
     }

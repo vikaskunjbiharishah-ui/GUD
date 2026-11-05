@@ -7,70 +7,64 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun PrivacyScreen() {
+    var technical by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         Text(
-            "Privacy by construction",
+            "Privacy",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
         )
-        Text(
-            "Native financial records can be held in an encrypted on-device SQLCipher vault. " +
-                "This development build reads statement mail only after you connect Gmail. It does not upload your books.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        PrivacyFact(
+            title = "On this phone",
+            detail = "The family's book is kept on this phone. It is not uploaded.",
         )
         PrivacyFact(
-            title = "Offline foundation",
-            detail = "The current native screens need no network connection.",
-            icon = { Icon(Icons.Outlined.CloudOff, contentDescription = null) },
+            title = "Locked",
+            detail = "GrowUrDhan's password and this phone's screen lock are both required. The password is not sent to us.",
         )
         PrivacyFact(
-            title = "Preferences on this device",
-            detail = "Your display theme is stored locally using Android DataStore.",
-            icon = { Icon(Icons.Outlined.Storage, contentDescription = null) },
+            title = "Gmail, only if you connect it",
+            detail = "Statement mail is read on this phone after you agree. The book is still not uploaded.",
         )
-        PrivacyFact(
-            title = "Local password + device credential",
-            detail = "A separate GrowUrDhan app password is verified using a device-bound " +
-                "Keystore HMAC over a PBKDF2 verifier. Android screen-lock confirmation is " +
-                "also required for the encrypted vault and sensitive financial writes. " +
-                "The app password does not decrypt the SQLCipher database key.",
-            icon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
-        )
+        TextButton(onClick = { technical = !technical }) {
+            Text(if (technical) "Hide technical detail" else "Technical detail")
+        }
+        if (technical) {
+            Text(
+                "The book uses an encrypted database. The password check uses a device-bound Keystore HMAC over a PBKDF2 verifier. The password does not decrypt the database key. Display choices stay on this phone.",
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
     }
 }
 
 @Composable
-private fun PrivacyFact(
-    title: String,
-    detail: String,
-    icon: @Composable () -> Unit,
-) {
+private fun PrivacyFact(title: String, detail: String) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            icon()
             Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(detail, style = MaterialTheme.typography.bodyMedium)
+            Text(detail, style = MaterialTheme.typography.bodyLarge)
         }
     }
 }

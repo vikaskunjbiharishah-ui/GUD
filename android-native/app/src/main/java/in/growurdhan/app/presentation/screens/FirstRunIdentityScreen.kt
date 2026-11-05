@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +29,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.domain.vault.FirstRunRegistration
 
@@ -45,6 +47,7 @@ fun FirstRunIdentityScreen(
     var first by remember { mutableStateOf("") }
     var last by remember { mutableStateOf("") }
     var pan by remember { mutableStateOf("") }
+    var hidePan by remember { mutableStateOf(false) }
     var dob by remember { mutableStateOf("") }
     var q1 by remember { mutableStateOf("school") }
     var q2 by remember { mutableStateOf("city") }
@@ -61,7 +64,7 @@ fun FirstRunIdentityScreen(
     ) {
         Text("Who is this account?", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Name, date of birth and two security questions are saved in the encrypted vault on this phone, together with your app password. They are not sent to GrowUrDhan.",
+            "Name, date of birth and two security questions are saved in the books on this phone, together with your app password. They are not sent to GrowUrDhan.",
             style = MaterialTheme.typography.bodyMedium,
         )
         Text("Account email: $email", style = MaterialTheme.typography.bodySmall)
@@ -71,17 +74,25 @@ fun FirstRunIdentityScreen(
         OutlinedTextField(last, { if (it.length <= 100) last = it },
             label = { Text("Last name") }, singleLine = true,
             modifier = Modifier.fillMaxWidth().testTag("FirstRunLastName"))
+        Text("These answers stay on this phone. They are for getting back in. They are not sent to GrowUrDhan.",
+            style = MaterialTheme.typography.bodyLarge)
         OutlinedTextField(pan, { if (it.length <= 10) pan = it.uppercase() },
             label = { Text("PAN") }, singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (hidePan) PasswordVisualTransformation() else VisualTransformation.None,
+            trailingIcon = {
+                TextButton(onClick = { hidePan = !hidePan }) { Text(if (hidePan) "Show" else "Hide") }
+            },
             modifier = Modifier.fillMaxWidth().testTag("FirstRunPan"))
-        OutlinedTextField(dob, { if (it.length <= 10) dob = it },
-            label = { Text("Date of birth YYYY-MM-DD") }, singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag("FirstRunDob"))
+        BookDateField(
+            label = "Date of birth, for example 15/08/1980",
+            iso = dob,
+            onIso = { dob = it },
+            modifier = Modifier.fillMaxWidth(),
+        )
         Text("First security question", style = MaterialTheme.typography.titleSmall)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             FirstRunRegistration.questionIds.forEach { id ->
-                FilterChip(selected = q1 == id, onClick = { q1 = id }, label = { Text(id) })
+                FilterChip(selected = q1 == id, onClick = { q1 = id }, label = { Text(questionLabel(id)) })
             }
         }
         OutlinedTextField(answer1, { if (it.length <= 256) answer1 = it },
@@ -91,7 +102,7 @@ fun FirstRunIdentityScreen(
         Text("Second security question", style = MaterialTheme.typography.titleSmall)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             FirstRunRegistration.questionIds.forEach { id ->
-                FilterChip(selected = q2 == id, onClick = { q2 = id }, label = { Text(id) })
+                FilterChip(selected = q2 == id, onClick = { q2 = id }, label = { Text(questionLabel(id)) })
             }
         }
         OutlinedTextField(answer2, { if (it.length <= 256) answer2 = it },
@@ -101,9 +112,11 @@ fun FirstRunIdentityScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = consent, onCheckedChange = { consent = it },
                 modifier = Modifier.testTag("FirstRunConsent"))
-            Text("I agree to keep this profile in the encrypted vault on this phone.")
+            Text("I agree to keep this profile in the books on this phone.")
         }
         message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        Text("Android will ask for your device lock. Nothing is saved if you cancel.",
+            style = MaterialTheme.typography.bodyLarge)
         Button(
             enabled = issues.isEmpty(),
             onClick = {
@@ -115,7 +128,7 @@ fun FirstRunIdentityScreen(
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("FirstRunContinue").semantics {
                 contentDescription = "Save the account after the device lock"
             },
-        ) { Text("Save account with device lock") }
+        ) { Text("Save and confirm with the phone lock") }
         OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
             Text("Back")
         }

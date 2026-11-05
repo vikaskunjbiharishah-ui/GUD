@@ -51,14 +51,14 @@ fun PortableRecoveryScreen(
     ) {
         Text("Backup & recovery", style = MaterialTheme.typography.headlineMedium)
         Text(
-            "Portable backups use a separate password and can be recovered on a new phone. " +
-                "That password does not decrypt your local SQLCipher database.",
+            "A backup uses its own password and can be opened on a new phone. " +
+                "That password does not open the books on this phone by itself.",
         )
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Existing data is never overwritten", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Restore works only into a brand-new or completely empty encrypted vault. " +
+                    "Restore works only into books that are empty. " +
                         "A lost backup password cannot be recovered by GrowUrDhan.",
                 )
                 Text("Use a private, trusted document location. Never share the encrypted backup or password.")

@@ -88,7 +88,7 @@ class Run8SurfaceInstrumentedTest {
         }
         compose.onNodeWithText("does not write a ledger event", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Oldest units are sold first.", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("FIFO gain $shown").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Gain, oldest units first $shown").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Back to portfolio").assertHeightIsAtLeast(48.dp)
     }
 
@@ -116,7 +116,7 @@ class Run8SurfaceInstrumentedTest {
         }
         compose.onNodeWithText("Need what you paid. The gain is not shown as zero.")
             .performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Gain not shown").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Purchase price is missing, so the gain is not shown. It is not zero.").performScrollTo().assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("₹ 0.00", substring = true).fetchSemanticsNodes().size)
     }
 
@@ -157,11 +157,25 @@ class Run8SurfaceInstrumentedTest {
         compose.setContent {
             GrowUrDhanTheme(AppearanceSettings(ThemeMode.DARK, false)) {
                 HomeScreen(
+                    dashboardState = HouseholdDashboardUiState.Ready(
+                        `in`.growurdhan.domain.finance.HouseholdDashboard(
+                            asOf = LocalDate.parse("2026-10-30"),
+                            assets = MoneyScaled(0),
+                            liabilities = MoneyScaled(0),
+                            netWorth = MoneyScaled(0),
+                            memberCount = 1,
+                            holdingCount = 1,
+                            unknownCostHoldings = 0,
+                            integrityWarnings = emptyList(),
+                            byMember = emptyList(),
+                        ),
+                    ),
                     onOpenSettings = {},
                     onOpenPrivacy = {},
                 )
             }
         }
+        compose.onNodeWithText("More on this phone").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Open portfolio").assertHeightIsAtLeast(48.dp)
         compose.onNodeWithContentDescription("Open insights").performScrollTo().assertHeightIsAtLeast(48.dp)
         compose.onNodeWithContentDescription("Open documents").performScrollTo().assertHeightIsAtLeast(48.dp)

@@ -28,8 +28,8 @@ fun SaleReviewScreen(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Sale result", style = MaterialTheme.typography.headlineMedium)
-        Text("This screen does not write a ledger event.")
+        Text("Sale", style = MaterialTheme.typography.headlineMedium)
+        Text("This screen does not write a ledger event. It only shows the sale.")
         Text(SaleReview.FEE_ORDER)
         if (reviews.isEmpty()) {
             Text("No sale is recorded for this view.")
@@ -44,8 +44,7 @@ fun SaleReviewScreen(
                 val cost = line.cost
                 val gain = line.gain
                 if (line.unknownCost || gain == null || cost == null) {
-                    Text("Need what you paid")
-                    Text("Gain not shown")
+                    Text("Purchase price is missing, so the gain is not shown. It is not zero.")
                 } else {
                     Text("Cost ${MoneyEngine.formatRupees(cost.raw)}")
                     Text("Gain ${MoneyEngine.formatRupees(gain.raw)}")
@@ -53,7 +52,7 @@ fun SaleReviewScreen(
                 }
             }
             val known = review.knownGain
-            if (known != null) Text("FIFO gain ${MoneyEngine.formatRupees(known.raw)}")
+            if (known != null) Text("Gain, oldest units first ${MoneyEngine.formatRupees(known.raw)}")
         }
         OutlinedButton(
             onClick = onBack,

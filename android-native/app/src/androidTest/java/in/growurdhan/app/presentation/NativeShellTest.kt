@@ -50,7 +50,17 @@ class NativeShellTest {
         compose.setContent {
             GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
                 HomeScreen(
-                    dashboardState = HouseholdDashboardUiState.Locked,
+                    dashboardState = HouseholdDashboardUiState.Ready(HouseholdDashboard(
+                        asOf = java.time.LocalDate.parse("2026-10-09"),
+                        assets = `in`.growurdhan.core.model.MoneyScaled(0),
+                        liabilities = `in`.growurdhan.core.model.MoneyScaled(0),
+                        netWorth = `in`.growurdhan.core.model.MoneyScaled(0),
+                        memberCount = 1,
+                        holdingCount = 1,
+                        unknownCostHoldings = 0,
+                        integrityWarnings = emptyList(),
+                        byMember = emptyList(),
+                    )),
                     onOpenSettings = {},
                     onOpenPrivacy = {},
                     onOpenTaxScope = { tax++ },
@@ -58,8 +68,9 @@ class NativeShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Tax owner scope").performScrollTo().performClick()
-        compose.onNodeWithText("Documents / CAS").performScrollTo().performClick()
+        compose.onNodeWithText("More on this phone").performScrollTo().performClick()
+        compose.onNodeWithText("Tax for one person").performScrollTo().performClick()
+        compose.onNodeWithText("Monthly statement").performScrollTo().performClick()
         compose.runOnIdle {
             assertEquals(1,tax)
             assertEquals(1,documents)
@@ -71,14 +82,25 @@ class NativeShellTest {
         compose.setContent {
             GrowUrDhanTheme(AppearanceSettings(ThemeMode.LIGHT, dynamicColor = false)) {
                 HomeScreen(
-                    dashboardState = HouseholdDashboardUiState.Locked,
+                    dashboardState = HouseholdDashboardUiState.Ready(HouseholdDashboard(
+                        asOf = java.time.LocalDate.parse("2026-10-09"),
+                        assets = `in`.growurdhan.core.model.MoneyScaled(0),
+                        liabilities = `in`.growurdhan.core.model.MoneyScaled(0),
+                        netWorth = `in`.growurdhan.core.model.MoneyScaled(0),
+                        memberCount = 1,
+                        holdingCount = 1,
+                        unknownCostHoldings = 0,
+                        integrityWarnings = emptyList(),
+                        byMember = emptyList(),
+                    )),
                     onOpenSettings = {},
                     onOpenPrivacy = {},
                     onOpenAccounts = { opened = true },
                 )
             }
         }
-        compose.onNodeWithText("Accounts, custodians and nominees")
+        compose.onNodeWithText("More on this phone").performScrollTo().performClick()
+        compose.onNodeWithText("Accounts and nominees")
             .performScrollTo().performClick()
         compose.runOnIdle { assertEquals(true, opened) }
     }
@@ -110,11 +132,11 @@ class NativeShellTest {
         }
         // M26 displays the owner in both the selection chip and the family
         // breakdown. Assert the breakdown entry, not an ambiguous text match.
-        compose.onNodeWithText("Each person").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("People").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic Member").onLast()
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(
-            "Owns ₹ 25.00 · owes ₹ 7.50 · net ₹ 17.50 · 2 holdings",
+            "Synthetic Member — owns ₹ 25.00 · owes ₹ 7.50",
         ).performScrollTo().assertIsDisplayed()
     }
 
@@ -147,10 +169,10 @@ class NativeShellTest {
             }
         }
         compose.onNodeWithText("Synthetic Index Fund").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Historical cost unknown; gain unavailable")
+        compose.onNodeWithText("Purchase price not saved. Gain is not shown. It is not zero.")
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Synthetic Home Loan").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Outstanding liability: ₹ 5.00")
+        compose.onNodeWithText("Still owed: ₹ 5.00")
             .performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("synthetic-owner").assertCountEquals(0)
     }
@@ -182,7 +204,7 @@ class NativeShellTest {
             }
         }
         compose.onNodeWithText("Synthetic Verified Cost Asset").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Unrealised gain/loss: ₹ 4.50")
+        compose.onNodeWithText("Gain or loss so far: ₹ 4.50")
             .performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Historical purchase cost unavailable").assertCountEquals(0)
     }
@@ -213,7 +235,7 @@ class NativeShellTest {
             .performTextInput("home loan")
         compose.onNodeWithText("Synthetic Home Loan").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic Alpha Fund").assertCountEquals(0)
-        compose.onNodeWithText("Showing 1 of 1 matching holding(s); 2 recorded in total.")
+        compose.onNodeWithText("1 shown.")
             .performScrollTo().assertIsDisplayed()
     }
 
@@ -284,7 +306,7 @@ class NativeShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Unlock the vault to see the family's money.").assertIsDisplayed()
+        compose.onNodeWithText("Enter your password to see the family's money.").assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic Member").assertCountEquals(0)
     }
 
@@ -300,7 +322,7 @@ class NativeShellTest {
             }
         }
         compose.onNodeWithContentDescription("Settings").performClick()
-        compose.onNodeWithText("Appearance").assertIsDisplayed()
+        compose.onNodeWithText("Settings").assertIsDisplayed()
         compose.onNodeWithText("Dark").performClick()
         compose.runOnIdle { assertEquals(AppIntent.SelectTheme(ThemeMode.DARK), lastIntent) }
     }
@@ -318,10 +340,10 @@ class NativeShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Open vault").performScrollTo().performClick()
-        compose.onNodeWithText("No native vault found").assertIsDisplayed()
+        compose.onNodeWithText("Open the books").performScrollTo().performClick()
+        compose.onNodeWithText("No books on this phone yet").assertIsDisplayed()
         compose.runOnIdle { assertEquals(null, action) }
-        compose.onNodeWithText("Create encrypted vault").performClick()
+        compose.onNodeWithText("Create the books on this phone").performClick()
         compose.runOnIdle { assertEquals(VaultIntent.OpenOrCreate, action) }
     }
 
@@ -334,10 +356,10 @@ class NativeShellTest {
         }
         compose.onNodeWithContentDescription("Settings").performClick()
         compose.onNodeWithContentDescription("Privacy information").performScrollTo().performClick()
-        compose.onNodeWithText("Privacy by construction").assertIsDisplayed()
+        compose.onNodeWithText("On this phone").assertIsDisplayed()
         // Additional privacy copy moved this card below the initial viewport.
         // Test its actual visible, scrollable state rather than initial placement.
-        compose.onNodeWithText("Preferences on this device")
+        compose.onNodeWithText("The family's book is kept on this phone.")
             .performScrollTo()
             .assertIsDisplayed()
     }
@@ -348,11 +370,11 @@ class NativeShellTest {
             }
         }
         compose.onNodeWithContentDescription("Portfolio").performClick()
-        compose.onNodeWithText("Unlock the vault to see your family's recorded holdings.")
+        compose.onNodeWithText("Enter your password to see the family's investments and loans.")
             .assertIsDisplayed()
         compose.onNodeWithContentDescription("Insights").performClick()
         compose.onNodeWithText(
-            "Unlock the vault to see how the family's money is split.",
+            "Enter your password to see how the family's money is split.",
         ).assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic private holding").assertCountEquals(0)
     }
@@ -364,7 +386,7 @@ class NativeShellTest {
             }
         }
         compose.onNodeWithContentDescription("Statements").performClick()
-        compose.onNodeWithText("No statement ready for review").assertIsDisplayed()
+        compose.onNodeWithText("No statement ready to check").assertIsDisplayed()
         compose.onAllNodesWithText("Confirm and authenticate approval").assertCountEquals(0)
     }
 

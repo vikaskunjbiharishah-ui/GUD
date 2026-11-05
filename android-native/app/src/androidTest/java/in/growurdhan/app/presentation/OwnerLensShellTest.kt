@@ -74,7 +74,7 @@ class OwnerLensShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Showing one person only: Primary.").assertIsDisplayed()
+        compose.onNodeWithText("Primary only.").assertIsDisplayed()
         compose.onNodeWithText("Synthetic private fund").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic other gold").assertCountEquals(0)
         compose.onAllNodesWithText("Household position").assertCountEquals(0)
@@ -102,7 +102,7 @@ class OwnerLensShellTest {
                 selectedOwnerId = primary,
             )
         }
-        compose.onNodeWithText("Showing one person's holdings only.").assertIsDisplayed()
+        compose.onNodeWithText("This person only. Other people are hidden.").assertIsDisplayed()
         compose.onNodeWithText("Synthetic index asset").assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic other asset").assertCountEquals(0)
     }
@@ -118,7 +118,7 @@ class OwnerLensShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Showing one person only").assertIsDisplayed()
+        compose.onNodeWithText("Primary only").assertIsDisplayed()
         compose.onNodeWithText("Synthetic private fund").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic other gold").assertCountEquals(0)
     }

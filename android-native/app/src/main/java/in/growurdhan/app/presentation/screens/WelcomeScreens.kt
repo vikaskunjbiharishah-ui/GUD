@@ -16,7 +16,16 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CurrencyRupee
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -29,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,13 +46,26 @@ import `in`.growurdhan.domain.finance.Onboarding
 import `in`.growurdhan.domain.finance.Terms
 import kotlinx.coroutines.launch
 
+private fun onboardingIcon(name: String): ImageVector = when (name) {
+    "phone" -> Icons.Outlined.Smartphone
+    "lock" -> Icons.Outlined.Lock
+    "file" -> Icons.Outlined.Description
+    "users" -> Icons.Outlined.Group
+    "rupee" -> Icons.Outlined.CurrencyRupee
+    else -> Icons.Outlined.Shield
+}
+
 @Composable
-fun OnboardingScreen(onFinished: () -> Unit) {
+fun OnboardingScreen(
+    onFinished: () -> Unit,
+    hindi: Boolean = false,
+    onHindiChange: (Boolean) -> Unit = {},
+) {
     val slides = Onboarding.slides
     val pager = rememberPagerState { slides.size }
     val scope = rememberCoroutineScope()
-    var hindi by remember { mutableStateOf(false) }
-    val chrome = Onboarding.chrome(hindi)
+    var hindiOn by remember { mutableStateOf(hindi) }
+    val chrome = Onboarding.chrome(hindiOn)
     val pageScroll = remember { List(slides.size) { ScrollState(0) } }
     val colors = listOf(
         MaterialTheme.colorScheme.primaryContainer,
@@ -56,7 +79,10 @@ fun OnboardingScreen(onFinished: () -> Unit) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("GrowUrDhan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             TextButton(
-                onClick = { hindi = !hindi },
+                onClick = {
+                    hindiOn = !hindiOn
+                    onHindiChange(hindiOn)
+                },
                 modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp),
             ) { Text(chrome.languageToggle) }
         }
@@ -83,13 +109,14 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                         .padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    Icon(onboardingIcon(pageSlide.icon), contentDescription = null, tint = ink)
                     Text(
-                        if (hindi) pageSlide.hiTitle else pageSlide.enTitle,
+                        if (hindiOn) pageSlide.hiTitle else pageSlide.enTitle,
                         style = MaterialTheme.typography.headlineMedium,
                         color = ink,
                     )
                     Text(
-                        if (hindi) pageSlide.hiBody else pageSlide.enBody,
+                        if (hindiOn) pageSlide.hiBody else pageSlide.enBody,
                         style = MaterialTheme.typography.bodyLarge,
                         color = ink,
                     )
@@ -122,7 +149,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                     else scope.launch { pager.animateScrollToPage(pager.currentPage + 1) }
                 },
                 modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp),
-            ) { Text(if (pager.currentPage == slides.lastIndex) "Continue" else chrome.next) }
+            ) { Text(if (pager.currentPage == slides.lastIndex) chrome.start else chrome.next) }
         }
     }
 }
@@ -133,9 +160,21 @@ fun TermsGateScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
     val atEnd = scroll.maxValue == 0 || (scroll.value > 0 && !scroll.canScrollForward)
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(Terms.TITLE, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("What this means", style = MaterialTheme.typography.titleMedium)
+                Text("The family's books stay on this phone.")
+                Text("This app does not give investment advice.")
+                Text("Thirty days free, then ₹99 a year. You can cancel any time in Google Play.")
+                Text("The legal text below is in English. Accept is off until you reach the end.")
+                Text("इसका मतलब: किताबें इसी फ़ोन में रहती हैं। यह सलाह नहीं है। 30 दिन मुफ़्त, फिर ₹99 सालाना। Google Play पर कभी भी रद्द कर सकते हैं। नीचे अंग्रेज़ी क़ानूनी लेख है।",
+                    style = MaterialTheme.typography.bodyLarge)
+            }
+        }
         Text(
-            "Effective ${Terms.EFFECTIVE}. Scroll to the end, then accept. The Terms of Use are in English.",
-            style = MaterialTheme.typography.bodySmall,
+            if (atEnd) "You have reached the end."
+            else "Read to the end to accept. स्वीकार करने के लिए अंत तक पढ़ें।",
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Column(

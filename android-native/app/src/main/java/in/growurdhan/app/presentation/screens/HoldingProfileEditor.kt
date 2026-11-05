@@ -206,10 +206,14 @@ fun HoldingProfileEditor(
         OutlinedTextField(subCategory, { subCategory = it.take(80) },
             label = { Text("Subcategory (NPS, SSY, REIT, SGB, FD, etc.)") },
             modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(acquired, { acquired = it.take(10) },
-            label = { Text("Acquired on YYYY-MM-DD (optional)") }, modifier = Modifier.fillMaxWidth())
+        BookDateField(
+            label = "Acquired on, for example 15/08/1980",
+            iso = acquired,
+            onIso = { acquired = it },
+            modifier = Modifier.fillMaxWidth(),
+        )
         OutlinedTextField(isin, { isin = it.uppercase().take(12) },
-            label = { Text("ISIN (optional)") }, modifier = Modifier.fillMaxWidth())
+            label = { Text("Scheme code (ISIN), optional") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(symbol, { symbol = it.take(120) },
             label = { Text("Symbol or masked folio") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(location, { location = it.take(300) },
@@ -347,13 +351,17 @@ fun HoldingProfileEditor(
         Text("Verified cost is metadata, never a fabricated purchase or tax lot.")
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = resetCost, onCheckedChange = { resetCost = it })
-            Text("Mark acquisition cost as UNKNOWN (does not erase ledger history)")
+            Text("Mark the purchase price as not saved. Past entries stay.")
         }
         OutlinedTextField(price, { price = it.take(24) },
             label = { Text("Custom quoted unit price in INR (optional)") },
             modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(priceAsOf, { priceAsOf = it.take(10) },
-            label = { Text("Custom price as-of YYYY-MM-DD") }, modifier = Modifier.fillMaxWidth())
+        BookDateField(
+            label = "Price date, for example 15/08/1980",
+            iso = priceAsOf,
+            onIso = { priceAsOf = it },
+            modifier = Modifier.fillMaxWidth(),
+        )
         OutlinedTextField(priceSource, { priceSource = it.take(120) },
             label = { Text("Custom price source") }, modifier = Modifier.fillMaxWidth())
         if (!creating) {
@@ -361,9 +369,12 @@ fun HoldingProfileEditor(
                 Checkbox(checked = archived, onCheckedChange = { archived = it })
                 Text("Archive (reversible; history remains stored)")
             }
-            OutlinedTextField(closedOn, { closedOn = it.take(10) },
-                label = { Text("Close on YYYY-MM-DD (only when position and debt reach zero)") },
-                modifier = Modifier.fillMaxWidth())
+            BookDateField(
+                label = "Closed on, for example 15/08/1980",
+                iso = closedOn,
+                onIso = { closedOn = it },
+                modifier = Modifier.fillMaxWidth(),
+            )
         } else Text("New holdings start open, unarchived and with no invented transaction.",
             style = MaterialTheme.typography.bodySmall)
         val parsedPrice = runCatching {
@@ -515,8 +526,8 @@ fun HoldingProfileEditor(
                 instrumentMetadataJson = instrumentDelta.toString(),
             ))
         }, modifier = Modifier.fillMaxWidth()) {
-            Text(if (creating) "Review and register complete holding" else
-                "Review holding edits with device lock")
+            Text(if (creating) "Save this investment" else
+                "Save these changes with the phone lock")
         }
     }
 }

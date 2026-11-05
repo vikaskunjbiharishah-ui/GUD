@@ -51,7 +51,7 @@ class LegacyBackupShellTest {
             LegacyBackupScreen(LegacyBackupUiState.Preview(summary),
                 onIntent = { action = it }, onBack = {})
         }
-        compose.onNodeWithText("Restore to empty vault").performScrollTo().performClick()
+        compose.onNodeWithText("Restore into empty books").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(LegacyBackupIntent.PrepareRestore, action) }
     }
 
@@ -61,9 +61,9 @@ class LegacyBackupShellTest {
                 onIntent = {}, onBack = {})
         }
         compose.onNodeWithText("PAN (10 characters)").assertExists()
-        compose.onNodeWithText("Date of birth (YYYY-MM-DD)").assertExists()
-        compose.onNodeWithText("First question ID").assertExists()
-        compose.onNodeWithText("Second question ID").assertExists()
+        compose.onNodeWithText("Date of birth, for example 15/08/1980").assertExists()
+        compose.onNodeWithText("Your mother's name before marriage").assertExists()
+        compose.onNodeWithText("Your first school").assertExists()
     }
 
 }

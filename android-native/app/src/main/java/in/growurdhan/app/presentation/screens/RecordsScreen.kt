@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -27,6 +28,7 @@ fun RecordsScreen(
     batches: List<ImportBatchView>,
     owner: OwnerId?,
     onBack: () -> Unit,
+    onChooseStatement: () -> Unit = {},
 ) {
     val shown = HouseholdRecords.visible(records, owner)
     val history = HouseholdRecords.history(batches, owner)
@@ -34,10 +36,13 @@ fun RecordsScreen(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Records", style = MaterialTheme.typography.headlineMedium)
-        Text("Statements, tax notes and import history stay with the person they belong to.")
+        Text("Saved statements", style = MaterialTheme.typography.headlineMedium)
+        Text("Statements and tax notes stay with the person they belong to.")
         if (shown.isEmpty() && history.isEmpty()) {
-            Text("No statement, tax note, or record is loaded for this view.")
+            Text("No statement has been saved.")
+            Button(onClick = onChooseStatement, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text("Choose a statement")
+            }
         }
         shown.forEach { row ->
             Text("${row.kind.name.lowercase().replaceFirstChar { it.titlecase() }} · ${row.title}")

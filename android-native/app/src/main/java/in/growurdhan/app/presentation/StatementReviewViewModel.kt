@@ -105,7 +105,7 @@ class StatementReviewViewModel @Inject constructor(
     private fun loadOwners() {
         if (!session.isUnlocked()) {
             mutableState.value = StatementReviewUiState.Error(
-                "Unlock the encrypted vault before selecting a PDF."
+                "Open the books before choosing a statement."
             )
             return
         }

@@ -147,7 +147,7 @@ class VaultViewModel @Inject constructor(
                         // SQLCipher connection, not just replace the screen message.
                         vaultOperationMutex.withLock { repository.close() }
                         if (request == requestGeneration) mutableState.value = VaultUiState.Error(
-                            "Set up a secure device screen lock to access your encrypted vault.",
+                            "Set up this phone's screen lock before the books can open.",
                         )
                     }
                     VaultIntent.OpenOrCreate -> {
@@ -200,7 +200,7 @@ class VaultViewModel @Inject constructor(
                 throw cancelled
             } catch (_: Exception) {
                 if (request == requestGeneration) mutableState.value = VaultUiState.Error(
-                    "The encrypted vault could not be opened or verified. Existing files were preserved.",
+                    "The books could not be opened. Your records were not deleted.",
                 )
             }
         }

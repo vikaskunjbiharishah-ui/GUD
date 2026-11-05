@@ -5,6 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.TextButton
+import `in`.growurdhan.domain.vault.FirstRunRegistration
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -79,7 +84,7 @@ fun LegacyBackupScreen(
                 var password by remember { mutableStateOf("") }
                 OutlinedTextField(
                     value = email, onValueChange = { if (it.length <= 254) email = it },
-                    label = { Text("Legacy vault email") }, singleLine = true,
+                    label = { Text("Email on the old backup") }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
@@ -116,10 +121,9 @@ fun LegacyBackupScreen(
                 var a2 by remember { mutableStateOf("") }
                 Text("Restore original backup", style = MaterialTheme.typography.titleLarge)
                 Text(
-                    "Requires the source vault login, PAN, birth date and both original " +
-                        "security-question IDs and answers. Your native vault must contain " +
-                        "no existing financial records. A failed restore changes nothing.",
-                    style = MaterialTheme.typography.bodySmall,
+                    "The old login, PAN, birth date and both security answers are required. " +
+                        "The books on this phone must be empty. A failed restore changes nothing.",
+                    style = MaterialTheme.typography.bodyLarge,
                 )
                 OutlinedTextField(email, { if (it.length <= 254) email = it },
                     label = { Text("Original account email") }, modifier = Modifier.fillMaxWidth())
@@ -127,23 +131,41 @@ fun LegacyBackupScreen(
                     label = { Text("Original password") },
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth())
+                var hidePan by remember { mutableStateOf(false) }
                 OutlinedTextField(pan, { if (it.length <= 10) pan = it.uppercase() },
-                    label = { Text("PAN (10 characters)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(dob, { if (it.length <= 10) dob = it },
-                    label = { Text("Date of birth (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
-                Text(
-                    "Original question IDs: maiden, school, pet, city, teacher, vehicle. " +
-                        "Use the same two selected questions as the old app.",
-                    style = MaterialTheme.typography.bodySmall,
+                    label = { Text("PAN (10 characters)") },
+                    visualTransformation = if (hidePan) PasswordVisualTransformation()
+                        else androidx.compose.ui.text.input.VisualTransformation.None,
+                    trailingIcon = {
+                        TextButton(onClick = { hidePan = !hidePan }) {
+                            Text(if (hidePan) "Show" else "Hide")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth())
+                BookDateField(
+                    label = "Date of birth, for example 15/08/1980",
+                    iso = dob,
+                    onIso = { dob = it },
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(q1, { if (it.length <= 32) q1 = it },
-                    label = { Text("First question ID") }, modifier = Modifier.fillMaxWidth())
+                Text("First security question", style = MaterialTheme.typography.titleSmall)
+                Row(Modifier.horizontalScroll(rememberScrollState())) {
+                    FirstRunRegistration.questionIds.forEach { id ->
+                        FilterChip(selected = q1 == id, onClick = { q1 = id },
+                            label = { Text(questionLabel(id)) })
+                    }
+                }
                 OutlinedTextField(a1, { if (it.length <= 256) a1 = it },
                     label = { Text("First answer") },
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(q2, { if (it.length <= 32) q2 = it },
-                    label = { Text("Second question ID") }, modifier = Modifier.fillMaxWidth())
+                Text("Second security question", style = MaterialTheme.typography.titleSmall)
+                Row(Modifier.horizontalScroll(rememberScrollState())) {
+                    FirstRunRegistration.questionIds.forEach { id ->
+                        FilterChip(selected = q2 == id, onClick = { q2 = id },
+                            label = { Text(questionLabel(id)) })
+                    }
+                }
                 OutlinedTextField(a2, { if (it.length <= 256) a2 = it },
                     label = { Text("Second answer") },
                     visualTransformation = PasswordVisualTransformation(),
@@ -178,20 +200,20 @@ fun LegacyBackupScreen(
                 Text("Total mapped records: ${state.report.totalRows}")
                 Text("Records with encrypted original JSON retained: " +
                     "${state.report.originalJsonRows}")
-                Text("Source fingerprint: ${state.report.sourceSha256.take(16)}…")
-                Text("Choose CREATE NEW EMPTY vault: existing native books are " +
-                    "never merged or overwritten. A nonempty vault is rejected. " +
-                    "Your source archive remains unchanged.")
+                Text("A short check code: ${state.report.sourceSha256.take(16)}…")
+                Text("Choose empty books on this phone. Existing books are " +
+                    "never merged or overwritten. Books that already have records are refused. " +
+                    "The old file is not changed.")
                 Button(onClick = { onIntent(LegacyBackupIntent.ConfirmDryRun) }) {
-                    Text("Confirm empty-vault restore with new device challenge")
+                    Text("Confirm restore into empty books")
                 }
                 OutlinedButton(onClick = { onIntent(LegacyBackupIntent.Cancel) }) {
                     Text("Cancel without importing")
                 }
             }
             LegacyBackupUiState.Recovered -> {
-                Text("Legacy book restored successfully into the private SQLCipher vault.")
-                Text("Close and reopen the vault to reload the complete family and holdings.")
+                Text("The old book is now on this phone.")
+                Text("Lock the books and open them again to see the family and the investments.")
             }
             LegacyBackupUiState.Inspecting -> {
                 Text("Authenticating and inspecting the selected archive on-device.")
@@ -213,7 +235,7 @@ fun LegacyBackupScreen(
                             style = MaterialTheme.typography.titleMedium)
                         Text("Family members: ${p.familyMemberCount}")
                         Text("Holdings: ${p.holdingCount}")
-                        Text("Ledger events: ${p.eventCount}")
+                        Text("Entries: ${p.eventCount}")
                         Text("Accounts: ${p.accountCount}")
                         Text("Goals: ${p.goalCount}")
                         Text("Contains CAS history: ${if (p.hasCasHistory) "Yes" else "No"}")
@@ -225,11 +247,11 @@ fun LegacyBackupScreen(
                 }
                 Text(
                     "The original archive remains unchanged. Restoration requires the " +
-                        "full identity check and an otherwise empty native vault; merging is refused.",
+                        "full identity check and empty books on this phone. Merging is refused.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Button(onClick = { onIntent(LegacyBackupIntent.PrepareRestore) }) {
-                    Text("Restore to empty vault")
+                    Text("Restore into empty books")
                 }
                 OutlinedButton(onClick = { onIntent(LegacyBackupIntent.SelectFile) }) {
                     Text("Inspect another archive")
@@ -237,7 +259,7 @@ fun LegacyBackupScreen(
             }
         }
         OutlinedButton(onClick = { onIntent(LegacyBackupIntent.Cancel); onBack() }) {
-            Text("Return to vault")
+            Text("Back")
         }
     }
 }

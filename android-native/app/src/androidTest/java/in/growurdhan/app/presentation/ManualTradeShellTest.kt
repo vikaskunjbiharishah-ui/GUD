@@ -81,7 +81,7 @@ class ManualTradeShellTest {
             ManualTradeScreen(ManualTradeUiState.Locked, {}, {})
         }
         compose.onAllNodesWithText("Synthetic index asset").assertCountEquals(0)
-        compose.onNodeWithText("Unlock the vault before recording a financial transaction.")
+        compose.onNodeWithText("Open the books before recording a transaction.")
             .assertIsDisplayed()
     }
 

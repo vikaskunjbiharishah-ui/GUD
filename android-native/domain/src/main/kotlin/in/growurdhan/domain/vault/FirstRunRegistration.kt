@@ -7,6 +7,16 @@ import java.time.LocalDate
  * or returned in the issue list. The encrypted vault remains the writer.
  */
 object FirstRunRegistration {
+    fun questionLabel(id: String): String = when (id) {
+        "maiden" -> "Your mother's name before marriage"
+        "school" -> "Your first school"
+        "pet" -> "Your first pet's name"
+        "city" -> "The city where you were born"
+        "teacher" -> "A teacher's name you remember"
+        "vehicle" -> "Your first vehicle"
+        else -> id
+    }
+
     val questionIds = listOf("maiden", "school", "pet", "city", "teacher", "vehicle")
     private val emailPattern = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
     private val panPattern = Regex("^[A-Z]{5}[0-9]{4}[A-Z]$")

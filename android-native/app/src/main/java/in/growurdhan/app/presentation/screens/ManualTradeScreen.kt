@@ -57,7 +57,7 @@ fun ManualTradeScreen(
         )
         when (state) {
             ManualTradeUiState.Locked -> {
-                Text("Unlock the vault before recording a financial transaction.")
+                Text("Open the books before recording a transaction.")
                 OutlinedButton(onClick = onReturn) { Text("Return to portfolio") }
             }
             ManualTradeUiState.Loading -> Text("Reading enrolled holdings securely.")
@@ -95,9 +95,8 @@ fun ManualTradeScreen(
                                 plan.cashAmount.asBook(),
                         )
                         Text(
-                            "This will append one permanent ledger event; you cannot edit " +
-                                "or delete it. A new device credential is required.",
-                            style = MaterialTheme.typography.bodySmall,
+                            "This adds one entry in the book. It cannot be edited or deleted. This phone will ask for its screen lock.",
+                            style = MaterialTheme.typography.bodyLarge,
                         )
                         Button(onClick = { onIntent(ManualTradeIntent.RequestApproval) }) {
                             Text("Confirm transaction with device lock")
@@ -120,10 +119,10 @@ fun ManualTradeScreen(
                             it.assetCategory.contains(search, ignoreCase = true))
                 }
                 if (selectedOwnerId != null) {
-                    Text("Showing one person's holdings only.")
+                    Text("This person only. Other people are hidden.")
                 }
                 if (eligible.isEmpty()) {
-                    Text("No enrolled asset holding exists. Enrol a family account or fund first.")
+                    Text("No investment is here yet. Add an account first.")
                     OutlinedButton(onClick = onReturn) { Text("Return to portfolio") }
                 } else {
                     var selectedId by remember(state.book, preselectedHoldingId) {
@@ -207,10 +206,10 @@ fun ManualTradeScreen(
                             "snapshot is not automatically an acquisition.",
                             style = MaterialTheme.typography.bodySmall)
                     }
-                    OutlinedTextField(
-                        value = day, onValueChange = { day = it.take(10) },
-                        label = { Text("Trade date (YYYY-MM-DD)") },
-                        singleLine = true,
+                    BookDateField(
+                        label = "Trade date, for example 15/08/1980",
+                        iso = day,
+                        onIso = { day = it },
                         modifier = Modifier.fillMaxWidth().testTag("ManualTradeDate"),
                     )
                     OutlinedTextField(

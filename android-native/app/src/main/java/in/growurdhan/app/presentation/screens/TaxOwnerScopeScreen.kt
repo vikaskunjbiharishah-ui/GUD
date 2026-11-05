@@ -31,13 +31,16 @@ fun TaxOwnerScopeScreen(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("Tax records • family scope", style = MaterialTheme.typography.headlineMedium)
+        Text("Tax for one person", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            "This is not your income-tax return. It is what is saved for this person.",
+            style = MaterialTheme.typography.bodyLarge,
+        )
         val estimates = (state as? HouseholdDashboardUiState.Ready)?.dashboard?.taxEstimates
             ?.filter { ownerId == null || it.ownerId == ownerId }
             .orEmpty()
         if (estimates.isEmpty()) {
-            Text("Your selected owner scope also applies here. This is recorded " +
-                "position information, not a tax calculation.")
+            Text("Nothing is saved for this person yet.")
         } else {
             estimates.forEach { estimate ->
                 Card(Modifier.fillMaxWidth()) {
@@ -74,7 +77,7 @@ fun TaxOwnerScopeScreen(
                         "Taxable gains cannot be inferred from current values.")
                 }
             }
-            else -> Text("Unlock the vault to view your family's recorded scope.")
+            else -> Text("Enter your password to see this person's saved records.")
         }
         if (estimates.isEmpty()) {
             Text("Detailed capital gains and tax calculations require later tax milestones.",

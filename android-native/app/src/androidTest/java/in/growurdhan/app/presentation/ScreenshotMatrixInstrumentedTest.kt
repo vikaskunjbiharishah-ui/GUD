@@ -154,8 +154,8 @@ class ScreenshotMatrixInstrumentedTest {
         }
         val amount = "Assets: ${assets.asBook()}"
         compose.onNodeWithText(amount).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("MUTUAL FUND · 66.7%").performScrollTo().assertIsDisplayed()
-        assertTouch("MUTUAL FUND · 66.7%")
+        compose.onNodeWithText("Mutual fund · 66.7%").performScrollTo().assertIsDisplayed()
+        assertTouch("Mutual fund · 66.7%")
         val root = compose.onNodeWithTag("shot").fetchSemanticsNode().boundsInRoot
         val line = compose.onNodeWithText(amount).fetchSemanticsNode().boundsInRoot
         assertTrue("amount clipped ${line.right} > ${root.right}", line.right <= root.right + 1f)

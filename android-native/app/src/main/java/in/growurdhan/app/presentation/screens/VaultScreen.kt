@@ -17,7 +17,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,13 +43,12 @@ fun VaultScreen(
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         Text(
-            text = "On-device vault",
+            text = "Your books on this phone",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "Financial records are stored in an encrypted SQLite database. " +
-                "The database key is generated on this device and wrapped by Android Keystore.",
+            "The family's records stay on this phone. GrowUrDhan cannot read them.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -56,13 +60,13 @@ fun VaultScreen(
                 when (state) {
                     VaultUiState.Loading -> {
                         CircularProgressIndicator()
-                        Text("Checking encrypted storage…")
+                        Text("Checking this phone…")
                     }
                     VaultUiState.NotCreated -> {
-                        Text("No native vault found", style = MaterialTheme.typography.titleLarge)
-                        Text("Creating the private vault first requires confirmation of your Android screen lock.")
+                        Text("No books on this phone yet", style = MaterialTheme.typography.titleLarge)
+                        Text("Creating the books asks for this phone's screen lock.")
                         Button(onClick = { onIntent(VaultIntent.OpenOrCreate) }) {
-                            Text("Create encrypted vault")
+                            Text("Create the books on this phone")
                         }
                         OutlinedButton(onClick = onBackupRecovery) {
                             Text("Recover from encrypted backup")
@@ -72,10 +76,10 @@ fun VaultScreen(
                         }
                     }
                     VaultUiState.Closed -> {
-                        Text("Vault closed", style = MaterialTheme.typography.titleLarge)
-                        Text("The database remains encrypted on this device. Confirm your device screen lock to reopen.")
+                        Text("Books are locked", style = MaterialTheme.typography.titleLarge)
+                        Text("The records stay protected on this phone. Confirm your screen lock to open them.")
                         Button(onClick = { onIntent(VaultIntent.OpenOrCreate) }) {
-                            Text("Open encrypted vault")
+                            Text("Open the books")
                         }
                         OutlinedButton(onClick = onBackupRecovery) {
                             Text("Backup & recovery")
@@ -85,20 +89,20 @@ fun VaultScreen(
                         }
                     }
                     is VaultUiState.Ready -> {
-                        Text("Vault opened", style = MaterialTheme.typography.titleLarge)
-                        Text("SQLCipher encryption is enabled.")
-                        Text("Members: " + state.health.memberCount)
+                        Text("Books are open", style = MaterialTheme.typography.titleLarge)
+                        Text("Protected on this phone. GrowUrDhan cannot read it.")
+                        Text("People: " + state.health.memberCount)
                         Button(onClick = onAddFamilyMember) {
                             Text(
                                 if (state.health.memberCount == 0) "Add first family member"
                                 else "Manage family members",
                             )
                         }
-                        Text("Holdings: " + state.health.holdingCount)
+                        Text("Investments and loans: " + state.health.holdingCount)
                         Button(onClick = onManageHoldings) {
-                            Text("Manage accounts & holdings")
+                            Text("Accounts and investments")
                         }
-                        Text("Ledger events: " + state.health.eventCount)
+                        Text("Entries in the book: " + state.health.eventCount)
                         Text("Reference checks: " + if (state.health.foreignKeyViolations == 0) "Passed" else "Needs attention")
                         OutlinedButton(onClick = onBackupRecovery) {
                             Text("Backup & recovery")
@@ -106,29 +110,28 @@ fun VaultScreen(
                         OutlinedButton(onClick = onInspectLegacyBackup) {
                             Text("Inspect older .kosha backup (read-only)")
                         }
-                        OutlinedButton(onClick = { onIntent(VaultIntent.Close) }) { Text("Close vault") }
+                        OutlinedButton(onClick = { onIntent(VaultIntent.Close) }) { Text("Lock the books") }
                     }
                     is VaultUiState.Error -> {
-                        Text("Vault unavailable", style = MaterialTheme.typography.titleLarge)
+                        Text("Books unavailable", style = MaterialTheme.typography.titleLarge)
                         Text(state.message)
                         OutlinedButton(onClick = { onIntent(VaultIntent.Refresh) }) { Text("Try again") }
                     }
                 }
             }
         }
+        var how by remember { mutableStateOf(false) }
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Development security boundaries", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Android device confirmation and repository authorization guard native " +
-                        "financial writes. A separate local app-password verifier now guards " +
-                        "the native vault, but legacy email/security-answer recovery and " +
-                        "historical data migration remain incomplete. Hardware CAS parser " +
-                        "verification is also still required. " +
-                        "The frozen parser is available only in supported ARM64 release builds. " +
-                        "Do not use this development build for live financial records yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                TextButton(onClick = { how = !how }) {
+                    Text(if (how) "Hide how this is protected" else "How this is protected")
+                }
+                if (how) {
+                    Text(
+                        "The books are kept in an encrypted database on this phone. The key is created here and wrapped by Android. A password and the screen lock are both required. GrowUrDhan cannot read the books.",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
             }
         }
     }

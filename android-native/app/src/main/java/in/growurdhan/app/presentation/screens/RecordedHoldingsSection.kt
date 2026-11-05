@@ -20,6 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.domain.finance.RecordedHoldingDashboard
 
@@ -40,8 +42,7 @@ internal fun RecordedHoldingsSection(holdings: List<RecordedHoldingDashboard>) {
         Column(modifier = Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Recorded holdings", style = MaterialTheme.typography.titleMedium)
             Text(
-                "Stored prices, not live quotes. Account IDs and folios are not shown. " +
-                    "Use nicknames without personal identifiers.",
+                "Use a short name, not a PAN or account number.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -61,9 +62,11 @@ internal fun RecordedHoldingsSection(holdings: List<RecordedHoldingDashboard>) {
                 singleLine = true,
             )
             Text(
-                "Showing ${visible.size} of ${matches.size} matching holding(s); " +
-                    "${holdings.size} recorded in total.",
-                style = MaterialTheme.typography.bodySmall,
+                "${visible.size} shown.",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.semantics {
+                    contentDescription = "Showing ${visible.size} of ${matches.size} matching investments; ${holdings.size} recorded in total."
+                },
             )
             if (matches.isEmpty()) Text("No recorded holdings match this search.")
             visible.forEach { holding ->
@@ -74,12 +77,12 @@ internal fun RecordedHoldingsSection(holdings: List<RecordedHoldingDashboard>) {
                     holding.closedOn?.let { Text("Closed on $it",
                         style = MaterialTheme.typography.bodySmall) }
                     Text(
-                        holding.category.replace('_', ' ') +
+                        householdCategory(holding.category) +
                             (holding.ownerName?.let { " · " + it } ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Text(
-                        (if (holding.isLiability) "Outstanding liability: " else "Recorded value: ") +
+                        (if (holding.isLiability) "Still owed: " else "Recorded value: ") +
                             holding.recordedValue.asBook(),
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -91,9 +94,9 @@ internal fun RecordedHoldingsSection(holdings: List<RecordedHoldingDashboard>) {
                         val verifiedGain = holding.unrealisedGain
                         Text(
                             when {
-                                holding.unknownHistoricalCost -> "Historical cost unknown; gain unavailable"
-                                verifiedGain != null -> "Unrealised gain/loss: " + verifiedGain.asBook()
-                                else -> "Unrealised gain/loss unavailable"
+                                holding.unknownHistoricalCost -> "Purchase price not saved. Gain is not shown. It is not zero."
+                                verifiedGain != null -> "Gain or loss so far: " + verifiedGain.asBook()
+                                else -> "Gain or loss so far is not available"
                             },
                             style = MaterialTheme.typography.bodySmall,
                         )

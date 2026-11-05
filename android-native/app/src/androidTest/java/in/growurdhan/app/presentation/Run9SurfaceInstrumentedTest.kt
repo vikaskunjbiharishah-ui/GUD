@@ -143,7 +143,7 @@ class Run9SurfaceInstrumentedTest {
                 )
             }
         }
-        compose.onNodeWithText("Using the RBI price when one is saved. A missing price stays missing.")
+        compose.onNodeWithText("Sovereign gold bonds: using the RBI price when one is saved. If none is saved, nothing is shown. It is not shown as zero.")
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Off by default. Notes stay on this phone until you delete them. Nothing is sent.")
             .performScrollTo().assertIsDisplayed()
@@ -154,7 +154,7 @@ class Run9SurfaceInstrumentedTest {
         assertEquals(0, compose.onAllNodesWithText("Record a local note").fetchSemanticsNodes().size)
 
         compose.onNodeWithContentDescription("Use the market close for SGB").performClick()
-        compose.onNodeWithText("Using the market close when one is saved. A missing close stays missing.")
+        compose.onNodeWithText("Sovereign gold bonds: using the market price when one is saved. If none is saved, nothing is shown. It is not shown as zero.")
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Use the market close for SGB").assertIsOn()
         assertEquals(0, compose.onAllNodesWithText("Using the RBI price", substring = true).fetchSemanticsNodes().size)

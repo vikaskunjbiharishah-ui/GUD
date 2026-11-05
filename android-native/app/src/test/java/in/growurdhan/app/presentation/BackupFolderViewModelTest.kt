@@ -31,7 +31,7 @@ class BackupFolderViewModelTest {
         assertNull(vm.stage(password))
         assertTrue(password.all { it == '\u0000' })
         assertEquals(
-            "Unlock the vault to run scheduled backup. The password is not stored.",
+            "Open the books before a scheduled backup. The password is not stored.",
             vm.state.value.message,
         )
         coVerify(exactly = 0) { repo.exportEncryptedBackup(any()) }

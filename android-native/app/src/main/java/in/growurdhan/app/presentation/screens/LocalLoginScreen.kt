@@ -37,6 +37,7 @@ fun LocalLoginScreen(
     hasRecoveryCode: Boolean = false,
     onForgotPassword: () -> Unit = {},
     accountEmailRequired: Boolean = false,
+    hindi: Boolean = false,
     onSubmitWithEmail: ((email: String, password: String, repeated: String?) -> Unit)? = null,
     onSubmit: (password: String, repeated: String?) -> Unit,
 ) {
@@ -48,24 +49,32 @@ fun LocalLoginScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        Text("GrowUrDhan", style = MaterialTheme.typography.headlineLarge)
+        Text("GrowUrDhan", style = MaterialTheme.typography.headlineMedium)
         Text(
-            if (enrolling) "Create your private app password"
-            else "Unlock your private books",
+            if (enrolling) {
+                if (hindi) "GrowUrDhan के लिए पासवर्ड चुनें।" else "Choose a password for GrowUrDhan"
+            } else {
+                if (hindi) "अपना GrowUrDhan पासवर्ड डालें।" else "Enter your GrowUrDhan password."
+            },
             style = MaterialTheme.typography.headlineSmall,
         )
         Text(
-            "Your password is checked on this phone. Opening the encrypted " +
-                "vault also requires your Android device screen lock.",
+            if (hindi) "यह फ़ोन स्क्रीन लॉक भी माँगेगा। हम पासवर्ड कभी नहीं देखते।"
+            else "This phone will also ask for your screen lock. We never see the password.",
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (state == LocalLoginStatus.STORAGE_UNAVAILABLE) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "Local login evidence or its Android Keystore key is unavailable. " +
-                        "Your financial database has not been reset. Do not clear app data. " +
-                        "Use a verified portable backup and supported recovery procedure.",
+                    if (hindi) {
+                        "यह फ़ोन आपकी किताबों का ताला नहीं खोल पा रहा। आपके रिकॉर्ड मिटे नहीं हैं। ऐप की स्टोरेज साफ़ न करें। पहले से बचा रिकवरी कोड और एन्क्रिप्टेड बैकअप इस्तेमाल करें।"
+                    } else {
+                        "This phone cannot open the lock that protects your books. Your records were not deleted. " +
+                            "Do not clear the app's storage. Use the recovery code and the encrypted backup you saved earlier."
+                    },
                     modifier = Modifier.padding(18.dp),
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.error,
                 )
             }
@@ -78,9 +87,10 @@ fun LocalLoginScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("LocalAccountEmail"),
                 )
-                Text("Email is checked locally using a Keystore-protected verifier; " +
-                    "no plaintext email is stored in login preferences.",
-                    style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Email is checked on this phone. It is not sent to GrowUrDhan.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
             }
             OutlinedTextField(
                 value = password,
@@ -100,16 +110,12 @@ fun LocalLoginScreen(
                     modifier = Modifier.fillMaxWidth().testTag("LocalAppPasswordRepeat"),
                 )
                 Text(
-                    "Use at least eight characters, including uppercase, lowercase, " +
-                        "a digit and a special character. This matches the original " +
-                        "GrowUrDhan password complexity policy.",
-                    style = MaterialTheme.typography.bodySmall,
+                    "At least 8 characters, with a capital letter, a small letter, a number, and a symbol.",
+                    style = MaterialTheme.typography.bodyLarge,
                 )
                 Text(
-                    "Your existing native financial records, if any, will not be " +
-                        "recreated or overwritten. An Android credential confirmation " +
-                        "is required before the first password is registered.",
-                    style = MaterialTheme.typography.bodySmall,
+                    "Android will ask for your screen lock. Nothing is saved if you cancel.",
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
             message?.let {
@@ -130,18 +136,15 @@ fun LocalLoginScreen(
                     if (onSubmitWithEmail != null) onSubmitWithEmail(ownerEmail,entered,confirmation)
                     else onSubmit(entered, confirmation)
                 },
-            ) { Text(if (enrolling) "Protect app with device credential" else "Verify app password") }
+            ) { Text(if (enrolling) "Save password" else if (hindi) "किताबें खोलें" else "Open the books") }
             if (!enrolling && hasRecoveryCode) {
                 OutlinedButton(onClick = onForgotPassword) {
                     Text("Forgot password? Use saved recovery code")
                 }
             }
             Text(
-                "The app password does not decrypt SQLCipher or replace the backup " +
-                    "passphrase. Only a previously issued recovery code together " +
-                    "with your Android screen lock can reset this local password. " +
-                    "Keep a separately verified encrypted backup in a safe place.",
-                style = MaterialTheme.typography.bodySmall,
+                "The password does not replace the backup passphrase. Only a recovery code you already saved, together with this phone's screen lock, can reset it.",
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

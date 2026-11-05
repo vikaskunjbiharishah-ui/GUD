@@ -52,7 +52,7 @@ class VaultViewModelTest {
         vm.onIntent(VaultIntent.OpenOrCreate)
         advanceUntilIdle()
         assertEquals(VaultUiState.Error(
-            "The encrypted vault could not be opened or verified. Existing files were preserved.",
+            "The books could not be opened. Your records were not deleted.",
         ), vm.state.value)
         coVerify(exactly = 0) { repo.openOrCreate() }
     }
@@ -257,7 +257,7 @@ class VaultViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            VaultUiState.Error("Set up a secure device screen lock to access your encrypted vault."),
+            VaultUiState.Error("Set up this phone's screen lock before the books can open."),
             vm.state.value,
         )
         coVerify(exactly = 1) { repo.close() }
@@ -356,7 +356,7 @@ class VaultViewModelTest {
         advanceUntilIdle()
 
         assertEquals(VaultUiState.Error(
-            "The encrypted vault could not be opened or verified. Existing files were preserved.",
+            "The books could not be opened. Your records were not deleted.",
         ), vm.state.value)
         assertFalse(gate.isUnlocked())
         coVerify(exactly = 1) { repo.close() }
@@ -412,7 +412,7 @@ class VaultViewModelTest {
         advanceUntilIdle()
         val state = vm.state.value as VaultUiState.Error
         assertEquals(
-            "The encrypted vault could not be opened or verified. Existing files were preserved.",
+            "The books could not be opened. Your records were not deleted.",
             state.message,
         )
         coVerify(exactly = 0) { repo.openOrCreate() }

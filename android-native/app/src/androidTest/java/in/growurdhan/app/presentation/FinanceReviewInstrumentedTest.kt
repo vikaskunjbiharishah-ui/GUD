@@ -61,11 +61,11 @@ class FinanceReviewInstrumentedTest {
                 InterestReviewScreen(plan, onBack = {})
             }
         }
-        compose.onNodeWithText("does not write a ledger event", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("not in the book yet", substring = true).assertIsDisplayed()
         compose.onNodeWithText("PPF interest for FY 2026-27 (7.1%)", substring = true)
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(shown, substring = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Not posted.", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Not in the book yet.", substring = true).performScrollTo().assertIsDisplayed()
     }
 
     @Test fun emiReviewShowsDueInstalmentsAndAPausedLoanStaysBlank() {
@@ -83,7 +83,7 @@ class FinanceReviewInstrumentedTest {
                 EmiReviewScreen(plan, onBack = {})
             }
         }
-        compose.onNodeWithText("does not write a ledger event", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("not in the book yet", substring = true).assertIsDisplayed()
         assertEquals(3, compose.onAllNodesWithText("Monthly EMI (automatic)", substring = true).fetchSemanticsNodes().size)
         assertEquals(3, compose.onAllNodesWithText(shown, substring = true).fetchSemanticsNodes().size)
         compose.onNodeWithText("Outstanding", substring = true).assertIsDisplayed()
@@ -113,7 +113,7 @@ class FinanceReviewInstrumentedTest {
                 })
             }
         }
-        compose.onNodeWithText("does not write a ledger event", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("not in the book yet", substring = true).assertIsDisplayed()
         assertEquals(0, posted)
         compose.onNodeWithContentDescription("Confirm interest post").assertHeightIsAtLeast(48.dp)
             .performScrollTo().performClick()

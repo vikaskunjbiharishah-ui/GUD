@@ -51,20 +51,20 @@ fun FamilyMemberScreen(
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "Set up the owner of each financial account before importing a CAS statement. " +
-                "Names and relationships stay in your encrypted on-device vault.",
+            "Set up the owner of each account before bringing in a statement. " +
+                "Names and relationships stay in the books on this phone.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         when (state) {
             FamilyMemberUiState.Locked -> {
-                Text("Unlock the encrypted vault before adding family members.")
-                OutlinedButton(onClick = onReturnToVault) { Text("Go to Vault") }
+                Text("Open the books before adding a person.")
+                OutlinedButton(onClick = onReturnToVault) { Text("Back") }
             }
             FamilyMemberUiState.Loading, FamilyMemberUiState.Saving -> {
                 CircularProgressIndicator()
                 Text(
-                    if (state == FamilyMemberUiState.Loading) "Reading the family vault…"
-                    else "Saving to encrypted storage…",
+                    if (state == FamilyMemberUiState.Loading) "Reading the family…"
+                    else "Saving on this phone…",
                 )
             }
             is FamilyMemberUiState.Error -> {
@@ -72,7 +72,7 @@ fun FamilyMemberScreen(
                 OutlinedButton(onClick = { onIntent(FamilyMemberIntent.Refresh) }) {
                     Text("Try again")
                 }
-                OutlinedButton(onClick = onReturnToVault) { Text("Go to Vault") }
+                OutlinedButton(onClick = onReturnToVault) { Text("Back") }
             }
             is FamilyMemberUiState.AwaitingCredential -> {
                 Text("Confirm your device screen lock before adding this family member.")
@@ -109,7 +109,7 @@ fun FamilyMemberScreen(
                 OutlinedButton(onClick = { onIntent(FamilyMemberIntent.Refresh) }) {
                     Text("Add another family member")
                 }
-                OutlinedButton(onClick = onReturnToVault) { Text("Go to Vault") }
+                OutlinedButton(onClick = onReturnToVault) { Text("Back") }
             }
             is FamilyMemberUiState.Ready -> {
                 val isFirst = state.members.isEmpty()
@@ -188,7 +188,7 @@ fun FamilyMemberScreen(
                         }
                     }
                 }
-                OutlinedButton(onClick = onReturnToVault) { Text("Go to Vault") }
+                OutlinedButton(onClick = onReturnToVault) { Text("Back") }
             }
         }
     }

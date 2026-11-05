@@ -45,16 +45,16 @@ fun PortfolioScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Portfolio", style = MaterialTheme.typography.headlineMedium)
+        Text("What we own", style = MaterialTheme.typography.headlineMedium)
         when (state) {
             HouseholdDashboardUiState.Locked -> {
-                Text("Unlock the vault to see your family's recorded holdings.")
-                Button(onClick = onOpenVault) { Text("Open vault") }
+                Text("Enter your password to see the family's investments and loans.")
+                Button(onClick = onOpenVault, modifier = Modifier.heightIn(min = 48.dp)) { Text("Open the books") }
             }
-            HouseholdDashboardUiState.Loading -> Text("Reading the encrypted portfolio.")
+            HouseholdDashboardUiState.Loading -> Text("Adding up the family book.")
             HouseholdDashboardUiState.Unavailable -> {
-                Text("The recorded portfolio is unavailable. No values were inferred.")
-                OutlinedButton(onClick = onRefresh) { Text("Retry portfolio") }
+                Text("The totals did not load. Your records are still on this phone.")
+                OutlinedButton(onClick = onRefresh, modifier = Modifier.heightIn(min = 48.dp)) { Text("Try again") }
             }
             is HouseholdDashboardUiState.Ready -> {
                 val dashboard = state.dashboard
@@ -72,9 +72,13 @@ fun PortfolioScreen(
                         (owner == null || it.ownerName == owner)
                 }
                 Text(
-                    "Recorded as of calculation date ${dashboard.asOf}. Stored prices, " +
-                        "not live quotations. Values can be stale; no market refresh is made here.",
-                    style = MaterialTheme.typography.bodySmall,
+                    "Figures saved as of ${dashboard.asOf}. Not today's market price.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Shares and gold: last saved price. Not a live quote.",
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
@@ -85,14 +89,17 @@ fun PortfolioScreen(
                 if (dashboard.integrityWarnings.isNotEmpty()) {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            "Recorded totals have ${dashboard.integrityWarnings.size} " +
-                                "reconciliation warning(s). Do not treat them as complete.",
+                            "The totals do not match. Do not treat them as complete.",
                             modifier = Modifier.padding(16.dp),
                         )
                     }
                 }
                 if (holdings.isEmpty()) {
-                    Text("No recorded holdings. Register a family account or CAS holding to begin.")
+                    Text("Nothing is saved yet.", style = MaterialTheme.typography.bodyLarge)
+                    Button(
+                        onClick = onManageHoldings,
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Add what you own") }
                 } else {
                     Text("Filter by category", style = MaterialTheme.typography.titleSmall)
                     Row(
@@ -109,7 +116,7 @@ fun PortfolioScreen(
                             FilterChip(
                                 selected = category == item,
                                 onClick = { category = item },
-                                label = { Text(item.replace('_', ' ')) },
+                                label = { Text(householdCategory(item)) },
                                 modifier = Modifier.semantics {
                                     contentDescription = "Filter category $item"
                                 },
@@ -170,12 +177,12 @@ fun PortfolioScreen(
                         contentDescription = "Open the sale result"
                     },
                 ) {
-                    Text("Sale result")
+                    Text("Sale")
                 }
                 OutlinedButton(onClick = onManageHoldings) {
-                    Text("Manage family accounts and CAS holdings")
+                    Text("Accounts and investments")
                 }
-                OutlinedButton(onClick = onRefresh) { Text("Refresh from encrypted book") }
+                OutlinedButton(onClick = onRefresh, modifier = Modifier.heightIn(min = 48.dp)) { Text("Update totals") }
             }
         }
     }

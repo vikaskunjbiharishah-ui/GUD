@@ -56,6 +56,7 @@ class Run11SurfaceInstrumentedTest {
                 )
             }
         }
+        compose.onNodeWithText("More on this phone").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Open records").performScrollTo().performClick()
         compose.onNodeWithText("Saved statement · 2026-10-01 · 1 line(s)").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText(

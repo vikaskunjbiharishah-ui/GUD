@@ -51,9 +51,9 @@ class CustodyHoldingShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Open vault").performScrollTo().performClick()
-        compose.onNodeWithText("Manage accounts & holdings").performScrollTo().performClick()
-        compose.onNodeWithText("Accounts & holdings").assertIsDisplayed()
+        compose.onNodeWithText("Open the books").performScrollTo().performClick()
+        compose.onNodeWithText("Accounts and investments").performScrollTo().performClick()
+        compose.onNodeWithText("Accounts and investments").assertIsDisplayed()
         // The guidance includes a follow-up explanation in the same Text node.
         // Match the stable instruction without requiring an exact full-string match.
         compose.onNodeWithText(
@@ -93,13 +93,13 @@ class CustodyHoldingShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Open vault").performScrollTo().performClick()
-        compose.onNodeWithText("Manage accounts & holdings").performScrollTo().performClick()
-        compose.onNodeWithText("Save registrar account securely")
+        compose.onNodeWithText("Open the books").performScrollTo().performClick()
+        compose.onNodeWithText("Accounts and investments").performScrollTo().performClick()
+        compose.onNodeWithText("Add this account")
             .performScrollTo().assertIsNotEnabled()
         compose.onNodeWithContentDescription("Registrar account nickname input")
             .performScrollTo().performTextInput("Synthetic nickname")
-        compose.onNodeWithText("Save registrar account securely")
+        compose.onNodeWithText("Add this account")
             .performScrollTo().performClick()
         compose.runOnIdle {
             assertEquals(
@@ -119,15 +119,15 @@ class CustodyHoldingShellTest {
                 )
             }
         }
-        compose.onNodeWithText("Open vault").performScrollTo().performClick()
-        compose.onNodeWithText("Manage accounts & holdings").performScrollTo().performClick()
+        compose.onNodeWithText("Open the books").performScrollTo().performClick()
+        compose.onNodeWithText("Accounts and investments").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Mutual fund scheme name input")
             .performScrollTo().performTextInput("Synthetic Index")
         compose.onNodeWithContentDescription("CAS ISIN input")
             .performScrollTo().performTextInput("INF000000001")
         compose.onNodeWithContentDescription("CAS folio input")
             .performScrollTo().performTextInput("12345")
-        compose.onNodeWithText("Enrol mutual fund securely").performScrollTo().performClick()
+        compose.onNodeWithText("Add this mutual fund").performScrollTo().performClick()
         compose.runOnIdle {
             assertEquals(
                 CustodyHoldingIntent.StageHolding(
@@ -148,9 +148,9 @@ class CustodyHoldingShellTest {
             }
         }
         compose.onNodeWithContentDescription("Statements").performClick()
-        compose.onNodeWithText("Enrol your first CAS holding").assertIsDisplayed()
+        compose.onNodeWithText("Add the mutual fund before choosing its PDF").assertIsDisplayed()
         compose.onNodeWithText("Add account and holding").performClick()
-        compose.onNodeWithText("Accounts & holdings").assertIsDisplayed()
+        compose.onNodeWithText("Accounts and investments").assertIsDisplayed()
     }
 
     @Test fun fullyDetailedCreateStagesOneDraftWithoutWritingAnyLedgerRow() {
@@ -170,7 +170,7 @@ class CustodyHoldingShellTest {
         compose.onNodeWithTag("AdvancedHoldingCreateToggle")
             .performScrollTo().performClick()
         compose.onNodeWithText("Holding details").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Review and register complete holding")
+        compose.onNodeWithText("Save this investment")
             .performScrollTo().performClick()
         compose.runOnIdle {
             val draft = action as? CustodyHoldingIntent.StageAsset
@@ -276,7 +276,7 @@ class CustodyHoldingShellTest {
             .performScrollTo().performTextInput("Synthetic Market")
         compose.onNodeWithText("Synthetic Market Share", substring = true)
             .performScrollTo().performClick()
-        compose.onNodeWithText("Review and register complete holding")
+        compose.onNodeWithText("Save this investment")
             .performScrollTo().performClick()
         compose.runOnIdle {
             val staged = action as CustodyHoldingIntent.StageAsset
@@ -312,7 +312,7 @@ class CustodyHoldingShellTest {
             .performScrollTo().performTextInput("Synthetic Stale")
         compose.onNodeWithText("stale, price not used", substring = true)
             .performScrollTo().performClick()
-        compose.onNodeWithText("Review and register complete holding")
+        compose.onNodeWithText("Save this investment")
             .performScrollTo().performClick()
         compose.runOnIdle {
             val staged = action as CustodyHoldingIntent.StageAsset
@@ -359,7 +359,7 @@ class CustodyHoldingShellTest {
             .performScrollTo().performTextInput("II")
         compose.onNodeWithTag("HoldingDetails_commitmentMinor")
             .performScrollTo().performTextInput("12500.1234")
-        compose.onNodeWithText("Review and register complete holding")
+        compose.onNodeWithText("Save this investment")
             .performScrollTo().performClick()
         compose.runOnIdle {
             val json = org.json.JSONObject(staged!!.detailsJson)

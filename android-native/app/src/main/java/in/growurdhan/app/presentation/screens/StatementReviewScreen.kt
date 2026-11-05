@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -58,27 +59,26 @@ fun StatementReviewScreen(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
         )
+        Text("1. Who  ·  2. Which account  ·  3. Check the PDF", style = MaterialTheme.typography.titleMedium)
         Text(
-            "Only approved changes will be recorded in your encrypted financial book.",
+            "Only changes you approve are saved in the book.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         when (state) {
             StatementReviewUiState.Empty -> {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("No statement ready for review", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "Choose a PDF on your device and explicitly select its family owner. " +
-                                "Only verified on-device CAS output matching an existing holding can proceed.",
-                        )
-                        Text(
-                            "The frozen CASPARSER/PDFium engine is packaged only with the ARM64 release variant; " +
-                                "unsupported builds refuse the import.",
-                        )
-                        Button(
-                            onClick = { onIntent(StatementReviewIntent.LoadOwners) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Select CAS PDF") }
+                        Text("No statement ready to check", style = MaterialTheme.typography.titleMedium)
+                        val canRead = remember { `in`.growurdhan.app.cas.CasParserAvailability.packaged() }
+                        if (!canRead) {
+                            Text("This copy of the app cannot read a statement PDF. Your book was not changed.")
+                        } else {
+                            Text("Choose the monthly statement for one person. A row that does not match an investment already in the book is not added.")
+                            Button(
+                                onClick = { onIntent(StatementReviewIntent.LoadOwners) },
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            ) { Text("Choose the monthly statement") }
+                        }
                     }
                 }
             }
@@ -89,12 +89,12 @@ fun StatementReviewScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Text(
-                            "Add a family member to continue",
+                            "Add the person this statement belongs to",
                             style = MaterialTheme.typography.titleMedium,
                         )
                         Text(
-                            "Every CAS must belong to a family member. Your encrypted vault " +
-                                "does not have one yet. Add yourself as its primary owner first.",
+                            "Every statement must belong to a person. The books " +
+                                "do not have one yet. Add yourself first.",
                         )
                         Button(
                             onClick = onAddFamilyMember,
@@ -112,11 +112,9 @@ fun StatementReviewScreen(
                         Modifier.padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Text("Enrol your first CAS holding", style = MaterialTheme.typography.titleMedium)
+                        Text("Add the mutual fund before choosing its PDF", style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "Create a CAMS or KFINTECH registrar account and enrol a mutual " +
-                                "fund's exact ISIN and folio before choosing its statement. " +
-                                "Unknown CAS rows never map to a holding by name alone.",
+                            "Add the fund house account and the scheme code before choosing the PDF. A row is never matched by name alone.",
                         )
                         Button(
                             onClick = onSetUpHoldings,
@@ -145,12 +143,12 @@ fun StatementReviewScreen(
                 OutlinedTextField(
                     value = pdfPassword,
                     onValueChange = { if (it.length <= 128) pdfPassword = it },
-                    label = { Text("PDF password (only if required)") },
+                    label = { Text("Password printed on the statement, if it has one") },
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text("The PDF password is used only by the on-device parser. It is not saved.")
+                Text("It stays on this phone and is not saved.")
                 val shownMembers = state.members.filter {
                     selectedFamilyOwner == null || it.id == selectedFamilyOwner
                 }
@@ -173,7 +171,7 @@ fun StatementReviewScreen(
                         selected?.let { onIntent(StatementReviewIntent.PickPdf(it, pdfPassword)) }
                         pdfPassword = ""
                     },
-                ) { Text("Choose PDF from device") }
+                ) { Text("Choose the PDF") }
                 OutlinedButton(
                     onClick = { onIntent(StatementReviewIntent.Cancel) },
                 ) { Text("Cancel") }
@@ -192,10 +190,10 @@ fun StatementReviewScreen(
             is StatementReviewUiState.Completed -> {
                 Text(
                     if (state.result == SnapshotResult.IMPORTED)
-                        "Statement recorded" else "Statement already recorded",
+                        "Saved in the book" else "Already in the book",
                     style = MaterialTheme.typography.titleLarge,
                 )
-                Text("The encrypted ledger was updated without recording a duplicate purchase.")
+                Text("Saved. A purchase already in the book was not added again.")
                 OutlinedButton(onClick = { onIntent(StatementReviewIntent.Cancel) }) { Text("Done") }
             }
             is StatementReviewUiState.Reviewing -> {
@@ -211,7 +209,7 @@ fun StatementReviewScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text("Statement date: ${plan.statementDate}")
-                        Text("Source fingerprint ending: …${plan.sourceSha256.takeLast(8)}")
+                        Text("A short check code ending: …${plan.sourceSha256.takeLast(8)}")
                         Text("Positions reviewed: ${plan.lines.size}")
                         Text("Proposed ledger adjustments: $events")
                         Text("Estimated change in value: ${plan.estimatedValueChange.asBook()}")

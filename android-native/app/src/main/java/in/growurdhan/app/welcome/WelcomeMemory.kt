@@ -9,6 +9,12 @@ import java.time.Instant
 class WelcomeMemory(context: Context) {
     private val prefs = context.getSharedPreferences("gud.welcome", Context.MODE_PRIVATE)
 
+    fun hindi(): Boolean = prefs.getBoolean(LANGUAGE_KEY, false)
+
+    fun setHindi(value: Boolean) {
+        prefs.edit().putBoolean(LANGUAGE_KEY, value).apply()
+    }
+
     fun onboardingSeen(): Boolean = Onboarding.seen(prefs.getString(Onboarding.SEEN_KEY, null))
 
     fun markOnboardingSeen() {
@@ -27,5 +33,9 @@ class WelcomeMemory(context: Context) {
             .putString(Terms.ACCEPTED_ID_KEY, accepted.textId)
             .putString(Terms.ACCEPTED_AT_KEY, accepted.acceptedAt)
             .apply()
+    }
+
+    private companion object {
+        const val LANGUAGE_KEY = "gud.language.hindi"
     }
 }

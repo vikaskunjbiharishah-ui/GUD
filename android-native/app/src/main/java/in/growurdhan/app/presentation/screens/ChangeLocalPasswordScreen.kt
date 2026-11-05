@@ -38,14 +38,13 @@ fun ChangeLocalPasswordScreen(
     ) {
         Text("Change app password", style = MaterialTheme.typography.headlineMedium)
         Text(
-            "Changing the GrowUrDhan login password does not decrypt, replace or " +
-                "erase the Keystore-wrapped SQLCipher key. A new Android device " +
-                "credential is required. You must sign in again afterward.",
+            "A new password does not erase the books. This phone will ask for its screen lock. " +
+                "You will need to open the books again afterwards.",
         )
         Text(
             "The app asks for a new password every 180 days. You still need the " +
                 "current password and this phone's screen lock. A forgotten password " +
-                "uses the offline recovery code. It does not reset the vault.",
+                "uses the recovery code. It does not wipe the books.",
         )
         OutlinedTextField(
             value = current, onValueChange = { if (it.length <= 128) current = it },

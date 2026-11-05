@@ -1,6 +1,5 @@
 package `in`.growurdhan.app.presentation.screens
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,30 +9,32 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Card
-import androidx.compose.material3.Surface
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import `in`.growurdhan.app.presentation.HouseholdDashboardUiState
 import `in`.growurdhan.core.model.OwnerId
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import java.time.YearMonth
 
 /**
- * Honest empty state: M1 does not create a financial vault, import fabricated
- * holdings, or read/mutate the existing Tauri database.
+ * One picture and one next step. Secondary jobs stay under More.
+ * Person selection is the shell chip row, never a second defaulted chip.
  */
 @Composable
 fun HomeScreen(
@@ -52,301 +53,246 @@ fun HomeScreen(
     onOpenInterest: () -> Unit = {},
     onOpenEmi: () -> Unit = {},
     onOpenRecords: () -> Unit = {},
+    onAddHoldings: () -> Unit = {},
+    onUpdateFundPrices: () -> Unit = {},
+    fundPriceNote: String? = null,
+    hindi: Boolean = false,
     selectedFamilyOwner: OwnerId? = null,
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
             text = "Your family's money, in one place.",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
         )
-        Text(
-            text = "The numbers stay on this phone. They are the values saved in your book, not today's market price.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
 
         when (dashboardState) {
             is HouseholdDashboardUiState.Ready -> {
-                val dashboard = dashboardState.dashboard
-                val focused = selectedFamilyOwner?.let { id ->
-                    dashboard.byMember.firstOrNull { it.ownerId == id }
-                }
-                Text(
-                    if (focused == null) "What the family owns today"
-                    else "Showing one person only",
-                    style = MaterialTheme.typography.titleLarge,
+                ReadyHome(
+                    dashboardState = dashboardState,
+                    selectedFamilyOwner = selectedFamilyOwner,
+                    onSelectFamilyOwner = onSelectFamilyOwner,
+                    fundPriceNote = fundPriceNote,
+                    onUpdateFundPrices = onUpdateFundPrices,
+                    onOpenVault = onOpenVault,
+                    onRefreshDashboard = onRefreshDashboard,
+                    onOpenStatements = onOpenStatements,
+                    onOpenPortfolio = onOpenPortfolio,
+                    onOpenInsights = onOpenInsights,
+                    onManageFamily = onManageFamily,
+                    onOpenAccounts = onOpenAccounts,
+                    onOpenTaxScope = onOpenTaxScope,
+                    onOpenDocuments = onOpenDocuments,
+                    onOpenInterest = onOpenInterest,
+                    onOpenEmi = onOpenEmi,
+                    onOpenRecords = onOpenRecords,
+                    onAddHoldings = onAddHoldings,
+                    onOpenPrivacy = onOpenPrivacy,
+                    onOpenSettings = onOpenSettings,
                 )
-                MetricTile(
-                    label = "Net worth",
-                    value = (focused?.netWorth ?: dashboard.netWorth).asBook(),
-                    note = if (focused == null)
-                        "${dashboard.memberCount} people · ${dashboard.holdingCount} holdings"
-                    else "This person only · ${focused.holdings} holdings",
-                    container = MaterialTheme.colorScheme.primaryContainer,
-                    ink = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-                MetricTile(
-                    label = "What you own",
-                    value = (focused?.assets ?: dashboard.assets).asBook(),
-                    note = "Saved value",
-                    container = MaterialTheme.colorScheme.tertiaryContainer,
-                    ink = MaterialTheme.colorScheme.onTertiaryContainer,
-                )
-                MetricTile(
-                    label = "What you owe",
-                    value = (focused?.liabilities ?: dashboard.liabilities).asBook(),
-                    note = "Loans",
-                    container = MaterialTheme.colorScheme.secondaryContainer,
-                    ink = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-                if (!dashboard.isReliable) {
-                    Text(
-                        "Some totals may be incomplete. Open the holdings that need a look.",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = onOpenVault) { Text("Open vault") }
-                    OutlinedButton(onClick = onRefreshDashboard) { Text("Refresh totals") }
-                }
             }
-            HouseholdDashboardUiState.Loading -> Text("Adding up the family book.")
+            HouseholdDashboardUiState.Loading -> Text(
+                "Adding up the family book.",
+                style = MaterialTheme.typography.bodyLarge,
+            )
             HouseholdDashboardUiState.Unavailable -> {
-                Text("The overview did not load. Unlock the vault and try again.")
-                OutlinedButton(onClick = onRefreshDashboard) { Text("Retry overview") }
+                Text(
+                    "The totals did not load. Your records are still on this phone.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Button(
+                    onClick = onRefreshDashboard,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) { Text("Try again") }
             }
             HouseholdDashboardUiState.Locked -> {
-                Text("Unlock the vault to see the family's money.")
-                Button(onClick = onOpenVault) { Text("Open vault") }
-            }
-        }
-
-        if (dashboardState is HouseholdDashboardUiState.Ready) {
-            val dashboard = dashboardState.dashboard
-            val ownerLens = selectedFamilyOwner ?:
-                dashboard.byMember.firstOrNull()?.ownerId
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Who is this for?", style = MaterialTheme.typography.titleMedium)
-                    Text("The tiles above are the whole family. Pick a person to see only their money.",
-                        style = MaterialTheme.typography.bodySmall)
-                    Row(Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        dashboard.byMember.forEach { m ->
-                            FilterChip(ownerLens == m.ownerId,
-                                onClick = { onSelectFamilyOwner(m.ownerId) },
-                                label = { Text(m.displayName ?: "Family member") })
-                        }
-                    }
-                    val selected = dashboard.byMember.firstOrNull { it.ownerId == ownerLens }
-                    if (selected != null) {
-                        Text("Recorded assets: " + selected.assets.asBook())
-                        Text("Recorded liabilities: " + selected.liabilities.asBook())
-                        Text("Recorded net worth: " + selected.netWorth.asBook())
-                        Text("Holdings: " + selected.holdings)
-                    }
-                    OutlinedButton(onClick = onManageFamily) {
-                        Text("Manage family, ownership, accounts and goals")
-                    }
-                }
-            }
-        }
-
-        if (dashboardState is HouseholdDashboardUiState.Ready &&
-            dashboardState.dashboard.unknownCostHoldings > 0
-        ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(22.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text("Purchase price not saved yet", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        dashboardState.dashboard.unknownCostHoldings.toString() +
-                            " holding(s) have no purchase price. We can show what they are worth now, but not the gain or loss.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
-        }
-
-        if (dashboardState is HouseholdDashboardUiState.Ready &&
-            selectedFamilyOwner == null &&
-            dashboardState.dashboard.byCategory.isNotEmpty()
-        ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(22.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text("How the money is spread", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Saved values, not today's market price.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    dashboardState.dashboard.byCategory.forEach { category ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(
-                                category.category.replace('_', ' '),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text(
-                                category.value.asBook() + " (" +
-                                    category.holdingCount + ")",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        if (dashboardState is HouseholdDashboardUiState.Ready &&
-            dashboardState.dashboard.integrityWarnings.isNotEmpty()
-        ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(22.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text("Please check a few holdings", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Some rows could not be added into the totals. Look at those holdings before you rely on this page.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        dashboardState.dashboard.integrityWarnings.size.toString() +
-                            " item(s) need a look.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-        }
-
-        if (dashboardState is HouseholdDashboardUiState.Ready &&
-            dashboardState.dashboard.byMember.isNotEmpty()
-        ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(22.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text("Each person", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Names show only while the vault is open.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    val people = dashboardState.dashboard.byMember.filter {
-                        selectedFamilyOwner == null || it.ownerId == selectedFamilyOwner
-                    }
-                    people.forEachIndexed { index, member ->
-                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text(
-                                member.displayName ?: "Family member " + (index + 1),
-                                style = MaterialTheme.typography.titleSmall,
-                            )
-                            Text(
-                                "Owns " + member.assets.asBook() +
-                                    " · owes " + member.liabilities.asBook() +
-                                    " · net " + member.netWorth.asBook() +
-                                    " · " + member.holdings + " holdings",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        if (dashboardState is HouseholdDashboardUiState.Ready) {
-            val focusedName = selectedFamilyOwner?.let { id ->
-                dashboardState.dashboard.byMember.firstOrNull { it.ownerId == id }?.displayName
-            }
-            val listed = dashboardState.dashboard.recordedHoldings.filter {
-                selectedFamilyOwner == null || (focusedName != null && it.ownerName == focusedName)
-            }
-            if (listed.isNotEmpty()) RecordedHoldingsSection(listed)
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(
-                onClick = onOpenPortfolio,
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                    contentDescription = "Open portfolio"
-                },
-            ) {
-                Text("Portfolio")
-            }
-            OutlinedButton(
-                onClick = onOpenInsights,
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                    contentDescription = "Open insights"
-                },
-            ) {
-                Text("Insights")
-            }
-        }
-
-        OutlinedButton(onClick = onOpenAccounts, modifier = Modifier.fillMaxWidth()) {
-            Text("Accounts, custodians and nominees")
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(
-                onClick = onOpenTaxScope,
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                    contentDescription = "Open tax owner scope"
-                },
-            ) {
-                Text("Tax owner scope")
-            }
-            OutlinedButton(
-                onClick = onOpenDocuments,
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                    contentDescription = "Open documents"
-                },
-            ) {
-                Text("Documents / CAS")
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onOpenInterest, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                Text("Interest review")
-            }
-            OutlinedButton(onClick = onOpenEmi, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                Text("EMI review")
-            }
-        }
-        OutlinedButton(
-            onClick = onOpenRecords,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
-                contentDescription = "Open records"
-            },
-        ) { Text("Records") }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onOpenStatements, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Outlined.Description, contentDescription = null)
-                Text("Statements", modifier = Modifier.padding(start = 6.dp))
-            }
-            OutlinedButton(onClick = onOpenPrivacy, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Outlined.Shield, contentDescription = null)
-                Text("Privacy", modifier = Modifier.padding(start = 6.dp))
+                Text(
+                    if (hindi) "परिवार का पैसा देखने के लिए पासवर्ड डालें।"
+                    else "Enter your password to see the family's money.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Button(
+                    onClick = onOpenVault,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
+                        contentDescription = "Open the books"
+                    },
+                ) { Text(if (hindi) "किताबें खोलें" else "Open the books") }
             }
         }
     }
+}
+
+@Composable
+private fun ReadyHome(
+    dashboardState: HouseholdDashboardUiState.Ready,
+    selectedFamilyOwner: OwnerId?,
+    onSelectFamilyOwner: (OwnerId?) -> Unit,
+    fundPriceNote: String?,
+    onUpdateFundPrices: () -> Unit,
+    onOpenVault: () -> Unit,
+    onRefreshDashboard: () -> Unit,
+    onOpenStatements: () -> Unit,
+    onOpenPortfolio: () -> Unit,
+    onOpenInsights: () -> Unit,
+    onManageFamily: () -> Unit,
+    onOpenAccounts: () -> Unit,
+    onOpenTaxScope: () -> Unit,
+    onOpenDocuments: () -> Unit,
+    onOpenInterest: () -> Unit,
+    onOpenEmi: () -> Unit,
+    onOpenRecords: () -> Unit,
+    onAddHoldings: () -> Unit,
+    onOpenPrivacy: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    val dashboard = dashboardState.dashboard
+    val focused = selectedFamilyOwner?.let { id ->
+        dashboard.byMember.firstOrNull { it.ownerId == id }
+    }
+    val people = dashboard.memberCount.coerceAtLeast(dashboard.byMember.size)
+    val holdings = dashboard.holdingCount.coerceAtLeast(dashboard.recordedHoldings.size)
+    val month = YearMonth.from(dashboard.asOf)
+    val statementThisMonth = (dashboardState.importRecords.map { it.dated } +
+        dashboardState.importBatches.map { it.statementDate })
+        .any { YearMonth.from(it) == month }
+    val primary = when {
+        people == 0 -> "Add yourself" to onManageFamily
+        holdings == 0 -> "Add what the family owns" to onAddHoldings
+        !statementThisMonth -> "Review this month's statement" to onOpenStatements
+        else -> "See what we own" to onOpenPortfolio
+    }
+    Text(
+        if (focused == null) "What the family owns"
+        else "${focused.displayName ?: "This person"} only",
+        style = MaterialTheme.typography.titleLarge,
+    )
+    Text(
+        if (focused == null) "Figures saved in the book as of ${dashboard.asOf}. Not today's market price."
+        else "The tiles are this person. Other people are hidden. Figures saved as of ${dashboard.asOf}. Not today's market price.",
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        fundPriceNote ?: "Mutual fund prices: not updated on this phone yet.",
+        style = MaterialTheme.typography.bodyLarge,
+    )
+    Text(
+        "Shares and gold: last saved price. Not a live quote.",
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    OutlinedButton(
+        onClick = onUpdateFundPrices,
+        modifier = Modifier.heightIn(min = 48.dp).semantics {
+            contentDescription = "Update mutual fund prices"
+        },
+    ) { Text("Update mutual fund prices") }
+    MetricTile(
+        label = "Net worth",
+        value = (focused?.netWorth ?: dashboard.netWorth).asBook(),
+        note = if (focused == null) "$people people · $holdings investments and loans"
+        else "This person only · ${focused.holdings} investments and loans",
+        container = MaterialTheme.colorScheme.primaryContainer,
+        ink = MaterialTheme.colorScheme.onPrimaryContainer,
+    )
+    MetricTile(
+        label = "What you own",
+        value = (focused?.assets ?: dashboard.assets).asBook(),
+        note = "Saved value",
+        container = MaterialTheme.colorScheme.tertiaryContainer,
+        ink = MaterialTheme.colorScheme.onTertiaryContainer,
+    )
+    MetricTile(
+        label = "What you owe",
+        value = (focused?.liabilities ?: dashboard.liabilities).asBook(),
+        note = "Loans",
+        container = MaterialTheme.colorScheme.secondaryContainer,
+        ink = MaterialTheme.colorScheme.onSecondaryContainer,
+    )
+    if (people == 0) {
+        Text(
+            "Nothing is saved yet. Start with your own name.",
+            style = MaterialTheme.typography.bodyLarge,
+        )
+    }
+    Button(
+        onClick = primary.second,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
+            contentDescription = primary.first
+        },
+    ) { Text(primary.first) }
+    OutlinedButton(
+        onClick = onRefreshDashboard,
+        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Update totals" },
+    ) { Text("Update totals") }
+    if (dashboard.unknownCostHoldings > 0 || dashboard.integrityWarnings.isNotEmpty() || !dashboard.isReliable) {
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Needs a look", style = MaterialTheme.typography.titleMedium)
+                if (dashboard.unknownCostHoldings > 0) {
+                    Text(
+                        "${dashboard.unknownCostHoldings} investments have no purchase price. The gain is not shown. It is not zero.",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+                if (dashboard.integrityWarnings.isNotEmpty() || !dashboard.isReliable) {
+                    Text(
+                        "Some rows could not be added into the totals. Look at those before you rely on this page.",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
+        }
+    }
+    if (dashboard.byMember.isNotEmpty() && focused == null) {
+        Text("People", style = MaterialTheme.typography.titleMedium)
+        dashboard.byMember.forEach { member ->
+            TextButton(
+                onClick = { onSelectFamilyOwner(member.ownerId) },
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
+                Text("${member.displayName ?: "Family member"} — owns ${member.assets.asBook()} · owes ${member.liabilities.asBook()}")
+            }
+        }
+    }
+    val focusedName = focused?.displayName
+    val listed = dashboard.recordedHoldings.filter {
+        selectedFamilyOwner == null || (focusedName != null && it.ownerName == focusedName)
+    }
+    if (listed.isNotEmpty()) RecordedHoldingsSection(listed)
+    var more by remember { mutableStateOf(false) }
+    TextButton(
+        onClick = { more = !more },
+        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "More on this phone" },
+    ) { Text(if (more) "Hide more" else "More on this phone") }
+    if (more) {
+        MoreAction("What we own", "Open portfolio", onOpenPortfolio)
+        MoreAction("How the money is split", "Open insights", onOpenInsights)
+        MoreAction("Monthly statement", "Open documents", onOpenDocuments)
+        MoreAction("Interest to record", "Open interest review", onOpenInterest)
+        MoreAction("Loan instalments", "Open EMI review", onOpenEmi)
+        MoreAction("Saved statements", "Open records", onOpenRecords)
+        MoreAction("Tax for one person", "Open tax owner scope", onOpenTaxScope)
+        MoreAction("Accounts and nominees", "Open accounts", onOpenAccounts)
+        MoreAction("People", "Manage family", onManageFamily)
+        MoreAction("Privacy", "Open privacy", onOpenPrivacy)
+        MoreAction("Open the books", "Open the books", onOpenVault)
+        MoreAction("Settings", "Open settings", onOpenSettings)
+    }
+}
+
+@Composable
+private fun MoreAction(label: String, description: String, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
+            contentDescription = description
+        },
+    ) { Text(label) }
 }
 
 @Composable
@@ -366,11 +312,10 @@ private fun MetricTile(
                 style = MaterialTheme.typography.titleLarge,
                 color = ink,
                 fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                softWrap = false,
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
             )
-            Text(note, style = MaterialTheme.typography.bodySmall, color = ink)
+            Text(note, style = MaterialTheme.typography.bodyLarge, color = ink)
         }
     }
 }

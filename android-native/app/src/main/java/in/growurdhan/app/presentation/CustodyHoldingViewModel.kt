@@ -334,7 +334,7 @@ class CustodyHoldingViewModel @Inject constructor(
                     }
                     is CustodyRegistration.Account -> {
                         vault.registerCustodyAccount(request.ownerId, request.type, request.label)
-                        "Registrar account saved in the encrypted vault."
+                        "Account saved in the book."
                     }
                     is CustodyRegistration.Holding -> {
                         vault.registerCasHolding(

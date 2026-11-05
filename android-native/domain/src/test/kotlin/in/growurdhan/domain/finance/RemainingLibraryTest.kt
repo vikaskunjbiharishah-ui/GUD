@@ -38,7 +38,7 @@ class RemainingLibraryTest {
         val extra = BackupSchedule.extras(listOf("a" to 1L, "b" to 5L, "c" to 3L, "d" to 4L, "e" to 2L, "f" to 6L))
         assertEquals(listOf("a"), extra)
         assertEquals(
-            "Unlock the vault to run scheduled backup. The password is not stored.",
+            "Open the books before a scheduled backup. The password is not stored.",
             BackupSchedule.shouldRun(BackupSchedule.defaults.copy(enabled = true), "open", unlocked = false, hasFolder = true),
         )
         assertNull(BackupSchedule.shouldRun(BackupSchedule.defaults, "open", unlocked = true, hasFolder = true))
@@ -50,7 +50,7 @@ class RemainingLibraryTest {
         assertEquals(listOf("a"), planned?.deleteNames)
         assertEquals(null, BackupSchedule.planFolder(false, true, kept, whenSaved, manual = true))
         assertEquals(
-            "Unlock the vault to run scheduled backup. The password is not stored.",
+            "Open the books before a scheduled backup. The password is not stored.",
             BackupSchedule.refusal(false, true),
         )
 

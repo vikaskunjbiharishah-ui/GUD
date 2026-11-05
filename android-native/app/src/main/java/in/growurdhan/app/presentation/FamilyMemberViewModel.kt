@@ -92,7 +92,7 @@ class FamilyMemberViewModel @Inject constructor(
             } catch (_: Exception) {
                 if (current == generation) {
                     mutableState.value = FamilyMemberUiState.Error(
-                        "Could not read family members. Reopen the encrypted vault and retry.",
+                        "Could not read the family. Open the books and try again.",
                     )
                 }
             }

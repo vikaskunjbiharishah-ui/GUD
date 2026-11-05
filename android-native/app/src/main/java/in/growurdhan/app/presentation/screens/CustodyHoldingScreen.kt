@@ -61,7 +61,7 @@ fun CustodyHoldingScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            "Accounts & holdings",
+            "Accounts and investments",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
         )
@@ -74,8 +74,8 @@ fun CustodyHoldingScreen(
         )
         when (state) {
             CustodyHoldingUiState.Locked -> {
-                Text("Unlock the encrypted vault before enrolling accounts or holdings.")
-                OutlinedButton(onClick = onBackToVault) { Text("Go to Vault") }
+                Text("Open the books before adding an account.")
+                OutlinedButton(onClick = onBackToVault) { Text("Back") }
             }
             CustodyHoldingUiState.Loading, CustodyHoldingUiState.Saving -> {
                 CircularProgressIndicator()
@@ -87,7 +87,7 @@ fun CustodyHoldingScreen(
             is CustodyHoldingUiState.Error -> {
                 Text(state.message, color = MaterialTheme.colorScheme.error)
                 Button(onClick = { onIntent(CustodyHoldingIntent.Refresh) }) { Text("Try again") }
-                OutlinedButton(onClick = onBackToVault) { Text("Go to Vault") }
+                OutlinedButton(onClick = onBackToVault) { Text("Back") }
             }
             is CustodyHoldingUiState.AwaitingCredential -> {
                 Text("Confirm your device screen lock before recording this financial registration.")
@@ -129,7 +129,7 @@ fun CustodyHoldingScreen(
                 val book = state.book
                 if (book.members.isEmpty()) {
                     Text("Add a family member before creating registrar accounts.")
-                    OutlinedButton(onClick = onBackToVault) { Text("Go to Vault") }
+                    OutlinedButton(onClick = onBackToVault) { Text("Back") }
                 } else {
                     var localOwner by remember(book.members) {
                         mutableStateOf(book.members.first().id)
@@ -184,7 +184,7 @@ fun CustodyHoldingScreen(
                                     ))
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                            ) { Text("Save registrar account securely") }
+                            ) { Text("Add this account") }
                         }
                     }
 
@@ -229,7 +229,7 @@ fun CustodyHoldingScreen(
                                 OutlinedTextField(
                                     value = isin,
                                     onValueChange = { if (it.length <= 12) isin = it.uppercase() },
-                                    label = { Text("ISIN (12 characters)") },
+                                    label = { Text("Scheme code (ISIN), 12 letters and numbers") },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth().semantics {
                                         contentDescription = "CAS ISIN input"
@@ -238,7 +238,7 @@ fun CustodyHoldingScreen(
                                 OutlinedTextField(
                                     value = folio,
                                     onValueChange = { if (it.length <= 64) folio = it },
-                                    label = { Text("CAS folio") },
+                                    label = { Text("Folio number") },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth().semantics {
                                         contentDescription = "CAS folio input"
@@ -259,7 +259,7 @@ fun CustodyHoldingScreen(
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth(),
-                                ) { Text("Enrol mutual fund securely") }
+                                ) { Text("Add this mutual fund") }
                             }
                         }
                     }
@@ -290,7 +290,7 @@ fun CustodyHoldingScreen(
                                 enabled = !officialCatalogLoading,
                                 modifier = Modifier.fillMaxWidth().testTag("RefreshOfficialAmfi"),
                             ) {
-                                Text(if (officialCatalogLoading) "Refreshing AMFI public NAV…"
+                                Text(if (officialCatalogLoading) "Updating mutual fund prices…"
                                     else "Refresh AMFI NAV catalog")
                             }
                             officialCatalogMessage?.let { Text(it,
@@ -618,7 +618,7 @@ fun CustodyHoldingScreen(
                         onClick = onContinueToStatements,
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Continue to Statements") }
-                    OutlinedButton(onClick = onBackToVault) { Text("Go to Vault") }
+                    OutlinedButton(onClick = onBackToVault) { Text("Back") }
                 }
             }
         }

@@ -77,7 +77,7 @@ class PortfolioInsightsShellTest {
         compose.onNodeWithText("Record an explicit buy or sell")
             .performScrollTo().performClick()
         compose.onNodeWithText(
-            "Unlock the vault before recording a financial transaction.",
+            "Open the books before recording a transaction.",
         ).assertIsDisplayed()
         compose.runOnIdle {
             org.junit.Assert.assertEquals(ManualTradeIntent.Refresh, lastIntent)
@@ -118,7 +118,7 @@ class PortfolioInsightsShellTest {
         compose.onNodeWithText("Synthetic private fund").performScrollTo().assertIsDisplayed()
         compose.runOnIdle { state = HouseholdDashboardUiState.Locked }
         compose.onAllNodesWithText("Synthetic private fund").assertCountEquals(0)
-        compose.onNodeWithText("Unlock the vault to see your family's recorded holdings.")
+        compose.onNodeWithText("Enter your password to see the family's investments and loans.")
             .assertIsDisplayed()
     }
 
@@ -128,9 +128,9 @@ class PortfolioInsightsShellTest {
                 InsightsScreen(HouseholdDashboardUiState.Ready(syntheticDashboard), {}, {})
             }
         }
-        compose.onNodeWithText("MUTUAL FUND · 66.7%")
+        compose.onNodeWithText("Mutual fund · 66.7%")
             .performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("GOLD · 33.3%")
+        compose.onNodeWithText("Gold · 33.3%")
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Loans are 33.3% of what you own.")
             .performScrollTo().assertIsDisplayed()
@@ -149,7 +149,7 @@ class PortfolioInsightsShellTest {
         compose.onNodeWithText("The mix is paused").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("The totals do not add up yet, so percentages stay hidden.")
             .performScrollTo().assertIsDisplayed()
-        compose.onAllNodesWithText("MUTUAL FUND · 66.7%").assertCountEquals(0)
+        compose.onAllNodesWithText("Mutual fund · 66.7%").assertCountEquals(0)
     }
 
     @Test fun lockedInsightsNeverExposeFamilyHoldingsOrRecordedTotals() {
@@ -159,7 +159,7 @@ class PortfolioInsightsShellTest {
             }
         }
         compose.onNodeWithText(
-            "Unlock the vault to see how the family's money is split.",
+            "Enter your password to see how the family's money is split.",
         ).assertIsDisplayed()
         compose.onAllNodesWithText("Synthetic private fund").assertCountEquals(0)
         compose.onAllNodesWithText("Household position").assertCountEquals(0)
