@@ -35,5 +35,7 @@ Computer check on 2026-11-02, code 91f5fe4: the emulator reopened a saved statem
 
 Computer check on 2026-11-03, code 3fe140c: Records opened from Home and showed Saved statement. Confirm posted one interest and one EMI, and a second confirm did not add another row. The feedback clock was still there after the app process was stopped. A public AMFI NAV file was read. This APK was not installed on a phone. TalkBack was not run.
 
+Computer check on 2026-11-05, code 91cb2e8: household wording compiled, and unit tests for onboarding, backup wording, and opening the books passed. The emulator was not started. This APK was not rebuilt or installed on a phone. TalkBack was not run.
+
 
 

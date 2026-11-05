@@ -1,9 +1,9 @@
-RUN: 11 · TIME USED: 00:12Z–00:39Z · COMMITS: code 7fba9c5, 3fe140c; docs follow
-DONE (stage): P17 EMULATOR Records route shows Saved statement · P22/P23 EMULATOR confirm posts interest and EMI, not ₹0 · P36 EMULATOR feedback clock after force-stop · P26 EMULATOR live AMFI NAV file
-TESTS: ConfirmedFinancePostTest 2/2 at 00:18:44Z. OfficialAmfiNavParserTest 4/4 at 00:29:38Z. Vault restart 1/1 in 19.402s at 00:23:16Z. FinanceReview+Run11 OK (4) in 14.712s ended 00:23:43Z. AMFI refresh OK (1) in 9.781s ended 00:33:52Z. Full 284/99/112 suites were not re-run.
-PARTIAL / NOT DONE: NSE/BSE live fetch · diagnostic-note process death · Insights vault screen · books health on Home · TalkBack
+RUN: 12 · TIME USED: 2026-11-05 · COMMITS: code 91cb2e8; docs follow
+DONE (stage): LOCAL household copy. Home has one next step. Chips match the tiles. Dates are a picker. Questions are questions. Hindi welcome ends with शुरू करें. Interest and EMI say they are not in the book until save.
+TESTS: compileDebugKotlin, unit-test Kotlin, and androidTest Kotlin BUILD SUCCESSFUL in 31s. OnboardingTest 2/2, RemainingLibraryTest 2/2, VaultViewModelTest 20/20, BackupFolderViewModelTest 2/2 at 02:23:12Z. Instrumented tests were not executed. Full 284/99/112 suites were not re-run.
+PARTIAL / NOT DONE: emulator tap-through of the new copy · ARM64 rebuild · NSE/BSE live fetch · Insights vault screen · books health on Home · TalkBack
 BLOCKED-OWNER: own CAS PDF, Gmail consent, ₹99 purchase, production signing, phone install, pen test, owner sign-off
-FAILED & FIXED: the first live AMFI fetch failed closed because the file added Plan and Option columns. The parser now accepts 6 or 8 columns. No test was weakened.
-OPEN RISKS: Do not assemble beside the emulator. Release APK is the test keystore. TalkBack is not on this image. Do not publish.
-NEXT RUN STARTS AT: Insights screen reading a vault, not an injected XIRR note
-ARTIFACTS: debug sha256 d5de1b9de581819223acdb3c828ada0725fbc674148524373d2716c179476a70 · release sha256 f0eb55e04131df9046e85dd5d40fba889a542ba5de52bda25e9d8e316229aa2d · commit 3fe140c
+FAILED & FIXED: androidTest compile missed HouseholdDashboard.byMember. The three constructors now pass emptyList(). LegacyBackupScreen lost its padding import and was restored. No test was deleted.
+OPEN RISKS: Do not assemble beside the emulator. Digests in SHA256.txt are still 3fe140c. Sale still says it does not write a ledger event. Licence sentences still say vault. Do not publish.
+NEXT RUN STARTS AT: emulator Compose tests for Home, first-run, interest, and legacy restore
+ARTIFACTS: no new APK · previous debug sha256 d5de1b9de581819223acdb3c828ada0725fbc674148524373d2716c179476a70 · previous release sha256 f0eb55e04131df9046e85dd5d40fba889a542ba5de52bda25e9d8e316229aa2d · commit 91cb2e8

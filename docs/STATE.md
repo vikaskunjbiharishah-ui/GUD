@@ -1,12 +1,12 @@
 # STATE
 
 ## HEADER
-- Date: 2026-11-03. Run 11. Code `3fe140c` (also `7fba9c5`). Docs after this line are not the APK commit. Previous code `91f5fe4`.
-- Domain ConfirmedFinancePostTest 2/2 at 2026-11-03T00:18:44.595Z. OfficialAmfiNavParserTest 4/4 at 00:29:38.943Z. Full domain 284/284 was at 23:21:34Z on `91f5fe4` and was not repeated.
-- Touched emulator tests, not the full suites: interest/EMI restart 1/1 in 19.402s at 00:23:16Z. Feedback seed, `am force-stop`, read, both OK by 00:23:19Z. FinanceReview 3 and Run11 records 1, OK (4) in 14.712s ended 00:23:43Z. Live AMFI refresh OK (1) in 9.781s ended 00:33:52Z. gud_x86. TalkBack package is absent (`NO_TALKBACK`).
-- Full data 99/99 and app 112/112 remain the 2026-11-02 runs on `91f5fe4`. They were not repeated after `7fba9c5`.
-- `validate_schema.py` PASS and `security_preflight.py` PASS at 23:36:57Z. Not a pen test. Not re-run after Run 11.
-- ARM64 debug sha256 `d5de1b9d…9476a70` size 50823136 at 00:34:37Z. Minified release sha256 `f0eb55e0…229aa2d` size 30755781 at 00:39:04Z. Both from `3fe140c`, native-code arm64-v8a. Phone not used. Test key, not a Play upload key.
+- Date: 2026-11-05. Household UI. Code `91cb2e8`. Docs after this line are not the APK commit. Previous code `3fe140c`.
+- LOCAL compileDebugKotlin, compileDebugUnitTestKotlin, and compileDebugAndroidTestKotlin BUILD SUCCESSFUL in 31s. OnboardingTest 2/2, RemainingLibraryTest 2/2, VaultViewModelTest 20/20, BackupFolderViewModelTest 2/2 at 2026-11-05T02:23:12Z.
+- Instrumented Compose tests were compiled and not executed. The emulator was not started. ARM64 was not rebuilt. Digests below remain `3fe140c`.
+- Full domain 284, data 99, and app 112 remain earlier runs. They were not repeated after `91cb2e8`.
+- `validate_schema.py` and `security_preflight.py` were not re-run. Not a pen test.
+- ARM64 debug sha256 `d5de1b9d…9476a70` size 50823136 and release sha256 `f0eb55e0…229aa2d` size 30755781 are from `3fe140c` only. Phone not used. Test key, not a Play upload key.
 
 ## MATRIX
 - P01 EMULATOR FirstRunIdentityInstrumentedTest, FirstRunIdentityShellTest, FirstRunIdentityHandoffInstrumentedTest — gap: phone install.
@@ -47,7 +47,7 @@
 - P36 EMULATOR feedback clock: seed, `am force-stop in.growurdhan.data.test`, then read. Both OK by 00:23:19Z. Does not open the store. Diagnostic notes were not force-stopped.
 - P37 EMULATOR `restoreTapLeavesThePlanOff`. Empty Play evidence stays off. A button cannot turn the plan on. Real purchase BLOCKED-OWNER.
 - P38 LOCAL PlayEntitlementPolicyTest, LicenceViewModelTest — gap: real Play purchase BLOCKED-OWNER.
-- P39 Full domain 284, data 99, and app 112 were not re-run after `7fba9c5`. ARM64 debug and minified release were rebuilt from `3fe140c` and not installed. DEVICE parser, pen test, and owner sign-off stay BLOCKED-OWNER.
+- P39 Full domain 284, data 99, and app 112 were not re-run after `91cb2e8`. Household screens compiled. Instrumented tests were not executed. ARM64 debug and minified release remain `3fe140c` and were not installed. DEVICE parser, pen test, and owner sign-off stay BLOCKED-OWNER.
 - E01 EMULATOR theme screenshots — gap: not every screen.
 - E02 EMULATOR 48dp on Home, sale, records, price, feedback, first-run continue, and the SGB and diagnostics switches. TalkBack not run.
 - E03 EMULATOR OwnerLensShellTest — gap: vault, settings, and licence.
@@ -68,16 +68,17 @@
 - E18 LOCAL docs/EGRESS.md. Finances, PAN, DOB, keys, and PDFs are not sent. Not a pen test.
 
 ## QUEUE
-1. Let the Insights screen test read a vault, not an injected note.
-2. Show Home books-health from HomeBooks. Do not invent a PAN warning.
-3. TalkBack is not on this emulator image. Do not claim it ran.
-4. Real NSDL PDF stays BLOCKED-OWNER. x86 cannot run pdfium.
-5. Phone install stays BLOCKED-OWNER.
-6. Production signing stays BLOCKED-OWNER.
-7. Real Gmail consent stays BLOCKED-OWNER.
-8. A real ₹99 Play purchase stays BLOCKED-OWNER.
-9. NSE/BSE live fetch was not run. Do not invent a close.
-10. Do not claim a Play-ready product.
+1. Re-run the touched Compose tests on the emulator. They compiled and were not executed.
+2. Let the Insights screen test read a vault, not an injected note.
+3. Show Home books-health from HomeBooks. Do not invent a PAN warning.
+4. TalkBack is not on this emulator image. Do not claim it ran.
+5. Real NSDL PDF stays BLOCKED-OWNER. x86 cannot run pdfium.
+6. Phone install stays BLOCKED-OWNER.
+7. Production signing stays BLOCKED-OWNER.
+8. Real Gmail consent stays BLOCKED-OWNER.
+9. A real ₹99 Play purchase stays BLOCKED-OWNER.
+10. NSE/BSE live fetch was not run. Do not invent a close.
+11. Do not claim a Play-ready product. Rebuild ARM64 before quoting a digest.
 
 ## DECISIONS
 - Hindi vault word is वॉल्ट. Statement is स्टेटमेंट. Cloud is क्लाउड. Banned: तिजोरी, बयान, बादल.
