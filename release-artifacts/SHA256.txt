@@ -1,11 +1,11 @@
 apk=release-artifacts/gud-arm64-debug.apk
-sha256=c6c986262bd349eab753c52f85fc9fc743e5b1293d38c9cc49557a5ea2479c0b
-commit=91cb2e811c078a35eb46600e054631e63286ff97
+sha256=2afba534394bfbb785225d837414c508235cecd16be5b22454c6b4fc06d78822
+commit=4bb32993ac0a38acfa8ec017ed3a248a92d2d361
 abi=arm64-v8a
-built=2026-11-09T13:56:21Z
+built=2026-11-09T14:35:33Z
 size=57647907
-parser=Chaquopy installed pypdfium2 and pydantic_core arm64 wheels into assets/chaquopy. Not under lib/arm64-v8a/. No x86 library in this APK. Not run on a phone.
-note=Household UI. Test debug key, not a Play upload key.
+parser=Chaquopy arm64 wheels stay in assets/chaquopy. lib/arm64-v8a count 11. x86 count 0. Not run on a phone.
+note=Readable login ink, English only, family icons. Test debug key, not a Play upload key. Previous household APK sha256 c6c986262bd349eab753c52f85fc9fc743e5b1293d38c9cc49557a5ea2479c0b is 91cb2e8.
 
 apk=release-artifacts/gud-arm64-release-testkey.apk
 sha256=f0eb55e04131df9046e85dd5d40fba889a542ba5de52bda25e9d8e316229aa2d

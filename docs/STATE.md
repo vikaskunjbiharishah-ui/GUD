@@ -1,11 +1,10 @@
 # STATE
 
 ## HEADER
-- Date: 2026-11-09. Phone debug APK for the household UI. Code `91cb2e8`. Docs after this line are not the APK commit. Previous code `3fe140c`.
-- LOCAL compileDebugKotlin, compileDebugUnitTestKotlin, and compileDebugAndroidTestKotlin BUILD SUCCESSFUL in 31s on 2026-11-05. OnboardingTest 2/2, RemainingLibraryTest 2/2, VaultViewModelTest 20/20, BackupFolderViewModelTest 2/2 at 2026-11-05T02:23:12Z.
-- Instrumented Compose tests were compiled and not executed. The emulator was not started for this APK.
-- `:app:assembleDebug` with `GUD_PHONE_PARSER=1` BUILD SUCCESSFUL in 47s at 2026-11-09T13:56:21Z. Debug APK sha256 `c6c986262bd349eab753c52f85fc9fc743e5b1293d38c9cc49557a5ea2479c0b` size 57647907. `lib/arm64-v8a` only. pypdfium2 and pydantic_core arm64 wheels installed. Not installed on a phone.
-- Full domain 284, data 99, and app 112 remain earlier runs. They were not repeated after `91cb2e8`.
+- Date: 2026-11-09. Phone debug APK for readable login ink, English only, and family icons. Code `4bb3299`. Docs after this line are not the APK commit. Previous phone APK `91cb2e8`.
+- `:app:compileDebugKotlin` and `:app:compileDebugAndroidTestKotlin` BUILD SUCCESSFUL in 15s on 2026-11-09. OnboardingTest was UP-TO-DATE from the earlier green run. Instrumented Compose tests were compiled and not executed. The emulator was not started.
+- `:app:assembleDebug` with `GUD_PHONE_PARSER=1` BUILD SUCCESSFUL in 30s at 2026-11-09T14:35:33Z. Debug APK sha256 `2afba534394bfbb785225d837414c508235cecd16be5b22454c6b4fc06d78822` size 57647907. `lib/arm64-v8a` only, x86 count 0. Not installed on a phone.
+- Full domain 284, data 99, and app 112 remain earlier runs. They were not repeated after `4bb3299`.
 - `validate_schema.py` and `security_preflight.py` were not re-run. Not a pen test.
 - Release APK sha256 `f0eb55e0…229aa2d` size 30755781 is still `3fe140c`. Test key, not a Play upload key.
 
@@ -42,13 +41,13 @@
 - P30 EMULATOR EmergencyExportShellTest; LOCAL EmergencyDossierCsvTest — gap: plaintext consent path.
 - P31 EMULATOR `settingsSwitchesStartOffAndNameSgbAndDiagnostics` inside app 112/112. LOCAL `sgbToggleDoesNotInventTheMissingSide`. Gap: no screenshot.
 - P32 EMULATOR DiagnosticNotesInstrumentedTest and the settings switch. PAN becomes `[redacted]`. A second repository read it. Process was not killed. Nothing is sent.
-- P33 EMULATOR ScreenshotMatrixInstrumentedTest. Hindi stays वॉल्ट/स्टेटमेंट/क्लाउड. TalkBack not run.
+- P33 LOCAL ScreenshotMatrix compiled. Hindi is not shown. `chrome(true)` is English. TalkBack not run. The instrumented test was not executed.
 - P34 LOCAL GmailProfileTest, GmailAccountListTest — gap: real OAuth BLOCKED-OWNER.
 - P35 LOCAL MailAttachmentIntakePolicyTest, MailboxSyncTest; EMULATOR MailboxSyncSchedulerInstrumentedTest. Worker does not call Gmail. Real OAuth BLOCKED-OWNER.
 - P36 EMULATOR feedback clock: seed, `am force-stop in.growurdhan.data.test`, then read. Both OK by 00:23:19Z. Does not open the store. Diagnostic notes were not force-stopped.
 - P37 EMULATOR `restoreTapLeavesThePlanOff`. Empty Play evidence stays off. A button cannot turn the plan on. Real purchase BLOCKED-OWNER.
 - P38 LOCAL PlayEntitlementPolicyTest, LicenceViewModelTest — gap: real Play purchase BLOCKED-OWNER.
-- P39 Full domain 284, data 99, and app 112 were not re-run after `91cb2e8`. Household screens compiled. Instrumented tests were not executed. ARM64 debug and minified release remain `3fe140c` and were not installed. DEVICE parser, pen test, and owner sign-off stay BLOCKED-OWNER.
+- P39 Full domain 284, data 99, and app 112 were not re-run after `4bb3299`. Login ink, icons, and English-only screens compiled. Instrumented tests were not executed. ARM64 debug is `4bb3299`. Minified release remains `3fe140c` and was not installed. DEVICE parser, pen test, and owner sign-off stay BLOCKED-OWNER.
 - E01 EMULATOR theme screenshots — gap: not every screen.
 - E02 EMULATOR 48dp on Home, sale, records, price, feedback, first-run continue, and the SGB and diagnostics switches. TalkBack not run.
 - E03 EMULATOR OwnerLensShellTest — gap: vault, settings, and licence.
@@ -79,10 +78,10 @@
 8. Real Gmail consent stays BLOCKED-OWNER.
 9. A real ₹99 Play purchase stays BLOCKED-OWNER.
 10. NSE/BSE live fetch was not run. Do not invent a close.
-11. Do not claim a Play-ready product. Debug ARM64 is `91cb2e8`. The minified release APK is still `3fe140c`.
+11. Do not claim a Play-ready product. Debug ARM64 is `4bb3299`. The minified release APK is still `3fe140c`.
 
 ## DECISIONS
-- Hindi vault word is वॉल्ट. Statement is स्टेटमेंट. Cloud is क्लाउड. Banned: तिजोरी, बयान, बादल.
+- Hindi was removed from the walked UI on 2026-11-09. `chrome(true)` returns English. Unused slide fields remain in the domain. Do not show Devanagari.
 - FY 2024-25 equity tax is unknown. Note exactly `Rates changed during this year; not estimated`. Estimated tax is null, not ₹0. AY26-27 uses later rates only. Cess and surcharge are omitted. AY27-28 stays provisional.
 - Sale golden: buy 10 at ₹100 with ₹10 charges, sell 4 at ₹150 with ₹4 charges, gain ₹196. Unknown cost stays `Need what you paid. The gain is not shown as zero.`
 - A missing close stays `No close is saved. It is not zero.` A manual price wins and is stale after 7 days.
@@ -103,6 +102,6 @@
 
 ## KNOWN GAPS
 - Records opens from Home and shows Saved statement. Sale and price screens are still synthetic rows.
-- Confirm posts interest and EMI. Debug ARM64 is `91cb2e8`. The minified release APK is still `3fe140c`. The release key is the test key. R8 mapping.txt was produced and not committed.
+- Confirm posts interest and EMI. Debug ARM64 is `4bb3299`. The minified release APK is still `3fe140c`. The release key is the test key. R8 mapping.txt was produced and not committed.
 - TalkBack is not installed on `gud_x86`. The OS credential Activity was not launched. Insights was not screenshotted.
 - Diagnostic notes were not proven across process death. A real CAS PDF was not parsed.
