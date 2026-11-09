@@ -1,12 +1,13 @@
 # STATE
 
 ## HEADER
-- Date: 2026-11-05. Household UI. Code `91cb2e8`. Docs after this line are not the APK commit. Previous code `3fe140c`.
-- LOCAL compileDebugKotlin, compileDebugUnitTestKotlin, and compileDebugAndroidTestKotlin BUILD SUCCESSFUL in 31s. OnboardingTest 2/2, RemainingLibraryTest 2/2, VaultViewModelTest 20/20, BackupFolderViewModelTest 2/2 at 2026-11-05T02:23:12Z.
-- Instrumented Compose tests were compiled and not executed. The emulator was not started. ARM64 was not rebuilt. Digests below remain `3fe140c`.
+- Date: 2026-11-09. Phone debug APK for the household UI. Code `91cb2e8`. Docs after this line are not the APK commit. Previous code `3fe140c`.
+- LOCAL compileDebugKotlin, compileDebugUnitTestKotlin, and compileDebugAndroidTestKotlin BUILD SUCCESSFUL in 31s on 2026-11-05. OnboardingTest 2/2, RemainingLibraryTest 2/2, VaultViewModelTest 20/20, BackupFolderViewModelTest 2/2 at 2026-11-05T02:23:12Z.
+- Instrumented Compose tests were compiled and not executed. The emulator was not started for this APK.
+- `:app:assembleDebug` with `GUD_PHONE_PARSER=1` BUILD SUCCESSFUL in 47s at 2026-11-09T13:56:21Z. Debug APK sha256 `c6c986262bd349eab753c52f85fc9fc743e5b1293d38c9cc49557a5ea2479c0b` size 57647907. `lib/arm64-v8a` only. pypdfium2 and pydantic_core arm64 wheels installed. Not installed on a phone.
 - Full domain 284, data 99, and app 112 remain earlier runs. They were not repeated after `91cb2e8`.
 - `validate_schema.py` and `security_preflight.py` were not re-run. Not a pen test.
-- ARM64 debug sha256 `d5de1b9d…9476a70` size 50823136 and release sha256 `f0eb55e0…229aa2d` size 30755781 are from `3fe140c` only. Phone not used. Test key, not a Play upload key.
+- Release APK sha256 `f0eb55e0…229aa2d` size 30755781 is still `3fe140c`. Test key, not a Play upload key.
 
 ## MATRIX
 - P01 EMULATOR FirstRunIdentityInstrumentedTest, FirstRunIdentityShellTest, FirstRunIdentityHandoffInstrumentedTest — gap: phone install.
@@ -78,7 +79,7 @@
 8. Real Gmail consent stays BLOCKED-OWNER.
 9. A real ₹99 Play purchase stays BLOCKED-OWNER.
 10. NSE/BSE live fetch was not run. Do not invent a close.
-11. Do not claim a Play-ready product. Rebuild ARM64 before quoting a digest.
+11. Do not claim a Play-ready product. Debug ARM64 is `91cb2e8`. The minified release APK is still `3fe140c`.
 
 ## DECISIONS
 - Hindi vault word is वॉल्ट. Statement is स्टेटमेंट. Cloud is क्लाउड. Banned: तिजोरी, बयान, बादल.
@@ -102,6 +103,6 @@
 
 ## KNOWN GAPS
 - Records opens from Home and shows Saved statement. Sale and price screens are still synthetic rows.
-- Confirm posts interest and EMI. ARM64 digests are from `3fe140c`. The release key is the test key. R8 mapping.txt was produced and not committed.
+- Confirm posts interest and EMI. Debug ARM64 is `91cb2e8`. The minified release APK is still `3fe140c`. The release key is the test key. R8 mapping.txt was produced and not committed.
 - TalkBack is not installed on `gud_x86`. The OS credential Activity was not launched. Insights was not screenshotted.
 - Diagnostic notes were not proven across process death. A real CAS PDF was not parsed.

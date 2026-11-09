@@ -37,5 +37,4 @@ Computer check on 2026-11-03, code 3fe140c: Records opened from Home and showed 
 
 Computer check on 2026-11-05, code 91cb2e8: household wording compiled, and unit tests for onboarding, backup wording, and opening the books passed. The emulator was not started. This APK was not rebuilt or installed on a phone. TalkBack was not run.
 
-
-
+Computer check on 2026-11-09, code 91cb2e8: a new ARM64 debug APK was built for the household wording. sha256 c6c986262bd349eab753c52f85fc9fc743e5b1293d38c9cc49557a5ea2479c0b, size 57647907. It was not installed on a phone. TalkBack was not run.
