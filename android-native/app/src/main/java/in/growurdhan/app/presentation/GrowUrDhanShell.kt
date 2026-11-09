@@ -10,13 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -55,7 +53,6 @@ import `in`.growurdhan.domain.finance.FinancialEvent
 import `in`.growurdhan.core.model.HoldingId
 import `in`.growurdhan.core.model.OwnerId
 import `in`.growurdhan.app.market.OfficialAmfiCatalogGateway
-import `in`.growurdhan.app.welcome.WelcomeMemory
 import `in`.growurdhan.domain.market.OfficialMarketSource
 import `in`.growurdhan.domain.market.CachedListedSecurity
 import `in`.growurdhan.app.presentation.screens.BackupFolderScreen
@@ -91,11 +88,11 @@ private enum class MainDestination(
     val title: String,
     val icon: ImageVector,
 ) {
-    HOME("home", "Home", Icons.Outlined.Home),
-    PORTFOLIO("portfolio", "Portfolio", Icons.Outlined.AccountBalanceWallet),
-    REVIEW("review", "Statements", Icons.Outlined.Description),
-    INSIGHTS("insights", "Insights", Icons.Outlined.BarChart),
-    SETTINGS("settings", "Settings", Icons.Outlined.Settings),
+    HOME("home", "Home", Icons.Filled.Home),
+    PORTFOLIO("portfolio", "Portfolio", Icons.Filled.AccountBalanceWallet),
+    REVIEW("review", "Statements", Icons.Filled.Description),
+    INSIGHTS("insights", "Insights", Icons.Filled.BarChart),
+    SETTINGS("settings", "Settings", Icons.Filled.Settings),
 }
 
 /** Secondary routes remain reachable from Home and Settings without crowding navigation. */
@@ -166,8 +163,6 @@ fun GrowUrDhanShell(
     val snackbars = remember { SnackbarHostState() }
     val appContext = LocalContext.current.applicationContext
     val catalogGateway = remember(appContext) { OfficialAmfiCatalogGateway(appContext) }
-    val welcomeMemory = remember(appContext) { WelcomeMemory(appContext) }
-    val hindi = welcomeMemory.hindi()
     val catalogScope = rememberCoroutineScope()
     var officialCatalog by remember { mutableStateOf<List<CachedListedSecurity>>(emptyList()) }
     var catalogLoading by remember { mutableStateOf(false) }
@@ -318,7 +313,6 @@ fun GrowUrDhanShell(
                             onAddHoldings = { navigate(CUSTODY_ROUTE) },
                             onUpdateFundPrices = refreshFunds,
                             fundPriceNote = catalogMessage,
-                            hindi = hindi,
                             selectedFamilyOwner = selectedOwner,
                             onSelectFamilyOwner = { selectedOwner = it },
                         )

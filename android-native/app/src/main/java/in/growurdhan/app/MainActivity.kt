@@ -777,8 +777,6 @@ class MainActivity : ComponentActivity() {
             GrowUrDhanTheme(state.appearance) {
                 if (showOnboarding) {
                     OnboardingScreen(
-                        hindi = welcome.hindi(),
-                        onHindiChange = { welcome.setHindi(it) },
                         onFinished = {
                         welcome.markOnboardingSeen()
                         showOnboarding = false
@@ -812,7 +810,6 @@ class MainActivity : ComponentActivity() {
                         LocalLoginScreen(
                             state = loginStatus,
                             message = localLoginError,
-                            hindi = welcome.hindi(),
                             accountEmailRequired = appPassword.hasAccountEmailBinding(),
                             onSubmitWithEmail = ::handleLocalLogin,
                             onSubmit = { password, repeated -> handleLocalLogin("", password, repeated) },

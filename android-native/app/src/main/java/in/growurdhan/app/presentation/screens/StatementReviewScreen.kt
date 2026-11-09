@@ -27,6 +27,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material3.Icon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -51,7 +58,7 @@ fun StatementReviewScreen(
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).padding(bottom = 88.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
@@ -59,10 +66,17 @@ fun StatementReviewScreen(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
         )
-        Text("1. Who  ·  2. Which account  ·  3. Check the PDF", style = MaterialTheme.typography.titleMedium)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Filled.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Icon(Icons.Filled.AccountBalance, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Icon(Icons.Filled.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Text("1. Who  ·  2. Which account  ·  3. Check the PDF", style = MaterialTheme.typography.titleMedium)
+        }
         Text(
             "Only changes you approve are saved in the book.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
         )
         when (state) {
             StatementReviewUiState.Empty -> {
@@ -137,7 +151,8 @@ fun StatementReviewScreen(
                 Text(
                     "Only family members with enrolled registrar/ISIN/folio mappings appear. " +
                         "The statement's identities must agree with the encrypted book.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyLarge,
                 )
                 var pdfPassword by remember { mutableStateOf("") }
                 OutlinedTextField(
@@ -181,10 +196,17 @@ fun StatementReviewScreen(
                 Text("Checking the encrypted book…")
             }
             is StatementReviewUiState.Error -> {
-                Text("Review unavailable", style = MaterialTheme.typography.titleMedium)
-                Text(state.message)
-                OutlinedButton(onClick = { onIntent(StatementReviewIntent.Cancel) }) {
-                    Text("Dismiss")
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Filled.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Text("Review unavailable", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                        Text(state.message, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        OutlinedButton(onClick = { onIntent(StatementReviewIntent.Cancel) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Text("Dismiss")
+                        }
+                    }
                 }
             }
             is StatementReviewUiState.Completed -> {

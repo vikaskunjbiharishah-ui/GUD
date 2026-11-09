@@ -10,6 +10,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -48,8 +56,21 @@ fun PortfolioScreen(
         Text("What we own", style = MaterialTheme.typography.headlineMedium)
         when (state) {
             HouseholdDashboardUiState.Locked -> {
-                Text("Enter your password to see the family's investments and loans.")
-                Button(onClick = onOpenVault, modifier = Modifier.heightIn(min = 48.dp)) { Text("Open the books") }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Filled.AccountBalanceWallet, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                    Text(
+                        "Enter your password to see the family's investments and loans.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                Button(onClick = onOpenVault, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Filled.Lock, contentDescription = null)
+                        Text("Open the books")
+                    }
+                }
             }
             HouseholdDashboardUiState.Loading -> Text("Adding up the family book.")
             HouseholdDashboardUiState.Unavailable -> {
@@ -74,12 +95,14 @@ fun PortfolioScreen(
                 Text(
                     "Figures saved as of ${dashboard.asOf}. Not today's market price.",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
                 )
                 Text(
                     "Shares and gold: last saved price. Not a live quote.",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
                 )
                 Text(
                     "Family assets: ${dashboard.assets.asBook()}  ·  " +
@@ -98,8 +121,13 @@ fun PortfolioScreen(
                     Text("Nothing is saved yet.", style = MaterialTheme.typography.bodyLarge)
                     Button(
                         onClick = onManageHoldings,
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text("Add what you own") }
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Filled.Add, contentDescription = null)
+                            Text("Add what you own")
+                        }
+                    }
                 } else {
                     Text("Filter by category", style = MaterialTheme.typography.titleSmall)
                     Row(

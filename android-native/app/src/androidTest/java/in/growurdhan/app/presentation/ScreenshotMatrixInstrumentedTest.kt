@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -60,7 +61,7 @@ class ScreenshotMatrixInstrumentedTest {
         compose.onNodeWithText("A family vault. Not another brokerage login.").assertIsDisplayed()
         assertTouch("Next")
         assertTouch("Skip")
-        assertTouch("हिन्दी")
+        compose.onAllNodesWithText("हिन्दी").assertCountEquals(0)
         save("onboarding-en-light-font1")
     }
 
@@ -70,29 +71,28 @@ class ScreenshotMatrixInstrumentedTest {
         assertTouch("Next")
         assertTouch("Skip")
         assertFitsOrShowsCue(
-            "GrowUrDhan is built so Indian families can see every member’s holdings in one private place.",
+            "GrowUrDhan lets an Indian family see every member's holdings in one private place.",
             "Scroll for the rest of this slide.",
         )
         scrollOnboardingToEnd()
-        assertTextBottomInsidePage("The books live on this phone.")
+        assertTextBottomInsidePage("the books live on this phone.")
         save("onboarding-en-light-font2")
     }
 
-    @Test fun onboardingHindiStaysReadableAtDoubleFont() {
+    @Test fun onboardingStaysEnglishAtDoubleFont() {
         show(dark = false, fontScale = 2f) { OnboardingScreen(onFinished = {}) }
-        compose.onNodeWithText("हिन्दी").performClick()
-        compose.onNodeWithText("परिवार का वॉल्ट — एक और ब्रोकर लॉगिन नहीं।").assertIsDisplayed()
-        assertEquals(0, compose.onAllNodesWithText("तिजोरी", substring = true).fetchSemanticsNodes().size)
-        assertTouch("अंग्रेज़ी")
-        assertTouch("आगे")
-        assertTouch("छोड़ें")
+        compose.onNodeWithText("A family vault. Not another brokerage login.").assertIsDisplayed()
+        compose.onAllNodesWithText("हिन्दी").assertCountEquals(0)
+        compose.onAllNodesWithText("आगे").assertCountEquals(0)
+        assertTouch("Next")
+        assertTouch("Skip")
         assertFitsOrShowsCue(
-            "GrowUrDhan इसलिए बना है कि भारतीय परिवार सभी सदस्यों के निवेश एक ही निजी जगह पर देख सकें।",
-            "और पढ़ने के लिए ऊपर खिसकाएँ।",
+            "GrowUrDhan lets an Indian family see every member's holdings in one private place.",
+            "Scroll for the rest of this slide.",
         )
         scrollOnboardingToEnd()
-        assertTextBottomInsidePage("आपका हिसाब-किताब इसी फ़ोन में रहता है।")
-        save("onboarding-hi-light-font2")
+        assertTextBottomInsidePage("the books live on this phone.")
+        save("onboarding-en-large-font2")
     }
 
     @Test fun licenceScreenOffersOnlyTheYearlyPlan() {

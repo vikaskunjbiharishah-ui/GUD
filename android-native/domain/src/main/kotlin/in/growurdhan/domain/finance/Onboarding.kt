@@ -2,9 +2,7 @@ package `in`.growurdhan.domain.finance
 
 /**
  * First-open walkthrough from src/lib/onboarding.ts.
- * Shown once, before signup. English is the store text. Hindi was
- * owner-reviewed on 2026-10-29. The vault word in Hindi is वॉल्ट.
- * Whether this phone has already seen it stays on the device.
+ * English only. Hindi was removed on 2026-11-09. The phone does not offer a language switch.
  */
 object Onboarding {
     const val SEEN_KEY = "gud.onboarding.seen"
@@ -55,23 +53,15 @@ object Onboarding {
 
     fun seen(stored: String?): Boolean = stored == "1"
 
-    /** Button and cue copy. Slide sentences stay in [slides]. */
-    fun chrome(hindi: Boolean): OnboardingChrome = if (hindi) {
-        OnboardingChrome(
-            next = "आगे",
-            back = "पीछे",
-            skip = "छोड़ें",
-            start = "शुरू करें",
-            languageToggle = "अंग्रेज़ी",
-            scrollCue = "और पढ़ने के लिए ऊपर खिसकाएँ।",
-        )
-    } else {
-        OnboardingChrome(
+    /** Button copy. Always English. The Boolean is ignored so an old call cannot turn Hindi back on. */
+    @Suppress("UNUSED_PARAMETER")
+    fun chrome(hindi: Boolean = false): OnboardingChrome {
+        return OnboardingChrome(
             next = "Next",
             back = "Back",
             skip = "Skip",
             start = "Continue",
-            languageToggle = "हिन्दी",
+            languageToggle = "",
             scrollCue = "Scroll for the rest of this slide.",
         )
     }

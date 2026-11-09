@@ -1,5 +1,6 @@
 package `in`.growurdhan.app.presentation.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -58,26 +59,28 @@ fun FirstRunIdentityScreen(
         first, last, email, pan, dob, q1, answer1, q2, answer2, consent,
     )
     val issues = FirstRunRegistration.issues(draft)
+    val fields = householdFieldColors()
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        Modifier.fillMaxSize().background(authPaper()).verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Who is this account?", style = MaterialTheme.typography.headlineSmall)
+        Text("Who is this account?", style = MaterialTheme.typography.headlineSmall, color = authInk(), fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
         Text(
             "Name, date of birth and two security questions are saved in the books on this phone, together with your app password. They are not sent to GrowUrDhan.",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
+            color = authInk(),
         )
-        Text("Account email: $email", style = MaterialTheme.typography.bodySmall)
+        Text("Account email: $email", style = MaterialTheme.typography.bodyLarge, color = authInk(), fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
         OutlinedTextField(first, { if (it.length <= 100) first = it },
-            label = { Text("First name") }, singleLine = true,
+            label = { Text("First name") }, singleLine = true, colors = fields,
             modifier = Modifier.fillMaxWidth().testTag("FirstRunFirstName"))
         OutlinedTextField(last, { if (it.length <= 100) last = it },
-            label = { Text("Last name") }, singleLine = true,
+            label = { Text("Last name") }, singleLine = true, colors = fields,
             modifier = Modifier.fillMaxWidth().testTag("FirstRunLastName"))
         Text("These answers stay on this phone. They are for getting back in. They are not sent to GrowUrDhan.",
             style = MaterialTheme.typography.bodyLarge)
         OutlinedTextField(pan, { if (it.length <= 10) pan = it.uppercase() },
-            label = { Text("PAN") }, singleLine = true,
+            label = { Text("PAN") }, singleLine = true, colors = fields,
             visualTransformation = if (hidePan) PasswordVisualTransformation() else VisualTransformation.None,
             trailingIcon = {
                 TextButton(onClick = { hidePan = !hidePan }) { Text(if (hidePan) "Show" else "Hide") }
@@ -96,7 +99,7 @@ fun FirstRunIdentityScreen(
             }
         }
         OutlinedTextField(answer1, { if (it.length <= 256) answer1 = it },
-            label = { Text("First security answer") }, singleLine = true,
+            label = { Text("First security answer") }, singleLine = true, colors = fields,
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth().testTag("FirstRunAnswer1"))
         Text("Second security question", style = MaterialTheme.typography.titleSmall)
@@ -106,7 +109,7 @@ fun FirstRunIdentityScreen(
             }
         }
         OutlinedTextField(answer2, { if (it.length <= 256) answer2 = it },
-            label = { Text("Second security answer") }, singleLine = true,
+            label = { Text("Second security answer") }, singleLine = true, colors = fields,
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth().testTag("FirstRunAnswer2"))
         Row(verticalAlignment = Alignment.CenterVertically) {

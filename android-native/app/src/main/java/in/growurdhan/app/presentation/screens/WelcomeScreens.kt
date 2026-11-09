@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -32,11 +33,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -58,14 +56,11 @@ private fun onboardingIcon(name: String): ImageVector = when (name) {
 @Composable
 fun OnboardingScreen(
     onFinished: () -> Unit,
-    hindi: Boolean = false,
-    onHindiChange: (Boolean) -> Unit = {},
 ) {
     val slides = Onboarding.slides
     val pager = rememberPagerState { slides.size }
     val scope = rememberCoroutineScope()
-    var hindiOn by remember { mutableStateOf(hindi) }
-    val chrome = Onboarding.chrome(hindiOn)
+    val chrome = Onboarding.chrome()
     val pageScroll = remember { List(slides.size) { ScrollState(0) } }
     val colors = listOf(
         MaterialTheme.colorScheme.primaryContainer,
@@ -76,15 +71,8 @@ fun OnboardingScreen(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(Modifier.fillMaxWidth()) {
             Text("GrowUrDhan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            TextButton(
-                onClick = {
-                    hindiOn = !hindiOn
-                    onHindiChange(hindiOn)
-                },
-                modifier = Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp),
-            ) { Text(chrome.languageToggle) }
         }
         LinearProgressIndicator(
             progress = { (pager.currentPage + 1f) / slides.size },
@@ -109,14 +97,14 @@ fun OnboardingScreen(
                         .padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Icon(onboardingIcon(pageSlide.icon), contentDescription = null, tint = ink)
+                    Icon(onboardingIcon(pageSlide.icon), contentDescription = null, tint = ink, modifier = Modifier.size(40.dp))
                     Text(
-                        if (hindiOn) pageSlide.hiTitle else pageSlide.enTitle,
+                        pageSlide.enTitle,
                         style = MaterialTheme.typography.headlineMedium,
                         color = ink,
                     )
                     Text(
-                        if (hindiOn) pageSlide.hiBody else pageSlide.enBody,
+                        pageSlide.enBody,
                         style = MaterialTheme.typography.bodyLarge,
                         color = ink,
                     )
@@ -167,15 +155,13 @@ fun TermsGateScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
                 Text("This app does not give investment advice.")
                 Text("Thirty days free, then ₹99 a year. You can cancel any time in Google Play.")
                 Text("The legal text below is in English. Accept is off until you reach the end.")
-                Text("इसका मतलब: किताबें इसी फ़ोन में रहती हैं। यह सलाह नहीं है। 30 दिन मुफ़्त, फिर ₹99 सालाना। Google Play पर कभी भी रद्द कर सकते हैं। नीचे अंग्रेज़ी क़ानूनी लेख है।",
-                    style = MaterialTheme.typography.bodyLarge)
             }
         }
         Text(
             if (atEnd) "You have reached the end."
-            else "Read to the end to accept. स्वीकार करने के लिए अंत तक पढ़ें।",
+            else "Read to the end to accept.",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         Column(
             Modifier.weight(1f).verticalScroll(scroll),

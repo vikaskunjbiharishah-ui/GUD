@@ -2,12 +2,20 @@ package `in`.growurdhan.app.presentation.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
@@ -19,7 +27,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.app.presentation.HouseholdDashboardUiState
 import `in`.growurdhan.core.model.OwnerId
@@ -47,8 +57,29 @@ fun InsightsScreen(
         Text("Insights", style = MaterialTheme.typography.headlineMedium)
         when (state) {
             HouseholdDashboardUiState.Locked -> {
-                Text("Enter your password to see how the family's money is split.")
-                Button(onClick = onOpenVault, modifier = Modifier.heightIn(min = 48.dp)) { Text("Open the books") }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Filled.PieChart, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                    Text(
+                        "Enter your password to see how the family's money is split.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("After the books are open, this page shows:", style = MaterialTheme.typography.titleMedium)
+                        InsightHint(Icons.Filled.Savings, "Shares, mutual funds, and gold")
+                        InsightHint(Icons.Filled.Payments, "Loans, next to what the family owns")
+                        InsightHint(Icons.Filled.PieChart, "The mix, from values saved in the book")
+                    }
+                }
+                Button(onClick = onOpenVault, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Filled.PieChart, contentDescription = null)
+                        Text("Open the books")
+                    }
+                }
             }
             HouseholdDashboardUiState.Loading -> Text("Adding up the book.")
             HouseholdDashboardUiState.Unavailable -> {
@@ -100,8 +131,9 @@ fun InsightsScreen(
                 val result = remember(dashboard) { PortfolioInsightsProjector.from(dashboard) }
                 Text(
                     "As of ${dashboard.asOf}. These are saved values, not today's market price.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
                 )
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(
@@ -218,12 +250,21 @@ fun InsightsScreen(
                 }
                 Text(
                     "This page does not guess yearly returns or tax. Those need dated cash and today's prices.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
                 )
                 Button(onClick = onRefresh) { Text("Refresh") }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun InsightHint(icon: ImageVector, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+        Text(label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
     }
 }

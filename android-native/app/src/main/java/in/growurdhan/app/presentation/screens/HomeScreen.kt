@@ -9,6 +9,24 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -56,12 +74,11 @@ fun HomeScreen(
     onAddHoldings: () -> Unit = {},
     onUpdateFundPrices: () -> Unit = {},
     fundPriceNote: String? = null,
-    hindi: Boolean = false,
     selectedFamilyOwner: OwnerId? = null,
     onSelectFamilyOwner: (OwnerId?) -> Unit = {},
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp).padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
@@ -110,17 +127,25 @@ fun HomeScreen(
                 ) { Text("Try again") }
             }
             HouseholdDashboardUiState.Locked -> {
-                Text(
-                    if (hindi) "परिवार का पैसा देखने के लिए पासवर्ड डालें।"
-                    else "Enter your password to see the family's money.",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Enter your password to see the family's money.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
                 Button(
                     onClick = onOpenVault,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
                         contentDescription = "Open the books"
                     },
-                ) { Text(if (hindi) "किताबें खोलें" else "Open the books") }
+                ) {
+                    Icon(Icons.Filled.Lock, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Open the books")
+                }
             }
         }
     }
@@ -160,10 +185,10 @@ private fun ReadyHome(
         dashboardState.importBatches.map { it.statementDate })
         .any { YearMonth.from(it) == month }
     val primary = when {
-        people == 0 -> "Add yourself" to onManageFamily
-        holdings == 0 -> "Add what the family owns" to onAddHoldings
-        !statementThisMonth -> "Review this month's statement" to onOpenStatements
-        else -> "See what we own" to onOpenPortfolio
+        people == 0 -> NextStep("Add yourself", Icons.Filled.Group, onManageFamily)
+        holdings == 0 -> NextStep("Add what the family owns", Icons.Filled.Add, onAddHoldings)
+        !statementThisMonth -> NextStep("Review this month's statement", Icons.Filled.Description, onOpenStatements)
+        else -> NextStep("See what we own", Icons.Filled.AccountBalance, onOpenPortfolio)
     }
     Text(
         if (focused == null) "What the family owns"
@@ -174,16 +199,19 @@ private fun ReadyHome(
         if (focused == null) "Figures saved in the book as of ${dashboard.asOf}. Not today's market price."
         else "The tiles are this person. Other people are hidden. Figures saved as of ${dashboard.asOf}. Not today's market price.",
         style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = MaterialTheme.colorScheme.onSurface,
+        fontWeight = FontWeight.Medium,
     )
     Text(
         fundPriceNote ?: "Mutual fund prices: not updated on this phone yet.",
         style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurface,
     )
     Text(
         "Shares and gold: last saved price. Not a live quote.",
         style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = MaterialTheme.colorScheme.onSurface,
+        fontWeight = FontWeight.Medium,
     )
     OutlinedButton(
         onClick = onUpdateFundPrices,
@@ -193,6 +221,7 @@ private fun ReadyHome(
     ) { Text("Update mutual fund prices") }
     MetricTile(
         label = "Net worth",
+        icon = Icons.Filled.Home,
         value = (focused?.netWorth ?: dashboard.netWorth).asBook(),
         note = if (focused == null) "$people people · $holdings investments and loans"
         else "This person only · ${focused.holdings} investments and loans",
@@ -201,6 +230,7 @@ private fun ReadyHome(
     )
     MetricTile(
         label = "What you own",
+        icon = Icons.Filled.Savings,
         value = (focused?.assets ?: dashboard.assets).asBook(),
         note = "Saved value",
         container = MaterialTheme.colorScheme.tertiaryContainer,
@@ -208,6 +238,7 @@ private fun ReadyHome(
     )
     MetricTile(
         label = "What you owe",
+        icon = Icons.Filled.Payments,
         value = (focused?.liabilities ?: dashboard.liabilities).asBook(),
         note = "Loans",
         container = MaterialTheme.colorScheme.secondaryContainer,
@@ -220,11 +251,15 @@ private fun ReadyHome(
         )
     }
     Button(
-        onClick = primary.second,
+        onClick = primary.onClick,
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
-            contentDescription = primary.first
+            contentDescription = primary.label
         },
-    ) { Text(primary.first) }
+    ) {
+        Icon(primary.icon, contentDescription = null)
+        Spacer(Modifier.width(8.dp))
+        Text(primary.label)
+    }
     OutlinedButton(
         onClick = onRefreshDashboard,
         modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Update totals" },
@@ -270,34 +305,41 @@ private fun ReadyHome(
         modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "More on this phone" },
     ) { Text(if (more) "Hide more" else "More on this phone") }
     if (more) {
-        MoreAction("What we own", "Open portfolio", onOpenPortfolio)
-        MoreAction("How the money is split", "Open insights", onOpenInsights)
-        MoreAction("Monthly statement", "Open documents", onOpenDocuments)
-        MoreAction("Interest to record", "Open interest review", onOpenInterest)
-        MoreAction("Loan instalments", "Open EMI review", onOpenEmi)
-        MoreAction("Saved statements", "Open records", onOpenRecords)
-        MoreAction("Tax for one person", "Open tax owner scope", onOpenTaxScope)
-        MoreAction("Accounts and nominees", "Open accounts", onOpenAccounts)
-        MoreAction("People", "Manage family", onManageFamily)
-        MoreAction("Privacy", "Open privacy", onOpenPrivacy)
-        MoreAction("Open the books", "Open the books", onOpenVault)
-        MoreAction("Settings", "Open settings", onOpenSettings)
+        MoreAction("What we own", "Open portfolio", Icons.Filled.AccountBalance, onOpenPortfolio)
+        MoreAction("How the money is split", "Open insights", Icons.Filled.PieChart, onOpenInsights)
+        MoreAction("Monthly statement", "Open documents", Icons.Filled.Description, onOpenDocuments)
+        MoreAction("Interest to record", "Open interest review", Icons.Filled.Savings, onOpenInterest)
+        MoreAction("Loan instalments", "Open EMI review", Icons.Filled.Payments, onOpenEmi)
+        MoreAction("Saved statements", "Open records", Icons.Filled.Description, onOpenRecords)
+        MoreAction("Tax for one person", "Open tax owner scope", Icons.Filled.AccountBalance, onOpenTaxScope)
+        MoreAction("Accounts and nominees", "Open accounts", Icons.Filled.AccountBalance, onOpenAccounts)
+        MoreAction("People", "Manage family", Icons.Filled.Group, onManageFamily)
+        MoreAction("Privacy", "Open privacy", Icons.Filled.Shield, onOpenPrivacy)
+        MoreAction("Open the books", "Open the books", Icons.Filled.Lock, onOpenVault)
+        MoreAction("Settings", "Open settings", Icons.Filled.Settings, onOpenSettings)
     }
 }
 
 @Composable
-private fun MoreAction(label: String, description: String, onClick: () -> Unit) {
+private fun MoreAction(label: String, description: String, icon: ImageVector, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
             contentDescription = description
         },
-    ) { Text(label) }
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(label)
+    }
 }
+
+private data class NextStep(val label: String, val icon: ImageVector, val onClick: () -> Unit)
 
 @Composable
 private fun MetricTile(
     label: String,
+    icon: ImageVector,
     value: String,
     note: String,
     container: androidx.compose.ui.graphics.Color,
@@ -306,7 +348,10 @@ private fun MetricTile(
 ) {
     Surface(color = container, shape = RoundedCornerShape(20.dp), modifier = modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = ink)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.size(22.dp))
+                Text(label, style = MaterialTheme.typography.labelLarge, color = ink)
+            }
             Text(
                 value,
                 style = MaterialTheme.typography.titleLarge,

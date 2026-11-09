@@ -19,6 +19,17 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Mail
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -73,7 +84,8 @@ fun SettingsScreen(
         Text(
             "Password, backup, the yearly plan, and how this phone looks.",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
         )
         Text("Look", style = MaterialTheme.typography.titleLarge)
 
@@ -121,13 +133,21 @@ fun SettingsScreen(
                         modifier = Modifier.heightIn(min = 48.dp).semantics {
                             contentDescription = "Vault settings"
                         },
-                    ) { Text("Books") }
+                    ) {
+                        Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Books")
+                    }
                     OutlinedButton(
                         onClick = onOpenPrivacy,
-                        modifier = Modifier.semantics {
+                        modifier = Modifier.heightIn(min = 48.dp).semantics {
                             contentDescription = "Privacy information"
                         },
-                    ) { Text("Privacy") }
+                    ) {
+                        Icon(Icons.Filled.Shield, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Privacy")
+                    }
                 }
             }
         }
@@ -153,10 +173,14 @@ fun SettingsScreen(
                 )
                 Text(
                     "One plan only. There is no lifetime licence and no second product.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                OutlinedButton(onClick = onOpenLicence) { Text("Yearly plan") }
+                OutlinedButton(onClick = onOpenLicence, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Icon(Icons.Filled.Payments, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Yearly plan")
+                }
             }
         }
 
@@ -173,8 +197,8 @@ fun SettingsScreen(
                     } else {
                         "Gmail stays off until the 30-day trial or the ₹99 year is active."
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 gmail.emails.forEach { email ->
                     Row(
@@ -189,7 +213,9 @@ fun SettingsScreen(
                     }
                 }
                 if (gmailAllowed) {
-                    OutlinedButton(onClick = onGmailConnect, enabled = !gmail.busy) {
+                    OutlinedButton(onClick = onGmailConnect, enabled = !gmail.busy, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Icon(Icons.Filled.Mail, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(if (gmail.busy) "Waiting for Google…" else "Connect Gmail")
                     }
                 }
@@ -207,17 +233,29 @@ fun SettingsScreen(
         OutlinedButton(
             onClick = onOpenEmergencyExport,
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) { Text("Export a summary anyone can open (unencrypted CSV)") }
+        ) {
+            Icon(Icons.Filled.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Export a summary anyone can open (unencrypted CSV)")
+        }
 
         OutlinedButton(
             onClick = onOpenBackupFolder,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Backup folder") }
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) {
+            Icon(Icons.Filled.Restore, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Backup folder")
+        }
 
         OutlinedButton(
             onClick = onChangeAppPassword,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Change GrowUrDhan app password") }
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) {
+            Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Change GrowUrDhan app password")
+        }
 
         val dynamicAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -231,8 +269,8 @@ fun SettingsScreen(
                     Text(
                         if (dynamicAvailable) "Off keeps the GrowUrDhan green, gold, and indigo. On uses your wallpaper."
                         else "Available on Android 12 and newer.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
                 Switch(

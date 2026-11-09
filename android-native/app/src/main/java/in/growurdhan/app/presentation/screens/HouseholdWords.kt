@@ -3,9 +3,11 @@ package `in`.growurdhan.app.presentation.screens
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
@@ -14,6 +16,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import `in`.growurdhan.domain.vault.FirstRunRegistration
 import java.time.Instant
@@ -22,6 +26,35 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 /** Household labels. Engines keep their own exact sentences. */
+
+/** Ink and paper that stay readable if the phone wallpaper recolours Material. */
+@Composable
+internal fun authPaper(): Color {
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.4f
+    return if (dark) Color(0xFF0C1210) else Color(0xFFF7FAF8)
+}
+
+@Composable
+internal fun authInk(): Color {
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.4f
+    return if (dark) Color(0xFFE7F2EB) else Color(0xFF121C18)
+}
+
+@Composable
+internal fun householdFieldColors() = TextFieldDefaults.colors(
+    focusedTextColor = authInk(),
+    unfocusedTextColor = authInk(),
+    disabledTextColor = authInk(),
+    focusedLabelColor = authInk(),
+    unfocusedLabelColor = authInk(),
+    cursorColor = MaterialTheme.colorScheme.primary,
+    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+    unfocusedIndicatorColor = authInk(),
+    focusedContainerColor = authPaper(),
+    unfocusedContainerColor = authPaper(),
+    disabledContainerColor = authPaper(),
+)
+
 internal fun householdCategory(raw: String): String = when (raw.trim().lowercase().replace('_', ' ')) {
     "mutual fund" -> "Mutual fund"
     "equity" -> "Shares"
